@@ -1,0 +1,174 @@
+<div class="modal-overlay" (click)="cerrarModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <!-- Header del modal -->
+    <div class="modal-header">
+      <h2>{{ getTituloModal() }}</h2>
+      <button class="close-btn" (click)="cerrarModal()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Contenido del modal -->
+    <div class="modal-body">
+      <form>
+        <!-- Información básica del grupo -->
+        <div class="form-section">
+          <h3>Información del Grupo</h3>
+          
+          <div class="form-group">
+            <label for="nombre">Nombre *</label>
+            <input 
+              type="text" 
+              id="nombre" 
+              name="nombre"
+              [(ngModel)]="formData.nombre"
+              placeholder="Ej: Toppings de Helado"
+              required>
+          </div>
+
+          <div class="form-group">
+            <label for="estado">Estado</label>
+            <select 
+              id="estado" 
+              name="estado"
+              [(ngModel)]="formData.estado">
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cobrarPrecio">
+              <input 
+                type="checkbox" 
+                id="cobrarPrecio" 
+                name="cobrarPrecio"
+                [(ngModel)]="formData.cobrarPrecio">
+              Cobrar precio de modificadores
+            </label>
+            <small class="form-text">
+              Si está marcado, se cobrará el precio de cada modificador seleccionado. 
+              Si no está marcado, los modificadores serán gratuitos.
+            </small>
+          </div>
+        </div>
+
+        <!-- Lista de modificadores -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3>Modificadores</h3>
+          </div>
+
+          <!-- Buscador de modificadores -->
+          <div class="modificador-search">
+            <div class="search-input">
+              <i class="fas fa-search"></i>
+              <input 
+                type="text" 
+                placeholder="Buscar modificadores..."
+                [(ngModel)]="terminoBusquedaModificador"
+                (input)="filtrarModificadores()">
+            </div>
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              (click)="agregarModificadorSeleccionado()"
+              [disabled]="!modificadorSeleccionado">
+              <i class="fas fa-plus"></i> Agregar
+            </button>
+          </div>
+
+          <!-- Lista de modificadores disponibles -->
+          <div class="modificadores-disponibles" *ngIf="modificadoresFiltrados.length > 0">
+            <h4>Modificadores Disponibles</h4>
+            <div class="modificadores-grid">
+              <div 
+                *ngFor="let mod of modificadoresFiltrados" 
+                class="modificador-option"
+                [class.selected]="modificadorSeleccionado?.id === mod.id"
+                (click)="seleccionarModificador(mod)">
+                <div class="modificador-info">
+                  <div class="modificador-nombre">{{ mod.nombre }}</div>
+                  <div class="modificador-precio">{{ formatCOP(mod.precio) }}</div>
+                  <div class="modificador-estado">
+                    <span class="status-badge" [class.active]="mod.estado === 'activo'">
+                      {{ mod.estado }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista de modificadores agregados -->
+          <div class="modificadores-agregados" *ngIf="formData.modificadores && formData.modificadores.length > 0">
+            <h4>Modificadores Agregados</h4>
+            <div class="modificadores-list">
+              <div *ngFor="let modificador of formData.modificadores; let i = index" class="modificador-item">
+                <div class="modificador-info">
+                  <div class="modificador-nombre">{{ modificador.nombre }}</div>
+                  <div class="modificador-precio">{{ formatCOP(modificador.precio) }}</div>
+                  <div class="modificador-estado">
+                    <span class="status-badge" [class.active]="modificador.estado === 'activo'">
+                      {{ modificador.estado }}
+                    </span>
+                  </div>
+                  <div class="modificador-categoria">
+                    <label for="categoria-mod-{{ i }}">Categoría</label>
+                    <input
+                      id="categoria-mod-{{ i }}"
+                      type="text"
+                      placeholder="Ej: Cremas, Proteínas, Toppings"
+                      [(ngModel)]="modificador.categoria"
+                      [ngModelOptions]="{ standalone: true }">
+                  </div>
+                </div>
+                <div class="modificador-actions">
+                  <button 
+                    type="button" 
+                    class="action-btn delete"
+                    (click)="eliminarModificador(i)"
+                    title="Eliminar modificador">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mensaje cuando no hay modificadores -->
+          <div *ngIf="!formData.modificadores || formData.modificadores.length === 0" class="no-modificadores">
+            <p>No hay modificadores agregados. Busca y agrega modificadores para continuar.</p>
+          </div>
+        </div>
+
+        <!-- Botones de acción del modal -->
+        <div class="modal-actions">
+          <button 
+            type="button" 
+            class="btn btn-secondary"
+            (click)="cerrarModal()">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary"
+            (click)="confirmarGuardado()">
+            {{ getBotonGuardarTexto() }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación -->
+<app-confirm-modal
+  *ngIf="mostrarConfirmacion"
+  [titulo]="tituloConfirmacion"
+  [mensaje]="mensajeConfirmacion"
+  [textoConfirmar]="modo === 'crear' ? 'Crear' : 'Actualizar'"
+  [tipo]="'info'"
+  (confirmar)="procederGuardado()"
+  (cancelar)="cancelarConfirmacion()">
+</app-confirm-modal>

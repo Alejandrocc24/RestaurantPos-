@@ -1,0 +1,250 @@
+<div class="respaldo-container">
+  <div class="top-nav">
+    <h2>Respaldo y Restauracion</h2>
+    <p>Gestiona copias de seguridad y restauracion del sistema</p>
+  </div>
+
+  <div class="main-content">
+    <div class="content-area">
+      <div class="backup-dashboard">
+        <div class="dashboard-cards">
+          <div class="dashboard-card">
+            <div class="card-icon">
+              <i class="fas fa-download"></i>
+            </div>
+            <div class="card-content">
+              <h3>Crear Respaldo</h3>
+              <p>Genera una copia de seguridad del sistema</p>
+              <button class="btn btn-primary" (click)="cambiarTab('respaldo')">
+                Crear Respaldo
+              </button>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-icon">
+              <i class="fas fa-upload"></i>
+            </div>
+            <div class="card-content">
+              <h3>Restaurar Sistema</h3>
+              <p>Restaura el sistema desde un respaldo existente</p>
+              <button class="btn btn-warning" (click)="cambiarTab('restauracion')">
+                Restaurar
+              </button>
+            </div>
+          </div>
+
+          <div class="dashboard-card">
+            <div class="card-icon">
+              <i class="fas fa-history"></i>
+            </div>
+            <div class="card-content">
+              <h3>Historial</h3>
+              <p>Revisa y gestiona respaldos anteriores</p>
+              <button class="btn btn-secondary" (click)="cambiarTab('historial')">
+                Ver Historial
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="backup-interface">
+          <div class="backup-tabs">
+            <div class="tab-buttons">
+              <button 
+                class="tab-btn" 
+                [class.active]="tabActivo === 'respaldo'"
+                (click)="cambiarTab('respaldo')">
+                <i class="fas fa-download"></i> Crear Respaldo
+              </button>
+              <button 
+                class="tab-btn" 
+                [class.active]="tabActivo === 'restauracion'"
+                (click)="cambiarTab('restauracion')">
+                <i class="fas fa-upload"></i> Restaurar
+              </button>
+              <button 
+                class="tab-btn" 
+                [class.active]="tabActivo === 'historial'"
+                (click)="cambiarTab('historial')">
+                <i class="fas fa-history"></i> Historial
+              </button>
+            </div>
+            
+            <!-- Tab de Crear Respaldo -->
+            <div class="tab-content" *ngIf="tabActivo === 'respaldo'">
+              <div class="backup-options">
+                <h4>Opciones de Respaldo</h4>
+                <div class="option-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="opcionesRespaldo.baseDatos" name="baseDatos">
+                    <span class="checkmark"></span>
+                    Base de datos completa
+                  </label>
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="opcionesRespaldo.archivos" name="archivos">
+                    <span class="checkmark"></span>
+                    Archivos del sistema
+                  </label>
+
+                </div>
+
+                <div class="form-group">
+                  <label for="nombreRespaldo">Nombre del Respaldo</label>
+                  <div class="input-with-button">
+                    <input
+                      type="text"
+                      id="nombreRespaldo"
+                      [(ngModel)]="nombreRespaldo"
+                      placeholder="Respaldo_2024_01_15"
+                      class="form-input">
+                    <button 
+                      type="button"
+                      class="btn-regenerar"
+                      (click)="generarNombreAutomatico()"
+                      title="Generar nuevo nombre automático">
+                      <i class="fas fa-sync-alt"></i>
+                    </button>
+                  </div>
+                  <small class="form-hint">El nombre se genera automáticamente. Puedes modificarlo o regenerarlo.</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="descripcionRespaldo">Descripcion (opcional)</label>
+                  <textarea
+                    id="descripcionRespaldo"
+                    [(ngModel)]="descripcionRespaldo"
+                    placeholder="Descripcion del respaldo..."
+                    class="form-textarea"
+                    rows="3"></textarea>
+                </div>
+
+                <!-- Barra de progreso -->
+                <div *ngIf="creandoRespaldo" class="progress-container">
+                  <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="progresoOperacion"></div>
+                  </div>
+                  <p class="progress-text">{{ mensajeProgreso }} ({{ progresoOperacion }}%)</p>
+                </div>
+
+                <button 
+                  class="btn btn-primary btn-large" 
+                  (click)="crearRespaldo()"
+                  [disabled]="creandoRespaldo">
+                  <i class="fas fa-download"></i> 
+                  {{ creandoRespaldo ? 'Creando...' : 'Crear Respaldo' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab de Restauracion -->
+            <div class="tab-content" *ngIf="tabActivo === 'restauracion'">
+              <div class="restore-options">
+                <h4>Restaurar desde Respaldo</h4>
+                <div class="form-group">
+                  <label for="archivoRespaldo">Seleccionar Archivo de Respaldo</label>
+                  <input
+                    type="file"
+                    id="archivoRespaldo"
+                    (change)="seleccionarArchivo($event)"
+                    accept=".zip,.sql,.bak"
+                    class="form-file">
+                </div>
+
+                <div class="warning-box">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <div class="warning-content">
+                    <strong>¡Advertencia!</strong>
+                    <p>La restauracion sobrescribira todos los datos actuales. Asegurate de tener un respaldo reciente antes de continuar.</p>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="confirmarRestauracion" name="confirmarRestauracion">
+                    <span class="checkmark"></span>
+                    Confirmo que entiendo los riesgos de la restauracion
+                  </label>
+                </div>
+
+                <!-- Barra de progreso restauración -->
+                <div *ngIf="restaurandoRespaldo" class="progress-container">
+                  <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="progresoOperacion"></div>
+                  </div>
+                  <p class="progress-text">{{ mensajeProgreso }} ({{ progresoOperacion }}%)</p>
+                </div>
+
+                <button
+                  class="btn btn-warning btn-large"
+                  [disabled]="!confirmarRestauracion || !archivoSeleccionado || restaurandoRespaldo"
+                  (click)="restaurarRespaldo()">
+                  <i class="fas fa-upload"></i> 
+                  {{ restaurandoRespaldo ? 'Restaurando...' : 'Restaurar Sistema' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Tab de Historial -->
+            <div class="tab-content" *ngIf="tabActivo === 'historial'">
+              <div class="backup-history">
+                <h4>Historial de Respaldos</h4>
+                
+                <div *ngIf="cargandoHistorial" class="loading-spinner">
+                  <i class="fas fa-spinner fa-spin"></i>
+                  <p>Cargando historial...</p>
+                </div>
+
+                <div class="history-list" *ngIf="!cargandoHistorial">
+                  <div *ngFor="let respaldo of historialRespaldos" class="history-item">
+                    <div class="history-info">
+                      <div class="history-name">
+                        {{ respaldo.nombre }}
+                        <span *ngIf="respaldo.google_drive_id" class="badge-drive" title="Almacenado en Google Drive">
+                          <i class="fab fa-google-drive"></i>
+                        </span>
+                      </div>
+                      <div class="history-details">
+                        <span class="history-date">{{ respaldo.fecha }}</span>
+                        <span class="history-size">{{ respaldo.tamano }}</span>
+                        <span class="history-type">{{ respaldo.tipo }}</span>
+                        <span *ngIf="respaldo.registros" class="history-records">{{ respaldo.registros }} registros</span>
+                      </div>
+                      <div *ngIf="respaldo.descripcion" class="history-description">
+                        {{ respaldo.descripcion }}
+                      </div>
+                    </div>
+                    <div class="history-actions">
+                      <button 
+                        *ngIf="respaldo.google_drive_url" 
+                        class="action-btn drive" 
+                        (click)="abrirEnGoogleDrive(respaldo)" 
+                        title="Abrir en Google Drive">
+                        <i class="fab fa-google-drive"></i>
+                      </button>
+                      <button class="action-btn" (click)="descargarRespaldo(respaldo)" title="Descargar">
+                        <i class="fas fa-download"></i>
+                      </button>
+                      <button class="action-btn" (click)="restaurarDesdeHistorial(respaldo)" title="Restaurar">
+                        <i class="fas fa-upload"></i>
+                      </button>
+                      <button class="action-btn delete" (click)="eliminarRespaldo(respaldo)" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div *ngIf="historialRespaldos.length === 0" class="no-backups">
+                    <i class="fas fa-database"></i>
+                    <p>No hay respaldos disponibles</p>
+                    <span>Crea tu primer respaldo para comenzar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

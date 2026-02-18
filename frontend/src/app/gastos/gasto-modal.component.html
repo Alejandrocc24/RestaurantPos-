@@ -1,0 +1,131 @@
+<div class="modal-overlay" (click)="onCerrar()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ esEdicion ? 'Editar Gasto' : 'Nuevo Gasto' }}</h2>
+      <button class="close-btn" (click)="onCerrar()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-group">
+        <label for="descripcion">Descripción *</label>
+        <input 
+          type="text" 
+          id="descripcion" 
+          name="descripcion"
+          [(ngModel)]="gastoForm.descripcion"
+          required
+          placeholder="Ingrese la descripción del gasto">
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            name="salio_de_caja"
+            [(ngModel)]="gastoForm.salio_de_caja">
+          <span class="checkmark"></span>
+          <span class="checkbox-text">El dinero salió de caja</span>
+        </label>
+        <small class="help-text">Marque esta opción si el gasto se pagó con dinero de la caja registradora</small>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="monto">Monto *</label>
+          <input 
+            type="number" 
+            id="monto" 
+            name="monto"
+            [(ngModel)]="gastoForm.monto"
+            (focus)="onMontoFocus($event)"
+            (blur)="onMontoBlur($event)"
+            required
+            min="0"
+            step="0.001"
+            placeholder="0.000">
+        </div>
+
+        <div class="form-group">
+          <label for="fecha">Fecha *</label>
+          <input 
+            type="date" 
+            id="fecha" 
+            name="fecha"
+            [value]="getFechaString()"
+            (change)="onFechaChange($event)"
+            required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="categoria">Categoría *</label>
+          <select 
+            id="categoria" 
+            name="categoria"
+            [(ngModel)]="gastoForm.categoria"
+            required>
+            <option value="">Seleccione una categoría</option>
+            <option *ngFor="let categoria of categorias" [value]="categoria">
+              {{ categoria }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="proveedor">Proveedor *</label>
+          <select 
+            id="proveedor" 
+            name="proveedor"
+            [(ngModel)]="gastoForm.proveedor"
+            (change)="onProveedorChange($event)"
+            [disabled]="mostrarInputProveedorPersonalizado"
+            required>
+            <option value="">Seleccione un proveedor</option>
+            <option *ngFor="let proveedor of proveedores" [value]="proveedor">
+              {{ proveedor }}
+            </option>
+          </select>
+          
+          <!-- Input para proveedor personalizado -->
+          <div *ngIf="mostrarInputProveedorPersonalizado" class="proveedor-personalizado-container">
+            <input 
+              type="text" 
+              id="proveedorPersonalizado"
+              [(ngModel)]="proveedorPersonalizadoTemp"
+              name="proveedorPersonalizado"
+              placeholder="Nombre del proveedor (solo para este gasto)"
+              class="proveedor-personalizado-input">
+            <div class="proveedor-personalizado-actions">
+              <button type="button" class="btn-small btn-success" (click)="guardarProveedorPersonalizado()">
+                <i class="fas fa-check"></i> Usar
+              </button>
+              <button type="button" class="btn-small btn-cancel" (click)="cancelarProveedorPersonalizado()">
+                <i class="fas fa-times"></i> Cancelar
+              </button>
+            </div>
+            <small class="help-text">Este proveedor NO se guardará en la base de datos</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCerrar()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          {{ esEdicion ? 'Actualizar' : 'Crear' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal para agregar nuevo proveedor -->
+<app-nuevo-proveedor-modal
+  *ngIf="mostrarModalNuevoProveedor"
+  (guardar)="guardarNuevoProveedor($event)"
+  (cerrar)="cerrarModalNuevoProveedor()">
+</app-nuevo-proveedor-modal>

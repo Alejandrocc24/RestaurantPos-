@@ -1,0 +1,101 @@
+<div class="modal-overlay" (click)="onBackdropClick($event)">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>{{ esEdicion ? '✏️ Editar Rol' : '🆕 Crear Nuevo Rol' }}</h2>
+      <button class="modal-close" (click)="cerrarModal()" type="button"><span>✕</span></button>
+    </div>
+    <div class="modal-body">
+      <form (ngSubmit)="guardarRol()" #rolForm="ngForm">
+        <div class="form-group">
+          <label for="nombre" class="form-label">
+            <span class="required">*</span> Nombre del Rol
+          </label>
+          <input 
+            type="text" 
+            id="nombre" 
+            name="nombre"
+            [(ngModel)]="nuevoRol.nombre" 
+            class="form-input" 
+            [class.error]="errores.nombre"
+            placeholder="Ej: Supervisor de Ventas"
+            required>
+          <div class="error-message" *ngIf="errores.nombre">{{ errores.nombre }}</div>
+        </div>
+
+        <div class="form-group">
+          <label for="descripcion" class="form-label">
+            <span class="required">*</span> Descripción
+          </label>
+          <textarea 
+            id="descripcion" 
+            name="descripcion"
+            [(ngModel)]="nuevoRol.descripcion" 
+            class="form-textarea" 
+            [class.error]="errores.descripcion"
+            placeholder="Describe las responsabilidades y alcance del rol"
+            rows="3"
+            required></textarea>
+          <div class="error-message" *ngIf="errores.descripcion">{{ errores.descripcion }}</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            <span class="required">*</span> Permisos del Rol
+            <span class="permisos-count">({{ nuevoRol.permisos.length }} seleccionados)</span>
+          </label>
+          <div class="permissions-container">
+            <div *ngFor="let categoria of permisosPorCategoria" class="permission-category">
+              <div class="category-header">
+                <h4 class="category-title">{{ categoria.nombre }}</h4>
+                <button 
+                  type="button" 
+                  class="btn-select-all"
+                  (click)="toggleCategoria(categoria)">
+                  {{ todosSeleccionados(categoria) ? '✓ Todos' : 'Seleccionar todos' }}
+                </button>
+              </div>
+              <div class="permissions-list">
+                <label *ngFor="let permiso of categoria.permisos" class="permission-item">
+                  <input 
+                    type="checkbox" 
+                    [checked]="nuevoRol.permisos.includes(permiso.valor)"
+                    (change)="togglePermiso(permiso.valor)">
+                  <div class="permission-content">
+                    <span class="permission-label">{{ permiso.etiqueta }}</span>
+                    <span class="permission-description">{{ permiso.descripcion }}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="error-message" *ngIf="errores.permisos">{{ errores.permisos }}</div>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              name="activo"
+              [(ngModel)]="nuevoRol.activo">
+            <span class="checkmark"></span>
+            Rol activo
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" (click)="cerrarModal()" class="btn btn-secondary" [disabled]="enviando">
+            <span class="btn-icon">✕</span>
+            <span class="btn-text">Cancelar</span>
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="enviando || !rolForm.form.valid">
+            <span class="btn-icon" *ngIf="!enviando">{{ esEdicion ? '💾' : '✓' }}</span>
+            <span class="btn-icon loading" *ngIf="enviando">⏳</span>
+            <span class="btn-text">
+              {{ enviando ? (esEdicion ? 'Guardando...' : 'Creando...') : (esEdicion ? 'Guardar Cambios' : 'Crear Rol') }}
+            </span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

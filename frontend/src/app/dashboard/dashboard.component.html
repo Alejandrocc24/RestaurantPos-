@@ -1,0 +1,86 @@
+<!-- dashboard.component.html -->
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <app-sidebar 
+    [isVisible]="isSidebarVisible" 
+    (closeRequested)="toggleSidebar()"
+    (viewChangeRequested)="showView($event)">
+  </app-sidebar>
+  
+  <!-- Header Bar -->
+  <header class="header" [ngClass]="{'sidebar-hidden': !isSidebarVisible}">
+    <div class="header-content">
+      <!-- Botón Toggle Sidebar -->
+      <button class="sidebar-toggle" (click)="toggleSidebar()" [title]="isSidebarVisible ? 'Ocultar menú' : 'Mostrar menú'">
+        <span class="toggle-icon">{{ isSidebarVisible ? '◀' : '▶' }}</span>
+        <span class="toggle-text">Menú</span>
+      </button>
+      
+      <!-- Logo Dulce Momento -->
+      <div class="logo">
+        <h1>Dulce Momento</h1>
+      </div>
+      
+      <!-- Fecha y Hora -->
+      <div class="datetime">
+        <div class="date">{{ currentDate }}</div>
+        <div class="time">{{ currentTime }}</div>
+      </div>
+      
+      <!-- Usuario y Logout -->
+      <div class="user-section">
+        <div class="user-profile">
+          <div class="user-avatar">
+            <i class="user-icon">👤</i>
+          </div>
+          <span class="username">{{ userName }}</span>
+        </div>
+        <button class="logout-btn" (click)="logout()" title="Cerrar sesión">
+          <i class="logout-icon">↪</i>
+        </button>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Área de contenido principal -->
+  <main class="main-content" [ngClass]="{'sidebar-hidden': !isSidebarVisible}">
+    <div class="content-area">
+      <!-- Contenido dinámico según la vista seleccionada -->
+      <div *ngIf="currentView === 'welcome'" class="welcome-message">
+        <h2>Bienvenido al Dashboard de Dulce Momento</h2>
+        <p>Hola {{ userName }}, selecciona una opción del menú para comenzar</p>
+      </div>
+      
+      <app-productos *ngIf="currentView === 'productos' || currentView === 'inventario'" [initialTab]="currentView === 'inventario' ? 'inventario' : 'productos'" (viewChangeRequested)="showView($event)"></app-productos>
+      
+      <app-categoria-productos *ngIf="currentView === 'categoria-productos'" (viewChangeRequested)="showView($event)"></app-categoria-productos>
+      
+      <app-grupos-modificadores *ngIf="currentView === 'grupos-modificadores'" (viewChangeRequested)="showView($event)"></app-grupos-modificadores>
+      
+      <app-gestion-comentarios *ngIf="currentView === 'gestion-comentarios'" (viewChangeRequested)="showView($event)"></app-gestion-comentarios>
+      
+      <app-mesas *ngIf="currentView === 'mesas'"></app-mesas>
+      
+      <app-ventas *ngIf="currentView === 'ventas'"></app-ventas>
+      
+      <!-- Vista de Gastos -->
+      <app-gastos *ngIf="currentView === 'gastos'" (viewChangeRequested)="showView($event)"></app-gastos>
+
+      <!-- Vista de Proveedores -->
+      <app-proveedores *ngIf="currentView === 'proveedores'" (viewChangeRequested)="showView($event)"></app-proveedores>
+
+      <!-- Vista de Categoría de Gastos -->
+      <app-categoria-gastos *ngIf="currentView === 'categoria-gastos'" (viewChangeRequested)="showView($event)"></app-categoria-gastos>
+      
+      <app-cocina *ngIf="currentView === 'cocina'"></app-cocina>
+      
+      <!-- Vista de Configuración -->
+      <app-configuracion *ngIf="currentView === 'configuracion'"></app-configuracion>
+      
+      <!-- Componente de Respaldo y Restauración -->
+      <app-respaldo *ngIf="currentView === 'respaldo'"></app-respaldo>
+    </div>
+  </main>
+  <!-- Contenedor global de toasts -->
+  <app-toast-container></app-toast-container>
+</div>

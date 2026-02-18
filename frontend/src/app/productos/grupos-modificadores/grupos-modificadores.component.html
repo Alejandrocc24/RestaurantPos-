@@ -1,0 +1,101 @@
+<div class="grupos-modificadores-container">
+  <!-- Header del componente -->
+  <div class="grupos-modificadores-header">
+    <h2>Gestión de Grupos Modificadores</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" (click)="navegarAProductos()">🍦 Productos</button>
+      <button class="tab-button" (click)="navegarACategoriaProductos()">📂 Categoría de Productos</button>
+      <button class="tab-button active">⚙️ Grupos Modificadores</button>
+      <button class="tab-button comentarios-nav" (click)="navegarAGestionComentarios()">💬 Gestión de Comentarios</button>
+      <button class="tab-button" (click)="navegarAInventario()">📦 Inventario</button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
+        {{ mostrarInactivos ? 'Ocultar inactivos' : 'Mostrar inactivos' }}
+      </button>
+      <button class="btn btn-primary" (click)="nuevoGrupo()">➕ Nuevo grupo</button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <div class="content-area">
+      <!-- Tabla de grupos modificadores -->
+      <div class="grupos-table">
+        <div class="table-header">
+          <div class="header-cell">Nombre</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell">Cobrar Precio</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let grupo of gruposFiltrados" class="table-row">
+            <div class="table-cell" data-label="Nombre">
+              <div class="grupo-nombre">{{ grupo.nombre }}</div>
+            </div>
+            <div class="table-cell" data-label="Estado">
+              <span 
+                class="status-badge" 
+                [class.active]="grupo.estado === 'activo'"
+                [class.inactive]="grupo.estado === 'inactivo'"
+                (click)="cambiarEstado(grupo)">
+                {{ grupo.estado }}
+              </span>
+            </div>
+            <div class="table-cell" data-label="Cobrar Precio">
+              <span 
+                class="status-badge" 
+                [class.active]="grupo.cobrarPrecio"
+                [class.inactive]="!grupo.cobrarPrecio"
+                (click)="cambiarCobrarPrecio(grupo)">
+                {{ grupo.cobrarPrecio ? 'Sí' : 'No' }}
+              </span>
+            </div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarGrupo(grupo)" title="Editar grupo">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="eliminarGrupo(grupo)" title="Eliminar grupo">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay grupos -->
+          <div *ngIf="gruposFiltrados.length === 0" class="no-grupos">
+            <p>No se encontraron grupos modificadores</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Modal de Grupo Modificador -->
+  <app-grupo-modificador-modal
+    *ngIf="mostrarModalGrupo"
+    [grupo]="grupoSeleccionado"
+    [modo]="esEdicionGrupo ? 'editar' : 'crear'"
+    (guardado)="onGrupoGuardado($event)"
+    (cancelado)="onModalCerrado()">
+  </app-grupo-modificador-modal>
+
+  <!-- Modal de confirmación personalizado -->
+  <app-confirm-modal
+    *ngIf="mostrarConfirmacion"
+    [titulo]="tituloConfirmacion"
+    [mensaje]="mensajeConfirmacion"
+    [textoConfirmar]="accionConfirmacion"
+    [tipo]="'danger'"
+    (confirmar)="procederAccion()"
+    (cancelar)="cerrarConfirmacion()">
+  </app-confirm-modal>
+</div>

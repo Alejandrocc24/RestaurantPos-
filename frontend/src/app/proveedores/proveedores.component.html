@@ -1,0 +1,97 @@
+<div class="proveedores-container">
+  <!-- Header del componente -->
+  <div class="proveedores-header">
+    <h2>Gestión de Proveedores</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" (click)="navegarAGastos()">
+        💰 Gastos
+      </button>
+      <button class="tab-button" (click)="viewChangeRequested.emit('categoria-gastos')">
+        📂 Categoría de Gastos
+      </button>
+      <button class="tab-button active">
+        🏢 Proveedores
+      </button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-primary" (click)="nuevoProveedor()">
+        ➕ Nuevo proveedor
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      <!-- Tabla de proveedores -->
+      <div class="proveedores-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Nombre</div>
+          <div class="header-cell">Tipo</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let proveedor of proveedores" class="table-row">
+            <div class="table-cell" data-label="ID">{{ proveedor.id }}</div>
+            <div class="table-cell" data-label="Nombre">{{ proveedor.nombre }}</div>
+            <div class="table-cell" data-label="Tipo">{{ proveedor.tipo }}</div>
+            <div class="table-cell" data-label="Estado">
+              <span 
+                class="status-badge" 
+                [class.active]="proveedor.estado === 'Activo'"
+                [class.inactive]="proveedor.estado === 'Inactivo'"
+                (click)="cambiarEstado(proveedor)">
+                {{ proveedor.estado }}
+              </span>
+            </div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarProveedor(proveedor)" title="Editar proveedor">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="eliminarProveedor(proveedor)" title="Eliminar proveedor">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay proveedores -->
+          <div *ngIf="proveedores.length === 0" class="no-proveedores">
+            <p>No se encontraron proveedores</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Proveedor -->
+  <app-proveedor-modal
+    *ngIf="mostrarModalProveedor"
+    [proveedor]="proveedorSeleccionado"
+    [esEdicion]="esEdicionProveedor"
+    (guardar)="guardarProveedor($event)"
+    (cerrar)="cerrarModalProveedor()">
+  </app-proveedor-modal>
+
+  <!-- Diálogo de Confirmación -->
+  <app-confirm-dialog
+    *ngIf="mostrarConfirmDialog"
+    [title]="confirmDialogConfig.title"
+    [message]="confirmDialogConfig.message"
+    [details]="confirmDialogConfig.details"
+    [type]="confirmDialogConfig.type"
+    [confirmText]="confirmDialogConfig.confirmText"
+    [cancelText]="confirmDialogConfig.cancelText"
+    (confirm)="confirmarEliminacion()"
+    (cancel)="cerrarConfirmDialog()">
+  </app-confirm-dialog>
+</div>

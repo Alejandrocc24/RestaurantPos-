@@ -1,0 +1,127 @@
+<div class="gestion-comentarios-container">
+  <!-- Header del componente -->
+  <div class="gestion-comentarios-header">
+    <h2>Gestión de Comentarios</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" (click)="navegarAProductos()">🍦 Productos</button>
+      <button class="tab-button" (click)="navegarACategoriaProductos()">📂 Categoría de Productos</button>
+      <button class="tab-button" (click)="navegarAGruposModificadores()">⚙️ Grupos Modificadores</button>
+      <button class="tab-button active">💬 Gestión de Comentarios</button>
+      <button class="tab-button" (click)="navegarAInventario()">📦 Inventario</button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
+        {{ mostrarInactivos ? 'Ocultar inactivos' : 'Mostrar inactivos' }}
+      </button>
+      <button class="btn btn-primary" (click)="abrirModalNuevoComentario()">➕ Nuevo comentario</button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      <!-- Tabla de comentarios -->
+      <div class="comentarios-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Comentario</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell">Acciones</div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let comentario of comentariosFiltrados" class="table-row">
+            <div class="table-cell">{{ comentario.id }}</div>
+            <div class="table-cell">{{ comentario.texto }}</div>
+            <div class="table-cell">
+              <span class="status-badge" 
+                    [class.activo]="comentario.activo"
+                    (click)="cambiarEstadoComentario(comentario)"
+                    title="Hacer clic para cambiar estado"
+                    style="cursor: pointer;">
+                {{ comentario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="table-cell">
+              <div class="action-buttons">
+                <button class="btn-action btn-edit" (click)="editarComentario(comentario)" title="Editar">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-action btn-delete" (click)="eliminarComentario(comentario)" title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay comentarios -->
+          <div *ngIf="comentariosFiltrados.length === 0" class="no-comentarios">
+            <p>No se encontraron comentarios</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Nuevo/Editar Comentario -->
+  <div class="modal-overlay" *ngIf="mostrarModalNuevoComentario" (click)="cerrarModalNuevoComentario()">
+    <div class="modal-content nuevo-comentario-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ esEdicionComentario ? 'Editar Comentario' : 'Nuevo Comentario' }}</h3>
+        <button class="close-btn" (click)="cerrarModalNuevoComentario()">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <form class="comentario-form">
+          <div class="form-group">
+            <label for="texto">Comentario:</label>
+            <input 
+              type="text" 
+              id="texto"
+              [(ngModel)]="nuevoComentario.texto"
+              placeholder="Ej: Sin azúcar, Para llevar..."
+              class="form-control"
+              name="texto">
+          </div>
+          
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [(ngModel)]="nuevoComentario.activo"
+                name="activo">
+              <span class="checkmark"></span>
+              Comentario activo
+            </label>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" (click)="cerrarModalNuevoComentario()">
+              Cancelar
+            </button>
+                         <button type="button" class="btn btn-primary" (click)="guardarComentario()"
+                     [disabled]="!nuevoComentario.texto.trim()">
+               {{ esEdicionComentario ? 'Actualizar' : 'Guardar' }}
+             </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación personalizado -->
+  <app-confirm-modal
+    *ngIf="mostrarConfirmacion"
+    [titulo]="tituloConfirmacion"
+    [mensaje]="mensajeConfirmacion"
+    [textoConfirmar]="accionConfirmacion"
+    [tipo]="'danger'"
+    (confirmar)="procederAccion()"
+    (cancelar)="cerrarConfirmacion()">
+  </app-confirm-modal>
+</div>

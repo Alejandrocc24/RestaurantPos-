@@ -1,0 +1,63 @@
+<div class="modal-overlay" (click)="onCerrar()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ esEdicion ? 'Editar Proveedor' : 'Nuevo Proveedor' }}</h2>
+      <button class="close-btn" (click)="onCerrar()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="modal-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="nombre">Nombre *</label>
+          <input 
+            type="text" 
+            id="nombre" 
+            name="nombre"
+            [(ngModel)]="proveedorForm.nombre"
+            required
+            placeholder="Ingrese el nombre del proveedor">
+        </div>
+
+        <div class="form-group">
+          <label for="tipo">Tipo *</label>
+          <select 
+            id="tipo" 
+            name="tipo"
+            [(ngModel)]="proveedorForm.tipo"
+            required>
+            <option value="">Seleccione un tipo</option>
+            <option *ngFor="let tipo of tipos" [value]="tipo">
+              {{ tipo }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+
+
+      <div class="form-group">
+        <label for="estado">Estado *</label>
+        <select 
+          id="estado" 
+          name="estado"
+          [(ngModel)]="proveedorForm.estado"
+          required>
+          <option *ngFor="let estado of estados" [value]="estado">
+            {{ estado }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCerrar()">
+          Cancelar
+        </button>
+        <button type="submit" class="btn btn-primary">
+          {{ esEdicion ? 'Actualizar' : 'Crear' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

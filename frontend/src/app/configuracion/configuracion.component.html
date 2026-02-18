@@ -1,0 +1,475 @@
+<div class="configuracion-container">
+  <!-- Header del componente -->
+  <div class="configuracion-header">
+    <h2 *ngIf="tabActivo === 'usuarios'">Gestión de Usuarios</h2>
+    <h2 *ngIf="tabActivo === 'roles'">Gestión de Roles</h2>
+    <h2 *ngIf="tabActivo === 'impresoras'">Gestión de Impresoras</h2>
+    <h2 *ngIf="tabActivo === 'factura'">Configuración de Factura</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" [class.active]="tabActivo === 'usuarios'" (click)="cambiarTab('usuarios')">
+          👥 Gestión de Usuarios
+        </button>
+      <button class="tab-button" [class.active]="tabActivo === 'roles'" (click)="cambiarTab('roles')">
+        🎭 Gestión de Roles
+      </button>
+      <button class="tab-button" [class.active]="tabActivo === 'impresoras'" (click)="cambiarTab('impresoras')">
+        🖨️ Impresoras
+      </button>
+      <button class="tab-button" [class.active]="tabActivo === 'factura'" (click)="cambiarTab('factura')">
+        🧾 Configuración de Factura
+      </button>
+    </div>
+    <div class="tab-actions">
+      <!-- Botón para usuarios -->
+      <button class="btn btn-primary" *ngIf="tabActivo === 'usuarios'" (click)="nuevoUsuario()">
+        ➕ Nuevo usuario
+      </button>
+      <!-- Botón para roles -->
+      <button class="btn btn-primary" *ngIf="tabActivo === 'roles'" (click)="nuevoRol()">
+        ➕ Nuevo Rol
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Indicador de carga -->
+    <div *ngIf="cargandoDatos" class="loading-overlay">
+      <div class="loading-spinner">
+        <div class="spinner"></div>
+        <p>Cargando datos...</p>
+      </div>
+    </div>
+
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      
+      <!-- VISTA DE USUARIOS -->
+      <div *ngIf="tabActivo === 'usuarios'" class="usuarios-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Nombre</div>
+          <div class="header-cell">Email</div>
+          <div class="header-cell">Rol</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell">Fecha Creación</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+
+        <div class="table-body">
+          <div *ngFor="let usuario of usuariosFiltrados" class="table-row">
+            <div class="table-cell" data-label="ID">{{ usuario.id }}</div>
+            <div class="table-cell" data-label="Nombre">{{ usuario.nombre }}</div>
+            <div class="table-cell" data-label="Email">{{ usuario.email }}</div>
+            <div class="table-cell" data-label="Rol">{{ obtenerEtiquetaRol(usuario.rol) }}</div>
+            <div class="table-cell" data-label="Estado">
+              <span class="status-badge clickable" 
+                    [class.status-active]="usuario.activo" 
+                    [class.status-inactive]="!usuario.activo"
+                    (click)="cambiarEstadoUsuario(usuario)"
+                    [title]="'Haz clic para cambiar el estado'">
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="table-cell" data-label="Fecha Creación">{{ usuario.fechaCreacion | date:'dd/MM/yyyy' }}</div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarUsuario(usuario)" title="Editar usuario">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="eliminarUsuario(usuario)" title="Eliminar usuario">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay usuarios -->
+          <div *ngIf="usuariosFiltrados.length === 0" class="no-usuarios">
+            <p>No se encontraron usuarios</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA DE ROLES -->
+      <div *ngIf="tabActivo === 'roles'" class="roles-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Nombre del Rol</div>
+          <div class="header-cell">Descripción</div>
+          <div class="header-cell">Permisos</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell">Fecha Creación</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+
+        <div class="table-body">
+          <div *ngFor="let rol of roles" class="table-row">
+            <div class="table-cell" data-label="ID">{{ rol.id }}</div>
+            <div class="table-cell" data-label="Nombre del Rol">
+              <span class="role-name">{{ rol.nombre }}</span>
+              <span class="role-code">({{ rol.codigo }})</span>
+            </div>
+            <div class="table-cell" data-label="Descripción">{{ rol.descripcion }}</div>
+            <div class="table-cell" data-label="Permisos">
+              <div class="permissions-list">
+                <span *ngFor="let permiso of obtenerPermisosVisibles(rol.permisos)" class="permission-badge">
+                  {{ permiso }}
+                </span>
+                <span *ngIf="contarPermisosRestantes(rol.permisos) > 0" class="permission-more">
+                  +{{ contarPermisosRestantes(rol.permisos) }} más
+                </span>
+              </div>
+            </div>
+            <div class="table-cell" data-label="Estado">
+              <span class="status-badge clickable" 
+                    [class.status-active]="rol.activo" 
+                    [class.status-inactive]="!rol.activo"
+                    (click)="cambiarEstadoRol(rol)"
+                    [title]="'Haz clic para cambiar el estado'">
+                {{ rol.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="table-cell" data-label="Fecha Creación">{{ rol.fechaCreacion | date:'dd/MM/yyyy' }}</div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarRol(rol)" title="Editar rol">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="eliminarRol(rol)" title="Eliminar rol">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay roles -->
+          <div *ngIf="roles.length === 0" class="no-roles">
+            <p>No se encontraron roles</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- VISTA DE CONFIGURACIÓN DE FACTURA -->
+      <div *ngIf="tabActivo === 'factura'" class="factura-config">
+        <app-config-factura></app-config-factura>
+      </div>
+
+      <!-- VISTA DE IMPRESORAS -->
+      <div *ngIf="tabActivo === 'impresoras'" class="impresoras-table">
+        <div class="config-section">
+          <h3>Configuración de Impresora POS 80mm</h3>
+          
+          <!-- Configuración de la impresora -->
+          <div class="config-form">
+            <div class="form-group">
+              <label>Nombre de la Impresora:</label>
+              <input type="text" [(ngModel)]="configImpresora.nombre" placeholder="Ej: Impresora Principal">
+            </div>
+            
+            <div class="form-group">
+              <label>Puerto/Dispositivo:</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <select [(ngModel)]="configImpresora.puerto" style="flex: 1;">
+                  <option value="USB">USB</option>
+                  <option value="COM1">COM1</option>
+                  <option value="COM2">COM2</option>
+                  <option value="COM3">COM3</option>
+                  <option value="COM4">COM4</option>
+                  <option value="COM5">COM5</option>
+                  <option value="LPT1">LPT1</option>
+                  <option value="LPT2">LPT2</option>
+                  <option value="Network">Red</option>
+                </select>
+                <button type="button" class="btn btn-secondary" (click)="cargarImpresorasDisponibles()" [disabled]="cargandoImpresoras" style="white-space: nowrap;">
+                  {{ cargandoImpresoras ? '🔄 Cargando...' : '🔄 Actualizar' }}
+                </button>
+              </div>
+              <small style="color: #666; margin-top: 5px; display: block;">
+                Selecciona el puerto o dispositivo de tu impresora. Usa "Actualizar" para detectar impresoras USB.
+              </small>
+              <div *ngIf="impresorasDisponibles.length > 0" style="margin-top: 10px;">
+                <label style="font-size: 12px; color: #666;">Impresoras detectadas:</label>
+                <select [(ngModel)]="configImpresora.nombreDispositivo" style="width: 100%; margin-top: 5px; font-size: 12px;">
+                  <option value="">Seleccionar impresora...</option>
+                  <option *ngFor="let impresora of impresorasDisponibles" [value]="impresora.dispositivo">
+                    {{ impresora.nombre }} ({{ impresora.tipo }})
+                  </option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Velocidad de Impresión:</label>
+              <select [(ngModel)]="configImpresora.velocidad">
+                <option value="9600">9600 bps</option>
+                <option value="19200">19200 bps</option>
+                <option value="38400">38400 bps</option>
+                <option value="57600">57600 bps</option>
+                <option value="115200">115200 bps</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Ancho del Papel:</label>
+              <select [(ngModel)]="configImpresora.anchoPapel">
+                <option value="80">80mm (Estándar)</option>
+                <option value="58">58mm (Narrow)</option>
+                <option value="112">112mm (Wide)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Densidad de Impresión:</label>
+              <select [(ngModel)]="configImpresora.densidad">
+                <option value="light">Clara</option>
+                <option value="normal">Normal</option>
+                <option value="dark">Oscura</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Márgenes:</label>
+              <input type="number" [(ngModel)]="configImpresora.margenIzquierdo" placeholder="Margen izquierdo (mm)" min="0" max="20">
+              <input type="number" [(ngModel)]="configImpresora.margenDerecho" placeholder="Margen derecho (mm)" min="0" max="20">
+            </div>
+            
+            <div class="form-group">
+              <label>Fuente:</label>
+              <select [(ngModel)]="configImpresora.fuente">
+                <option value="A">Fuente A (12x24)</option>
+                <option value="B">Fuente B (9x17)</option>
+                <option value="C">Fuente C (24x48)</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label>Configuración de Título:</label>
+              <input type="text" [(ngModel)]="configImpresora.tituloEmpresa" placeholder="Nombre de la empresa">
+              <input type="text" [(ngModel)]="configImpresora.subtituloEmpresa" placeholder="Subtítulo o eslogan">
+            </div>
+            
+            <div class="form-group">
+              <label>Información del Pie:</label>
+              <textarea [(ngModel)]="configImpresora.pieTicket" placeholder="Texto del pie del ticket (agradecimiento, redes sociales, etc.)" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label>Configuración de Código QR:</label>
+              <input type="text" [(ngModel)]="configImpresora.urlQR" placeholder="URL para generar código QR">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="configImpresora.mostrarQR">
+                Mostrar código QR en el ticket
+              </label>
+            </div>
+          </div>
+          
+          <!-- Botones de acción -->
+          <div class="action-buttons">
+            <button class="btn btn-primary" (click)="guardarConfiguracion()">
+              💾 Guardar Configuración
+            </button>
+            <button class="btn btn-secondary" (click)="cargarConfiguracion()">
+              📂 Cargar Configuración
+            </button>
+            <button class="btn btn-success" (click)="probarImpresora()">
+              🖨️ Probar Impresión
+            </button>
+            <button class="btn btn-info" (click)="imprimirTicketPrueba()">
+              🧪 Ticket de Prueba
+            </button>
+          </div>
+          
+          <!-- Estado de la impresora -->
+          <div class="printer-status">
+            <h4>Estado de la Impresora</h4>
+            <div class="status-indicators">
+              <div class="status-item" [class.online]="estadoImpresora.online">
+                <span class="status-dot"></span>
+                {{ estadoImpresora.online ? '🟢 En línea' : '🔴 Desconectada' }}
+              </div>
+              <div class="status-item" [class.online]="estadoImpresora.papel">
+                <span class="status-dot"></span>
+                {{ estadoImpresora.papel ? '🟢 Con papel' : '🔴 Sin papel' }}
+              </div>
+              <div class="status-item" [class.online]="estadoImpresora.energia">
+                <span class="status-dot"></span>
+                {{ estadoImpresora.energia ? '🟢 Encendida' : '🔴 Apagada' }}
+              </div>
+            </div>
+          </div>
+          
+          <!-- Historial de impresiones -->
+          <div class="print-history">
+            <h4>Historial de Impresiones</h4>
+            <div class="history-list">
+              <div *ngFor="let item of historialImpresion" class="history-item">
+                <span class="history-time">{{ item.fecha | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+                <span class="history-type">{{ item.tipo }}</span>
+                <span class="history-status" [class.success]="item.exitoso" [class.error]="!item.exitoso">
+                  {{ item.exitoso ? '✅ Exitoso' : '❌ Error' }}
+                </span>
+                <span class="history-details">{{ item.detalles }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal de Usuario -->
+  <app-usuario-modal
+    *ngIf="mostrarModalUsuario"
+    [usuario]="usuarioSeleccionado"
+    [esEdicion]="esEdicionUsuario"
+    (usuarioCreado)="onUsuarioCreado($event)"
+    (usuarioEditado)="onUsuarioEditado($event)"
+    (modalCerrado)="cerrarModalUsuario()">
+  </app-usuario-modal>
+
+  <!-- Modal de Rol -->
+  <app-rol-modal
+    *ngIf="mostrarModalRol"
+    [rol]="rolSeleccionado"
+    [esEdicion]="esEdicionRol"
+    (rolCreado)="onRolCreado($event)"
+    (rolEditado)="onRolEditado($event)"
+    (modalCerrado)="cerrarModalRol()">
+  </app-rol-modal>
+
+  <!-- Modal de Confirmación Personalizado -->
+  <div class="confirm-modal-overlay" *ngIf="mostrarConfirmacion" (click)="cerrarConfirmacion()">
+    <div class="confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-modal-header" [class.eliminacion]="confirmacionData?.tipo === 'eliminacion'">
+        <div class="confirm-icon">
+          <!-- Icono para eliminación -->
+          <span *ngIf="confirmacionData?.tipo === 'eliminacion'" class="delete-icon">🗑️</span>
+          <!-- Iconos para cambio de estado -->
+          <span *ngIf="confirmacionData?.tipo === 'usuario' && confirmacionData?.nuevoEstado">🟢</span>
+          <span *ngIf="confirmacionData?.tipo === 'usuario' && !confirmacionData?.nuevoEstado">🔴</span>
+          <span *ngIf="confirmacionData?.tipo === 'rol' && confirmacionData?.nuevoEstado">🟢</span>
+          <span *ngIf="confirmacionData?.tipo === 'rol' && !confirmacionData?.nuevoEstado">🔴</span>
+        </div>
+        <h3>
+          <span *ngIf="confirmacionData?.tipo === 'eliminacion'">🗑️ Eliminar Rol</span>
+          <span *ngIf="confirmacionData?.tipo === 'usuario'">
+            {{ confirmacionData?.nuevoEstado ? '🟢 Activar Usuario' : '🔴 Desactivar Usuario' }}
+          </span>
+          <span *ngIf="confirmacionData?.tipo === 'rol'">
+            {{ confirmacionData?.nuevoEstado ? '🟢 Activar Rol' : '🔴 Desactivar Rol' }}
+          </span>
+        </h3>
+      </div>
+      
+      <div class="confirm-modal-body">
+        <!-- Mensaje para eliminación -->
+        <div *ngIf="confirmacionData?.tipo === 'eliminacion'" class="delete-warning">
+          <div class="warning-icon-large">⚠️</div>
+          <h4 class="warning-title">¡Acción Irreversible!</h4>
+          <p class="confirm-message">
+            ¿Está seguro de que desea <strong>eliminar permanentemente</strong> el rol 
+            <strong>"{{ confirmacionData?.item?.nombre }}"</strong>?
+          </p>
+          <p class="warning-description">
+            Esta acción no se puede deshacer y todos los usuarios con este rol perderán sus permisos.
+          </p>
+        </div>
+
+        <!-- Mensaje para cambio de estado -->
+        <div *ngIf="confirmacionData?.tipo !== 'eliminacion'">
+          <p class="confirm-message">
+            ¿Está seguro de que desea 
+            <strong>{{ confirmacionData?.nuevoEstado ? 'activar' : 'desactivar' }}</strong> 
+            {{ confirmacionData?.tipo === 'usuario' ? 'al usuario' : 'el rol' }} 
+            <strong>"{{ confirmacionData?.item?.nombre }}"</strong>?
+          </p>
+        </div>
+        
+        <!-- Detalles del item -->
+        <div class="item-details" [class.delete-mode]="confirmacionData?.tipo === 'eliminacion'">
+          <!-- Detalles para eliminación de rol -->
+          <div *ngIf="confirmacionData?.tipo === 'eliminacion'" class="role-delete-info">
+            <div class="role-info">
+              <span class="label">🎭 Código:</span>
+              <span class="value">{{ confirmacionData?.item?.codigo }}</span>
+            </div>
+            <div class="role-info">
+              <span class="label">📝 Descripción:</span>
+              <span class="value">{{ confirmacionData?.item?.descripcion }}</span>
+            </div>
+            <div class="role-info">
+              <span class="label">🔐 Permisos:</span>
+              <span class="value">{{ confirmacionData?.item?.permisos?.length || 0 }} permisos asignados</span>
+            </div>
+            <div class="role-info">
+              <span class="label">📅 Fecha Creación:</span>
+              <span class="value">{{ confirmacionData?.item?.fechaCreacion | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+
+          <!-- Detalles para cambio de estado -->
+          <div *ngIf="confirmacionData?.tipo !== 'eliminacion'">
+            <div *ngIf="confirmacionData?.tipo === 'usuario'" class="user-info">
+              <span class="label">📧 Email:</span>
+              <span class="value">{{ confirmacionData?.item?.email }}</span>
+            </div>
+            <div *ngIf="confirmacionData?.tipo === 'usuario'" class="user-info">
+              <span class="label">👤 Rol:</span>
+              <span class="value">{{ obtenerEtiquetaRol(confirmacionData?.item?.rol) }}</span>
+            </div>
+            <div *ngIf="confirmacionData?.tipo === 'rol'" class="role-info">
+              <span class="label">🎭 Código:</span>
+              <span class="value">{{ confirmacionData?.item?.codigo }}</span>
+            </div>
+            <div *ngIf="confirmacionData?.tipo === 'rol'" class="role-info">
+              <span class="label">📝 Descripción:</span>
+              <span class="value">{{ confirmacionData?.item?.descripcion }}</span>
+            </div>
+            <div class="item-info">
+              <span class="label">📅 Estado Actual:</span>
+              <span class="value" [class.status-active]="confirmacionData?.item?.activo" [class.status-inactive]="!confirmacionData?.item?.activo">
+                {{ confirmacionData?.item?.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Advertencias específicas -->
+        <div class="confirm-warning" *ngIf="confirmacionData?.tipo !== 'eliminacion' && !confirmacionData?.nuevoEstado">
+          <div class="warning-icon">⚠️</div>
+          <p *ngIf="confirmacionData?.tipo === 'usuario'">Los usuarios inactivos no podrán acceder al sistema</p>
+          <p *ngIf="confirmacionData?.tipo === 'rol'">Los roles inactivos no podrán ser asignados a nuevos usuarios</p>
+        </div>
+      </div>
+
+      <div class="confirm-modal-footer" [class.delete-mode]="confirmacionData?.tipo === 'eliminacion'">
+        <button class="btn btn-secondary" (click)="cerrarConfirmacion()">
+          <span class="btn-icon">✕</span> Cancelar
+        </button>
+        <button 
+          class="btn" 
+          [class.btn-danger]="confirmacionData?.tipo === 'eliminacion'"
+          [class.btn-primary]="confirmacionData?.tipo !== 'eliminacion'"
+          (click)="confirmarCambioEstado()">
+          <span class="btn-icon">
+            <span *ngIf="confirmacionData?.tipo === 'eliminacion'">🗑️</span>
+            <span *ngIf="confirmacionData?.tipo === 'usuario' && confirmacionData?.nuevoEstado">✅</span>
+            <span *ngIf="confirmacionData?.tipo === 'usuario' && !confirmacionData?.nuevoEstado">❌</span>
+            <span *ngIf="confirmacionData?.tipo === 'rol' && confirmacionData?.nuevoEstado">✅</span>
+            <span *ngIf="confirmacionData?.tipo === 'rol' && !confirmacionData?.nuevoEstado">❌</span>
+          </span>
+          <span *ngIf="confirmacionData?.tipo === 'eliminacion'">Eliminar Rol</span>
+          <span *ngIf="confirmacionData?.tipo !== 'eliminacion'">
+            {{ confirmacionData?.nuevoEstado ? 'Activar' : 'Desactivar' }}
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

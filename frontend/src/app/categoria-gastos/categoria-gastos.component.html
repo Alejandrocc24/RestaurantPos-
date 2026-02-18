@@ -1,0 +1,95 @@
+<div class="categoria-gastos-container">
+  <!-- Header del componente -->
+  <div class="categoria-gastos-header">
+    <h2>Gestión de Categorías de Gastos</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" (click)="navegarAGastos()">
+        💰 Gastos
+      </button>
+      <button class="tab-button active">
+        📂 Categoría de Gastos
+      </button>
+      <button class="tab-button" (click)="viewChangeRequested.emit('proveedores')">
+        🏢 Proveedores
+      </button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-primary" (click)="nuevaCategoria()">
+        ➕ Nueva categoría
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      <!-- Tabla de categorías -->
+      <div class="categorias-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Nombre</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let categoria of categorias" class="table-row">
+            <div class="table-cell" data-label="ID">{{ categoria.id }}</div>
+            <div class="table-cell" data-label="Nombre">{{ categoria.nombre }}</div>
+            <div class="table-cell" data-label="Estado">
+              <span 
+                class="status-badge" 
+                [class.active]="categoria.estado === 'Activo'"
+                [class.inactive]="categoria.estado === 'Inactivo'"
+                (click)="cambiarEstado(categoria)">
+                {{ categoria.estado }}
+              </span>
+            </div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarCategoria(categoria)" title="Editar categoría">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="eliminarCategoria(categoria)" title="Eliminar categoría">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay categorías -->
+          <div *ngIf="categorias.length === 0" class="no-categorias">
+            <p>No se encontraron categorías</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Categoría -->
+  <app-categoria-gasto-modal
+    *ngIf="mostrarModalCategoria"
+    [categoria]="categoriaSeleccionada"
+    [esEdicion]="esEdicionCategoria"
+    (guardar)="guardarCategoria($event)"
+    (cerrar)="cerrarModalCategoria()">
+  </app-categoria-gasto-modal>
+
+  <!-- Diálogo de Confirmación -->
+  <app-confirm-dialog
+    *ngIf="mostrarConfirmDialog"
+    [title]="confirmDialogConfig.title"
+    [message]="confirmDialogConfig.message"
+    [details]="confirmDialogConfig.details"
+    [type]="confirmDialogConfig.type"
+    [confirmText]="confirmDialogConfig.confirmText"
+    [cancelText]="confirmDialogConfig.cancelText"
+    (confirm)="confirmarEliminacion()"
+    (cancel)="cerrarConfirmDialog()">
+  </app-confirm-dialog>
+</div>

@@ -1,0 +1,418 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USUARIOS Y AUTENTICACIÓN
+// ============================================
+
+model Usuario {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  nombre    String
+  password  String
+  activo    Boolean  @default(true)
+  
+  // Relaciones
+  roles     UsuarioRol[]
+  gastos    Gasto[]
+  ordenes   Orden[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([activo])
+}
+
+model Rol {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  descripcion String?
+  activo      Boolean  @default(true)
+  
+  // Permisos del rol
+  permisos    Permiso[]
+  usuarios    UsuarioRol[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([activo])
+}
+
+model UsuarioRol {
+  id        String   @id @default(cuid())
+  usuarioId String
+  rolId     String
+  
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  rol       Rol      @relation(fields: [rolId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@unique([usuarioId, rolId])
+  @@index([usuarioId])
+  @@index([rolId])
+}
+
+model Permiso {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  descripcion String?
+  
+  roles     Rol[]
+  
+  createdAt DateTime @default(now())
+}
+
+// ============================================
+// CATÁLOGOS
+// ============================================
+
+model Categoria {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  descripcion String?
+  activo      Boolean  @default(true)
+  
+  // Relaciones
+  productos       Producto[]
+  subcategorias   Subcategoria[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([activo])
+}
+
+model Subcategoria {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  activo      Boolean  @default(true)
+  categoriaId String
+  
+  // Relaciones
+  categoria   Categoria @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([nombre, categoriaId])
+  @@index([categoriaId])
+  @@index([activo])
+}
+
+model CategoriaGasto {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  descripcion String?
+  activo      Boolean  @default(true)
+  
+  gastos      Gasto[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([activo])
+}
+
+model Producto {
+  id            String   @id @default(cuid())
+  nombre        String
+  descripcion   String?
+  precio        Float
+  categoriaId   String
+  subcategoria  String?
+  activo        Boolean  @default(true)
+  imagen        String?
+  
+  // Relaciones
+  categoria     Categoria @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
+  ordenProductos OrdenProducto[]
+  modificadores GrupoModificador[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([categoriaId])
+  @@index([activo])
+  @@index([nombre])
+}
+
+model GrupoModificador {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  requerido   Boolean  @default(false)
+  activo      Boolean  @default(true)
+  
+  productos   Producto[]
+  opciones    OpcionModificador[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([activo])
+}
+
+model OpcionModificador {
+  id              String   @id @default(cuid())
+  nombre          String
+  precioAdicional Float    @default(0)
+  grupoId         String
+  activo          Boolean  @default(true)
+  
+  grupo           GrupoModificador @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([grupoId])
+}
+
+// ============================================
+// MESAS Y ESPACIOS
+// ============================================
+
+model Mesa {
+  id        String   @id @default(cuid())
+  numero    Int      @unique
+  capacidad Int
+  estado    EstadoMesa @default(DISPONIBLE)
+  activo    Boolean  @default(true)
+  
+  ordenes   Orden[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([estado])
+  @@index([activo])
+}
+
+enum EstadoMesa {
+  DISPONIBLE
+  OCUPADA
+  RESERVADA
+  FUERA_DE_SERVICIO
+}
+
+// ============================================
+// ÓRDENES Y VENTAS
+// ============================================
+
+model Orden {
+  id            String   @id @default(cuid())
+  mesaId        String?
+  usuarioId     String
+  estado        EstadoOrden @default(PENDIENTE)
+  total         Float    @default(0)
+  descuento     Float    @default(0)
+  propina       Float    @default(0)
+  
+  // Relaciones
+  mesa          Mesa?    @relation(fields: [mesaId], references: [id], onDelete: SetNull)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  productos     OrdenProducto[]
+  pagos         Pago[]
+  comentarios   Comentario[]
+  
+  createdAt     DateTime @default(now())
+  compledatAt   DateTime?
+  updatedAt     DateTime @updatedAt
+
+  @@index([mesaId])
+  @@index([usuarioId])
+  @@index([estado])
+  @@index([createdAt])
+}
+
+enum EstadoOrden {
+  PENDIENTE
+  EN_CURSO
+  COMPLETADA
+  CANCELADA
+  PAGADA
+}
+
+model OrdenProducto {
+  id           String   @id @default(cuid())
+  ordenId      String
+  productoId   String
+  cantidad     Int
+  precioUnitario Float
+  subtotal     Float
+  estado       String   @default("pendiente")
+  notas        String?
+  
+  orden        Orden    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  producto     Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ordenId])
+  @@index([productoId])
+}
+
+model Pago {
+  id            String   @id @default(cuid())
+  ordenId       String
+  monto         Float
+  metodoPago    MetodoPago
+  referencia    String?
+  estado        EstadoPago @default(COMPLETADO)
+  
+  orden         Orden    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([ordenId])
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
+  CHEQUE
+  OTRO
+}
+
+enum EstadoPago {
+  PENDIENTE
+  COMPLETADO
+  CANCELADO
+  REEMBOLSADO
+}
+
+// ============================================
+// COMENTARIOS
+// ============================================
+
+model Comentario {
+  id            String   @id @default(cuid())
+  ordenId       String
+  contenido     String
+  tipoComentario TipoComentario @default(GENERAL)
+  severidad     Severidad @default(NORMAL)
+  activo        Boolean  @default(true)
+  
+  orden         Orden    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([ordenId])
+  @@index([tipoComentario])
+  @@index([severidad])
+  @@index([activo])
+}
+
+enum TipoComentario {
+  GENERAL
+  PROBLEMA
+  COMENTARIO_CLIENTE
+  NOTA_INTERNA
+  ADVERTENCIA
+}
+
+enum Severidad {
+  BAJA
+  NORMAL
+  ALTA
+  CRITICA
+}
+
+// ============================================
+// GASTOS E INVENTARIO
+// ============================================
+
+model Gasto {
+  id            String   @id @default(cuid())
+  descripcion   String
+  monto         Float
+  categoriaId   String
+  usuarioId     String
+  fecha         DateTime @default(now())
+  recibo        String?
+  observaciones String?
+  activo        Boolean  @default(true)
+  
+  categoria     CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([categoriaId])
+  @@index([usuarioId])
+  @@index([fecha])
+  @@index([activo])
+}
+
+model Proveedor {
+  id            String   @id @default(cuid())
+  nombre        String   @unique
+  contacto      String?
+  correo        String?
+  telefono      String?
+  direccion     String?
+  ciudad        String?
+  activo        Boolean  @default(true)
+  
+  compras       Compra[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([activo])
+}
+
+model Compra {
+  id            String   @id @default(cuid())
+  proveedorId   String
+  numeroDocumento String?
+  monto         Float
+  estado        EstadoCompra @default(COMPLETADA)
+  observaciones String?
+  
+  proveedor     Proveedor @relation(fields: [proveedorId], references: [id], onDelete: Restrict)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([proveedorId])
+}
+
+enum EstadoCompra {
+  PENDIENTE
+  COMPLETADA
+  CANCELADA
+}
+
+// ============================================
+// CONFIGURACIÓN Y ADMIN
+// ============================================
+
+model Configuracion {
+  id            String   @id @default(cuid())
+  clave         String   @unique
+  valor         String
+  tipo          String   @default("string")
+  descripcion   String?
+  
+  updatedAt     DateTime @updatedAt
+
+  @@index([clave])
+}

@@ -1,0 +1,173 @@
+<div class="productos-container">
+  <!-- Header del componente (solo visible cuando NO está en inventario) -->
+  <div class="productos-header" *ngIf="tabActivo !== 'inventario'">
+    <h2>Gestión de Productos</h2>
+  </div>
+
+  <!-- Barra de navegación superior (solo visible cuando NO está en inventario) -->
+  <div class="tabs-container" *ngIf="tabActivo !== 'inventario'">
+    <div class="tab-header">
+      <button class="tab-button" 
+              [class.active]="tabActivo === 'productos'" 
+              (click)="cambiarTab('productos')"
+              type="button">
+        🍦 Productos
+      </button>
+      <button class="tab-button" 
+              [class.active]="tabActivo === 'categoria'" 
+              (click)="navegarACategoriaProductos()"
+              type="button">
+        📂 Categoría de Productos
+      </button>
+      <button class="tab-button" 
+              [class.active]="tabActivo === 'modificadores'" 
+              (click)="navegarAGruposModificadores()"
+              type="button">
+        ⚙️ Grupos Modificadores
+      </button>
+      <button class="tab-button comentarios-nav" 
+              [class.active]="tabActivo === 'comentarios'" 
+              (click)="navegarAGestionComentarios()"
+              type="button">
+        💬 Gestión de Comentarios
+      </button>
+      <button class="tab-button" 
+              [class.active]="tabActivo === 'inventario'" 
+              (click)="cambiarTab('inventario')"
+              type="button">
+        📦 Inventario
+      </button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
+        {{ mostrarInactivos ? 'Ocultar inactivos' : 'Mostrar inactivos' }}
+      </button>
+      <button class="btn btn-primary" (click)="nuevoProducto()">
+        ➕ Nuevo producto
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Botón de toggle del sidebar -->
+    <button class="sidebar-toggle-btn" (click)="toggleSidebar()" *ngIf="tabActivo === 'productos'">
+      <i class="fas" [class.fa-chevron-left]="sidebarVisible" [class.fa-chevron-right]="!sidebarVisible"></i>
+    </button>
+
+    <!-- Overlay para sidebar móvil -->
+    <div class="sidebar-overlay" 
+         [class.visible]="sidebarVisible && isMobile" 
+         (click)="closeSidebar()"></div>
+
+    <!-- Sidebar de categorías -->
+    <div class="sidebar" 
+         [class.visible]="sidebarVisible && tabActivo === 'productos'" 
+         [class.collapsed]="!sidebarVisible || tabActivo !== 'productos'"
+         [class.transitions-enabled]="sidebarInitialized"
+         *ngIf="tabActivo === 'productos'">
+      <div class="sidebar-header">
+        <h3>Categorías</h3>
+        <button class="close-sidebar-btn" (click)="closeSidebar()" *ngIf="isMobile">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="categorias-list">
+        <div *ngFor="let categoria of categorias">
+          <div 
+            class="categoria-item"
+            [class.active]="categoriaSeleccionada === categoria"
+            (click)="filtrarPorCategoria(categoria)">
+            <span 
+              *ngIf="categoria !== 'Todas' && subcategoriasSidebar[categoria]?.length"
+              class="caret"
+              [class.open]="isCategoriaExpandida(categoria)"
+              (click)="toggleCategoriaExpandida(categoria, $event)">▸</span>
+            {{ categoria }}
+          </div>
+          <!-- Subcategorías controladas por expansión -->
+          <div class="subcategorias-list" *ngIf="categoria !== 'Todas' && isCategoriaExpandida(categoria) && subcategoriasSidebar[categoria]?.length">
+            <div 
+              class="subcategoria-item"
+              *ngFor="let sub of subcategoriasSidebar[categoria]"
+              [class.active]="categoriaSeleccionada === categoria && subcategoriaSeleccionada === sub"
+              (click)="filtrarPorSubcategoria(categoria, sub)">
+              • {{ sub }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      <!-- Componente de Inventario -->
+      <app-inventario *ngIf="tabActivo === 'inventario'" (viewChangeRequested)="handleViewChange($event)"></app-inventario>
+      
+      <!-- Tabla de productos -->
+      <div class="products-table" *ngIf="tabActivo === 'productos'">
+        <div class="table-header">
+          <div class="header-cell">Cód.</div>
+          <div class="header-cell">Producto</div>
+          <div class="header-cell">Precio</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let producto of productosFiltrados" class="table-row">
+            <div class="table-cell" data-label="Código">{{ producto.codigo }}</div>
+            <div class="table-cell" data-label="Producto">{{ producto.nombre }}</div>
+            <div class="table-cell" data-label="Precio">{{ producto.precio | currencyFormat }}</div>
+            <div class="table-cell" data-label="Estado">
+              <span 
+                class="status-badge" 
+                [class.active]="producto.estado === 'activo'"
+                [class.inactive]="producto.estado === 'inactivo'"
+                (click)="cambiarEstado(producto)">
+                {{ producto.estado }}
+              </span>
+            </div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarProducto(producto)" title="Editar producto">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" title="Eliminar producto">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay productos -->
+          <div *ngIf="productosFiltrados.length === 0" class="no-products">
+            <p>No se encontraron productos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Producto -->
+  <app-producto-modal
+    *ngIf="mostrarModalProducto"
+    [producto]="productoSeleccionado"
+    [esEdicion]="esEdicionProducto"
+    (cerrar)="cerrarModalProducto()"
+    (guardar)="guardarProducto($event)">
+  </app-producto-modal>
+
+  <!-- Modal de confirmación personalizado -->
+  <app-confirm-modal
+    *ngIf="mostrarConfirmacion"
+    [titulo]="tituloConfirmacion"
+    [mensaje]="mensajeConfirmacion"
+    [textoConfirmar]="accionConfirmacion"
+    [tipo]="'danger'"
+    (confirmar)="procederAccion()"
+    (cancelar)="cerrarConfirmacion()">
+  </app-confirm-modal>
+
+
+</div>

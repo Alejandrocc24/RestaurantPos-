@@ -1,0 +1,505 @@
+/* Contenedor principal */
+.categoria-gastos-container {
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: #f5f5f5;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* Header del componente */
+.categoria-gastos-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 15px;
+  color: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.categoria-gastos-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Botones - Estilo moderno como en ventas */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: #4f46e5;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+  transform: translateY(-2px);
+}
+
+.btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-2px);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.btn-lg {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+/* Barra de navegación superior - Estilo moderno como en ventas */
+.tabs-container {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+}
+
+.tab-header {
+  display: flex;
+  background: transparent;
+}
+
+.tab-button {
+  padding: 16px 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: #6b7280;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tab-button.active {
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
+  background: white;
+}
+
+.tab-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.tab-actions .btn {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tab-actions .btn:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Contenido principal */
+.main-content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+  padding: 15px;
+}
+
+
+
+/* Área de contenido */
+.content-area {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tabla de categorías */
+.categorias-table {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 80px 2fr 100px 100px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  flex-shrink: 0;
+}
+
+.header-cell {
+  padding: 15px;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+}
+
+.header-cell:last-child {
+  border-right: none;
+}
+
+.table-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 80px 2fr 100px 100px;
+  border-bottom: 1px solid #dee2e6;
+  transition: background-color 0.3s;
+  min-height: 60px;
+}
+
+.table-row:hover {
+  background-color: #f8f9fa;
+}
+
+.table-cell {
+  padding: 15px;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.table-cell:last-child {
+  border-right: none;
+}
+
+/* Preview de color */
+.color-preview {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Badge de estado */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Botones de acción */
+.actions {
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+  transition: all 0.3s;
+}
+
+.action-btn:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+/* Mensaje de no categorías */
+.no-categorias {
+  padding: 40px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+
+
+/* ===== OPTIMIZACIONES PARA MÓVIL ===== */
+
+@media (max-width: 768px) {
+  /* Contenedor principal */
+  .categoria-gastos-container {
+    padding: 0;
+  }
+
+  /* Barra de navegación superior */
+  .tabs-container {
+    flex-direction: column;
+    height: auto;
+    padding: 15px;
+    gap: 15px;
+    margin-bottom: 10px;
+  }
+
+  .tab-header {
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .tab-button {
+    padding: 8px 12px;
+    font-size: 14px;
+    text-align: center;
+    min-width: 120px;
+  }
+
+  .tab-actions {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn {
+    padding: 10px 12px;
+    font-size: 13px;
+    min-width: 100px;
+    justify-content: center;
+  }
+
+  /* Área de contenido */
+  .content-area {
+    padding: 10px;
+    margin-left: 0;
+  }
+
+  /* Tabla de categorías - Vista móvil como lista */
+  .categorias-table {
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 60px 1fr 80px 80px;
+    background-color: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+    font-size: 12px;
+  }
+
+  .header-cell {
+    padding: 10px 8px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .table-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 80px 80px;
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+    min-height: 50px;
+    padding: 0;
+  }
+
+  .table-row:hover {
+    background-color: #f8f9fa;
+  }
+
+  .table-cell {
+    border: none;
+    padding: 8px;
+    justify-content: center;
+    align-items: center;
+    font-size: 12px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .table-cell:first-child {
+    justify-content: center;
+  }
+
+  .table-cell:nth-child(2) {
+    justify-content: flex-start;
+    text-align: left;
+  }
+
+  .table-cell.actions {
+    justify-content: center;
+    gap: 5px;
+  }
+
+  /* Botones de acción en móvil */
+  .action-btn {
+    padding: 6px 8px;
+    border-radius: 3px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 12px;
+  }
+
+  .action-btn:hover {
+    background-color: #e9ecef;
+  }
+
+  /* Badge de estado en móvil */
+  .status-badge {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  /* Mensaje de no categorías */
+  .no-categorias {
+    padding: 30px 20px;
+    text-align: center;
+    font-size: 16px;
+  }
+}
+
+/* ===== OPTIMIZACIONES PARA TABLETS ===== */
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tabs-container {
+    padding: 0 15px;
+  }
+
+  .tab-header {
+    gap: 20px;
+  }
+
+  .tab-button {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+
+
+  .content-area {
+    padding: 12px;
+  }
+
+  .table-header,
+  .table-row {
+    grid-template-columns: 70px 2fr 90px 80px;
+  }
+
+  .header-cell,
+  .table-cell {
+    padding: 12px 10px;
+    font-size: 14px;
+  }
+}
+
+/* ===== OPTIMIZACIONES PARA PANTALLAS GRANDES ===== */
+
+@media (min-width: 1200px) {
+  .categoria-gastos-container {
+    padding: 0;
+  }
+
+  .tabs-container {
+    margin-bottom: 10px;
+  }
+
+  .content-area {
+    padding: 10px;
+  }
+
+
+}

@@ -1,0 +1,181 @@
+<div class="usuarios-container">
+
+  <!-- Formulario para agregar nuevo usuario (oculto por defecto) -->
+  <div class="form-section" *ngIf="mostrarFormularioNuevo">
+    <h3>Agregar Nuevo Usuario</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="nombre">Nombre completo:</label>
+        <input 
+          type="text" 
+          id="nombre" 
+          [(ngModel)]="nuevoUsuario.nombre" 
+          placeholder="Ingrese el nombre completo"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input 
+          type="email" 
+          id="email" 
+          [(ngModel)]="nuevoUsuario.email" 
+          placeholder="usuario@ejemplo.com"
+          class="form-input">
+      </div>
+
+      <div class="form-group">
+        <label for="rol">Rol:</label>
+        <select id="rol" [(ngModel)]="nuevoUsuario.rol" class="form-select">
+          <option *ngFor="let rol of roles" [value]="rol.valor">
+            {{ rol.etiqueta }}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group checkbox-group">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="nuevoUsuario.activo">
+          <span class="checkmark"></span>
+          Usuario activo
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button 
+          type="button" 
+          (click)="agregarUsuario()" 
+          class="btn btn-primary"
+          [disabled]="!nuevoUsuario.nombre || !nuevoUsuario.email">
+          <span class="btn-icon">✓</span>
+          Agregar Usuario
+        </button>
+        
+        <button 
+          type="button" 
+          (click)="ocultarFormulario()" 
+          class="btn btn-secondary">
+          <span class="btn-icon">✕</span>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de usuarios -->
+  <div class="table-section">
+    <h3>Lista de Usuarios</h3>
+    <div class="table-container">
+      <div class="usuarios-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Nombre</div>
+          <div class="header-cell">Email</div>
+          <div class="header-cell">Rol</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell">Fecha Creación</div>
+          <div class="header-cell actions">Acciones</div>
+        </div>
+        <div class="table-body">
+          <div *ngFor="let usuario of usuarios" class="table-row" [class.inactive]="!usuario.activo">
+            <div class="table-cell">{{ usuario.id }}</div>
+            <div class="table-cell">{{ usuario.nombre }}</div>
+            <div class="table-cell">{{ usuario.email }}</div>
+            <div class="table-cell">
+              <span class="rol-badge" [class]="'rol-' + usuario.rol">
+                {{ obtenerRolEtiqueta(usuario.rol) }}
+              </span>
+            </div>
+            <div class="table-cell">
+              <span class="status-badge" [class]="usuario.activo ? 'status-active' : 'status-inactive'">
+                {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="table-cell">{{ usuario.fechaCreacion }}</div>
+            <div class="table-cell actions">
+              <button 
+                (click)="editarUsuario(usuario)" 
+                class="action-btn" 
+                title="Editar usuario">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button 
+                (click)="cambiarEstadoUsuario(usuario)" 
+                class="action-btn" 
+                [title]="usuario.activo ? 'Desactivar usuario' : 'Activar usuario'">
+                {{ usuario.activo ? '🚫' : '✅' }}
+              </button>
+              <button 
+                (click)="eliminarUsuario(usuario.id)" 
+                class="action-btn" 
+                title="Eliminar usuario">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay usuarios -->
+          <div *ngIf="usuarios.length === 0" class="no-usuarios">
+            <p>No se encontraron usuarios</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de edición -->
+  <div *ngIf="modoEdicion" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Editar Usuario</h3>
+        <button (click)="cancelarEdicion()" class="modal-close">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-nombre">Nombre:</label>
+          <input 
+            type="text" 
+            id="edit-nombre" 
+            [(ngModel)]="editandoUsuario.nombre" 
+            class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-email">Email:</label>
+          <input 
+            type="email" 
+            id="edit-email" 
+            [(ngModel)]="editandoUsuario.email" 
+            class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-rol">Rol:</label>
+          <select id="edit-rol" [(ngModel)]="editandoUsuario.rol" class="form-select">
+            <option *ngFor="let rol of roles" [value]="rol.valor">
+              {{ rol.etiqueta }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input 
+              type="checkbox" 
+              [(ngModel)]="editandoUsuario.activo">
+            <span class="checkmark"></span>
+            Usuario activo
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button (click)="guardarEdicion()" class="btn btn-primary">Guardar Cambios</button>
+        <button (click)="cancelarEdicion()" class="btn btn-secondary">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>

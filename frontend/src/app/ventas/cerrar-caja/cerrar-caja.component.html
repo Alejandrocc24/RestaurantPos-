@@ -1,0 +1,128 @@
+<div class="cerrar-caja-container">
+  <!-- Botón para abrir el modal -->
+  <button class="btn-cerrar-caja" (click)="abrirModal()">
+    🔒 Cerrar Caja
+  </button>
+
+  <!-- Modal de Cierre de Caja -->
+  <div *ngIf="mostrarModal" class="modal-overlay" (click)="cerrarModal()">
+    <div class="modal-cerrar-caja" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔒 Cerrar Caja</h3>
+        <button class="btn-cerrar-modal" (click)="cerrarModal()">✕</button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Resumen del día -->
+        <div class="resumen-dia">
+          <h4>📊 Resumen del Día</h4>
+          <div class="resumen-grid">
+            <div class="resumen-item">
+              <span class="label">Monto Inicial:</span>
+              <span class="valor">${{ montoInicial.toFixed(2) }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="label">Ventas en Efectivo:</span>
+              <span class="valor positivo">${{ pagosEfectivo.toFixed(2) }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="label">Gastos del Día:</span>
+              <span class="valor negativo">${{ gastosHoy.toFixed(2) }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="label">Ventas por Transferencia:</span>
+              <span class="valor info">${{ pagosTransferencia.toFixed(2) }}</span>
+            </div>
+            <div class="resumen-item">
+              <span class="label">Ventas con Tarjeta:</span>
+              <span class="valor info">${{ pagosTarjeta.toFixed(2) }}</span>
+            </div>
+            <div class="resumen-item destacado">
+              <span class="label">Efectivo Esperado en Caja:</span>
+              <span class="valor esperado">${{ dineroEsperado.toFixed(2) }}</span>
+              <small style="display: block; font-size: 0.8em; color: #6c757d; margin-top: 4px;">
+                (Inicial + Efectivo - Gastos)
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario de cierre -->
+        <div class="formulario-cierre">
+          <h4>💰 Montos de Cierre</h4>
+          
+          <div class="form-group">
+            <label for="montoEfectivo">Efectivo en Caja ($):</label>
+            <input 
+              type="number" 
+              id="montoEfectivo" 
+              [(ngModel)]="montoEfectivo" 
+              (ngModelChange)="onMontoEfectivoChange()"
+              step="0.01" 
+              min="0" 
+              placeholder="0.00"
+              class="form-input"
+              [class.incorrecto]="diferencia < -0.01"
+              [class.correcto]="getDiferenciaClass() === 'correcto'">
+            <small class="form-help">Ingrese el dinero físico que hay en caja</small>
+          </div>
+
+          <div class="form-group">
+            <label for="montoTransferencia">Pagos por Transferencia ($):</label>
+            <input 
+              type="number" 
+              id="montoTransferencia" 
+              [(ngModel)]="montoTransferencia" 
+              step="0.01" 
+              min="0" 
+              placeholder="0.00"
+              class="form-input"
+              readonly>
+            <small class="form-help">Monto total de pagos por transferencia (automático)</small>
+          </div>
+
+          <div class="form-group">
+            <label for="montoTarjeta">Pagos con Tarjeta ($):</label>
+            <input 
+              type="number" 
+              id="montoTarjeta" 
+              [(ngModel)]="montoTarjeta" 
+              step="0.01" 
+              min="0" 
+              placeholder="0.00"
+              class="form-input"
+              readonly>
+            <small class="form-help">Monto total de pagos con tarjeta (automático)</small>
+          </div>
+
+          <!-- Indicador de diferencia -->
+          <div *ngIf="montoEfectivo > 0" class="diferencia-indicator" [class]="getDiferenciaClass()">
+            <span class="diferencia-texto">{{ getDiferenciaTexto() }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="observaciones">Observaciones:</label>
+            <textarea 
+              id="observaciones" 
+              [(ngModel)]="observaciones" 
+              placeholder="Observaciones sobre el cierre de caja..."
+              class="form-textarea"
+              rows="3"></textarea>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn-cancelar" (click)="cerrarModal()">
+          ❌ Cancelar
+        </button>
+        <button 
+          class="btn-confirmar" 
+          (click)="confirmarCierre()"
+          [disabled]="montoEfectivo <= 0">
+          🔒 Confirmar Cierre de Caja
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

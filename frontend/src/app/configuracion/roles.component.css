@@ -1,0 +1,802 @@
+/* Estilos para el componente de roles */
+.roles-container {
+  padding: 20px;
+  background: #f8fafc;
+  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Header del componente */
+.roles-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px 30px;
+  border-radius: 16px;
+  margin-bottom: 25px;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.roles-header h2 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Barra de navegación superior */
+.tabs-container {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.tab-header {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab-button {
+  background: #f1f5f9;
+  border: 2px solid transparent;
+  color: #64748b;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+}
+
+.tab-button:hover {
+  background: #e2e8f0;
+  color: #475569;
+  transform: translateY(-2px);
+}
+
+.tab-button.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.tab-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Botones principales */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #4f46e5;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #4b5563;
+  transform: translateY(-2px);
+}
+
+/* Contenido principal */
+.main-content {
+  position: relative;
+  display: flex;
+  gap: 20px;
+}
+
+/* Botón de toggle del sidebar */
+.sidebar-toggle-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #667eea;
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  z-index: 100;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.sidebar-toggle-btn:hover {
+  background: #5a67d8;
+  transform: scale(1.1);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 280px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+  transition: all 0.3s ease;
+  position: sticky;
+  top: 20px;
+}
+
+.sidebar.collapsed {
+  width: 60px;
+  overflow: hidden;
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.close-sidebar-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-sidebar-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.categorias-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.categoria-item {
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #64748b;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.categoria-item:hover {
+  background: #f8fafc;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.categoria-item.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+/* Área de contenido principal */
+.content-area {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Tabla de roles - Estilo como usuarios */
+.roles-table {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 80px 2fr 2fr 2fr 120px 150px 120px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  flex-shrink: 0;
+}
+
+.header-cell {
+  padding: 15px;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+}
+
+.header-cell:last-child {
+  border-right: none;
+}
+
+.table-body {
+  overflow: visible;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 80px 2fr 2fr 2fr 120px 150px 120px;
+  border-bottom: 1px solid #dee2e6;
+  transition: background-color 0.3s;
+  min-height: 60px;
+}
+
+.table-row:hover {
+  background-color: #f8f9fa;
+}
+
+.table-cell {
+  padding: 15px;
+  border-right: 1px solid #dee2e6;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.table-cell:last-child {
+  border-right: none;
+}
+
+.header-cell.actions {
+  justify-content: center;
+}
+
+/* Estilos específicos para roles */
+.role-name {
+  font-weight: 600;
+  color: #1e293b;
+  margin-right: 8px;
+}
+
+.role-code {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Lista de permisos */
+.permissions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.permission-badge {
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid #bfdbfe;
+}
+
+.permission-more {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid #e5e7eb;
+}
+
+/* Badges de estado */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  min-width: 80px;
+  transition: all 0.2s ease;
+}
+
+.status-badge.status-active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.status-badge.status-inactive {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.status-badge.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.status-badge.clickable:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.status-badge.status-active.clickable:hover {
+  background: #bbf7d0;
+  border-color: #86efac;
+}
+
+.status-badge.status-inactive.clickable:hover {
+  background: #fecaca;
+  border-color: #fca5a5;
+}
+
+/* Botones de acción */
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+  transform: scale(1.1);
+}
+
+.action-btn:first-child:hover {
+  color: #059669;
+  background: #d1fae5;
+}
+
+.action-btn:last-child:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+/* Mensaje de no roles */
+.no-roles {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.no-roles p {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Modal de confirmación */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+.confirm-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 2px solid #667eea;
+  position: relative;
+  animation: slideIn 0.3s ease;
+}
+
+.confirm-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 25px 30px;
+  border-bottom: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 16px 16px 0 0;
+}
+
+.confirm-icon {
+  font-size: 2rem;
+}
+
+.confirm-modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.confirm-modal-body {
+  padding: 25px 30px;
+}
+
+.confirm-message {
+  font-size: 1.1rem;
+  color: #374151;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.role-details {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.role-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.role-info:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.role-info .label {
+  font-weight: 600;
+  color: #475569;
+}
+
+.role-info .value {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.confirm-warning {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+}
+
+.confirm-warning p {
+  margin: 0;
+  color: #92400e;
+  font-weight: 500;
+}
+
+.confirm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  padding: 20px 30px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  border-radius: 0 0 16px 16px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 60px 1fr 1fr 1.5fr 100px 120px 100px;
+  }
+}
+
+@media (max-width: 992px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 60px 1fr 1fr 1fr 100px 100px 80px;
+  }
+  
+  .sidebar {
+    width: 250px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Contenedor con scroll único */
+  .roles-container {
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100vh;
+  }
+  
+  /* Header compacto */
+  .roles-header {
+    padding: 15px;
+    margin: 10px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+  }
+  
+  .roles-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  /* Tabs compactos */
+  .tabs-container {
+    padding: 12px;
+    margin: 0 10px 15px 10px;
+    border-radius: 12px;
+  }
+  
+  .tab-header {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 12px;
+  }
+  
+  .tab-button {
+    text-align: center;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    min-width: auto;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .tab-actions {
+    justify-content: center;
+  }
+  
+  /* Main content sin scroll propio */
+  .main-content {
+    flex-direction: column;
+    overflow: visible;
+  }
+  
+  /* Sidebar móvil */
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    background: #2c3e50;
+    color: white;
+  }
+
+  .sidebar.visible {
+    transform: translateX(0);
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .sidebar-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  /* Content area sin scroll */
+  .content-area {
+    padding: 10px;
+    overflow: visible;
+  }
+  
+  /* Tabla responsiva - estilo usuarios */
+  .roles-table {
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: visible;
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr 100px 80px 100px 80px;
+    background-color: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+    font-size: 12px;
+  }
+
+  .header-cell {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .table-body {
+    overflow: visible;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr 100px 80px 100px 80px;
+    font-size: 12px;
+  }
+
+  .table-cell {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .rol-badge, .status-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+    min-width: 50px;
+  }
+
+  .actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .action-btn {
+    padding: 3px;
+    font-size: 12px;
+  }
+  
+  /* Modal responsive */
+  .confirm-modal {
+    width: 95%;
+    margin: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .confirm-modal-header,
+  .confirm-modal-body,
+  .confirm-modal-footer {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .roles-container {
+    padding: 10px;
+  }
+  
+  .roles-header {
+    padding: 15px;
+  }
+  
+  .roles-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .tabs-container {
+    padding: 10px;
+  }
+  
+  .content-area {
+    padding: 15px;
+  }
+  
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    min-width: auto;
+  }
+  
+  .confirm-modal {
+    width: 98%;
+    margin: 10px;
+  }
+  
+  .confirm-modal-header,
+  .confirm-modal-body,
+  .confirm-modal-footer {
+    padding: 15px;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

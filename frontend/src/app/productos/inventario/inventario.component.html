@@ -1,0 +1,293 @@
+<div class="inventario-container">
+  <!-- Header -->
+  <div class="inventario-header">
+    <h3>📦 Gestión de Inventario</h3>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" 
+              (click)="navegarAProductos()"
+              type="button"
+              title="Ir a Productos">
+        🍦 Productos
+      </button>
+      <button class="tab-button" 
+              (click)="navegarACategoriaProductos()"
+              type="button"
+              title="Ir a Categoría de Productos">
+        📂 Categoría de Productos
+      </button>
+      <button class="tab-button" 
+              (click)="navegarAGruposModificadores()"
+              type="button"
+              title="Ir a Grupos Modificadores">
+        ⚙️ Grupos Modificadores
+      </button>
+      <button class="tab-button comentarios-nav" 
+              (click)="navegarAGestionComentarios()"
+              type="button"
+              title="Ir a Gestión de Comentarios">
+        💬 Gestión de Comentarios
+      </button>
+      <button class="tab-button active" 
+              type="button"
+              title="Inventario (actual)">
+        📦 Inventario
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros y acciones -->
+  <div class="filtros-section">
+    <div class="filtros-row">
+      <div class="filtro-item">
+        <input 
+          type="text" 
+          class="input-search" 
+          placeholder="🔍 Buscar por nombre, código o ubicación..."
+          [(ngModel)]="terminoBusqueda"
+          (input)="filtrarInventario()">
+      </div>
+      
+      <div class="filtro-item">
+        <select 
+          class="select-filtro" 
+          [(ngModel)]="categoriaFiltro"
+          (change)="filtrarInventario()">
+          <option *ngFor="let cat of categorias" [value]="cat">{{ cat }}</option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="mostrarBajoStock"
+            (change)="filtrarInventario()">
+          <span>Mostrar solo bajo stock</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabla de inventario -->
+  <div class="inventario-table-container" *ngIf="!cargando">
+    <div class="table-header">
+      <div class="header-cell">Producto</div>
+      <div class="header-cell">Cantidad Actual</div>
+      <div class="header-cell">Cantidad Mínima</div>
+      <div class="header-cell">Unidad</div>
+      <div class="header-cell">Ubicación</div>
+      <div class="header-cell">Estado</div>
+      <div class="header-cell actions">Acciones</div>
+    </div>
+
+    <div class="table-body">
+      <div *ngFor="let item of inventarioFiltrado" class="table-row" [class.bajo-stock]="obtenerEstadoStock(item) === 'bajo'" [class.sin-stock]="obtenerEstadoStock(item) === 'sin-stock'">
+        <div class="table-cell">
+          <div class="producto-info">
+            <div class="producto-nombre">{{ item.producto_nombre || 'N/A' }}</div>
+            <div class="producto-codigo">{{ item.producto_codigo || '' }}</div>
+          </div>
+        </div>
+        <div class="table-cell cantidad-cell">
+          <span class="cantidad-valor">{{ item.cantidad_actual | number:'1.2-2' }}</span>
+        </div>
+        <div class="table-cell">
+          <span class="cantidad-minima">{{ item.cantidad_minima | number:'1.2-2' }}</span>
+        </div>
+        <div class="table-cell">
+          <span class="unidad-medida">{{ item.unidad_medida || 'unidad' }}</span>
+        </div>
+        <div class="table-cell">
+          <span class="ubicacion">{{ item.ubicacion || '-' }}</span>
+        </div>
+        <div class="table-cell">
+          <span class="estado-badge" [class]="'estado-' + obtenerEstadoStock(item)">
+            <span *ngIf="obtenerEstadoStock(item) === 'sin-stock'">⚠️ Sin Stock</span>
+            <span *ngIf="obtenerEstadoStock(item) === 'bajo'">🔴 Bajo Stock</span>
+            <span *ngIf="obtenerEstadoStock(item) === 'normal'">✅ Normal</span>
+          </span>
+        </div>
+        <div class="table-cell actions">
+          <button class="btn-icon btn-movimiento" (click)="abrirModalMovimiento(item)" title="Registrar movimiento">
+            📝
+          </button>
+          <button class="btn-icon btn-editar" (click)="abrirModalEdicion(item)" title="Editar">
+            ✏️
+          </button>
+        </div>
+      </div>
+
+      <!-- Mensaje cuando no hay items -->
+      <div *ngIf="inventarioFiltrado.length === 0" class="no-items">
+        <p>No se encontraron registros de inventario</p>
+        <p class="hint">Crea un registro de inventario para un producto desde el modal de edición</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="cargando" class="loading-container">
+    <p>🔄 Cargando inventario...</p>
+  </div>
+</div>
+
+<!-- Modal de Movimiento -->
+<div *ngIf="mostrarModalMovimiento" class="modal-overlay" (click)="cerrarModalMovimiento()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📝 Registrar Movimiento de Inventario</h3>
+      <button class="modal-close" (click)="cerrarModalMovimiento()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div *ngIf="itemSeleccionado" class="info-producto">
+        <h4>{{ itemSeleccionado.producto_nombre }}</h4>
+        <p>Código: {{ itemSeleccionado.producto_codigo }}</p>
+        <p>Stock actual: <strong>{{ itemSeleccionado.cantidad_actual | number:'1.2-2' }} {{ itemSeleccionado.unidad_medida }}</strong></p>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de Movimiento *</label>
+        <select class="form-control" [(ngModel)]="movimientoActual.tipo_movimiento" (change)="calcularCantidadNueva()">
+          <option value="entrada">➕ Entrada</option>
+          <option value="salida">➖ Salida</option>
+          <option value="ajuste">⚙️ Ajuste</option>
+          <option value="venta">💰 Venta</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Cantidad *</label>
+        <input 
+          type="number" 
+          class="form-control" 
+          [(ngModel)]="movimientoActual.cantidad"
+          (input)="calcularCantidadNueva()"
+          min="0.01"
+          step="0.01"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label>Nueva Cantidad</label>
+        <input 
+          type="number" 
+          class="form-control" 
+          [(ngModel)]="movimientoActual.cantidad_nueva"
+          readonly
+          [class.positivo]="movimientoActual.cantidad_nueva > movimientoActual.cantidad_anterior"
+          [class.negativo]="movimientoActual.cantidad_nueva < movimientoActual.cantidad_anterior">
+        <small class="form-hint">
+          Anterior: {{ movimientoActual.cantidad_anterior | number:'1.2-2' }} → 
+          Nueva: {{ movimientoActual.cantidad_nueva | number:'1.2-2' }}
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Motivo *</label>
+        <textarea 
+          class="form-control" 
+          [(ngModel)]="movimientoActual.motivo"
+          rows="3"
+          placeholder="Describe el motivo del movimiento..."
+          required></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Referencia (opcional)</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          [(ngModel)]="movimientoActual.referencia"
+          placeholder="Ej: Compra #123, Venta #456">
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalMovimiento()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarMovimiento()">Guardar Movimiento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Edición -->
+<div *ngIf="mostrarModalEdicion" class="modal-overlay" (click)="cerrarModalEdicion()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ itemEditando?.id ? '✏️ Editar Inventario' : '➕ Nuevo Registro de Inventario' }}</h3>
+      <button class="modal-close" (click)="cerrarModalEdicion()">✕</button>
+    </div>
+
+    <div class="modal-body" *ngIf="itemEditando">
+      <div *ngIf="itemEditando.producto_nombre" class="info-producto">
+        <h4>{{ itemEditando.producto_nombre }}</h4>
+        <p>Código: {{ itemEditando.producto_codigo }}</p>
+      </div>
+
+      <div class="form-group">
+        <label>Cantidad Actual</label>
+        <input 
+          type="number" 
+          class="form-control" 
+          [(ngModel)]="itemEditando.cantidad_actual"
+          min="0"
+          step="0.01"
+          [readonly]="!!itemEditando.id">
+        <small class="form-hint" *ngIf="itemEditando.id">Usa "Registrar Movimiento" para cambiar la cantidad</small>
+      </div>
+
+      <div class="form-group">
+        <label>Cantidad Mínima *</label>
+        <input 
+          type="number" 
+          class="form-control" 
+          [(ngModel)]="itemEditando.cantidad_minima"
+          min="0"
+          step="0.01"
+          required>
+        <small class="form-hint">Se mostrará alerta cuando el stock esté por debajo de este valor</small>
+      </div>
+
+      <div class="form-group">
+        <label>Unidad de Medida *</label>
+        <select class="form-control" [(ngModel)]="itemEditando.unidad_medida" required>
+          <option value="unidad">Unidad</option>
+          <option value="kg">Kilogramos (kg)</option>
+          <option value="g">Gramos (g)</option>
+          <option value="litros">Litros (L)</option>
+          <option value="ml">Mililitros (ml)</option>
+          <option value="caja">Caja</option>
+          <option value="paquete">Paquete</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Ubicación</label>
+        <input 
+          type="text" 
+          class="form-control" 
+          [(ngModel)]="itemEditando.ubicacion"
+          placeholder="Ej: Almacén A, Estante 3">
+      </div>
+
+      <div class="form-group">
+        <label>Notas</label>
+        <textarea 
+          class="form-control" 
+          [(ngModel)]="itemEditando.notas"
+          rows="3"
+          placeholder="Notas adicionales..."></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarModalEdicion()">Cancelar</button>
+      <button class="btn btn-primary" (click)="guardarEdicion()">Guardar</button>
+    </div>
+  </div>
+</div>
+

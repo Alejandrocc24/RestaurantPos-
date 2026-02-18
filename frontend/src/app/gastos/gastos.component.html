@@ -1,0 +1,136 @@
+<div class="gastos-container">
+  <!-- Header del componente -->
+  <div class="gastos-header">
+    <h2>Gestión de Gastos</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" [class.active]="tabActivo === 'gastos'" (click)="cambiarTab('gastos')">
+        💰 Gastos
+      </button>
+      <button class="tab-button" [class.active]="tabActivo === 'categoria'" (click)="navegarACategoriaGastos(); cambiarTab('categoria')">
+        📂 Categoría de Gastos
+      </button>
+      <button class="tab-button" [class.active]="tabActivo === 'proveedores'" (click)="navegarAProveedores(); cambiarTab('proveedores')">
+        🏢 Proveedores
+      </button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-primary" (click)="nuevoGasto()">
+        ➕ Nuevo gasto
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Botón de toggle del sidebar -->
+    <button class="sidebar-toggle-btn" (click)="toggleSidebar()">
+      <i class="fas" [class.fa-chevron-left]="sidebarVisible" [class.fa-chevron-right]="!sidebarVisible"></i>
+    </button>
+
+    <!-- Overlay para sidebar móvil -->
+    <div class="sidebar-overlay" 
+         [class.visible]="sidebarVisible && isMobile" 
+         (click)="closeSidebar()"></div>
+
+    <!-- Sidebar de categorías de gastos -->
+    <div class="sidebar" 
+         [class.visible]="sidebarVisible" 
+         [class.collapsed]="!sidebarVisible"
+         [class.transitions-enabled]="sidebarInitialized">
+      <div class="sidebar-header">
+        <h3>Categorías de Gastos</h3>
+        <button class="close-sidebar-btn" (click)="closeSidebar()" *ngIf="isMobile">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="categorias-list">
+        <div 
+          *ngFor="let categoria of categoriasGastos" 
+          class="categoria-item"
+          [class.active]="categoriaSeleccionada === categoria"
+          (click)="filtrarPorCategoria(categoria)">
+          {{ categoria }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      <!-- Tabla de gastos -->
+      <div class="gastos-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Descripción</div>
+          <div class="header-cell">Monto</div>
+          <div class="header-cell">Categoría</div>
+          <div class="header-cell">Proveedor</div>
+          <div class="header-cell">Fecha</div>
+          <div class="header-cell">Salió de Caja</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let gasto of gastosFiltrados" class="table-row">
+            <div class="table-cell" data-label="ID">{{ gasto.id }}</div>
+            <div class="table-cell" data-label="Descripción">{{ gasto.descripcion }}</div>
+            <div class="table-cell" data-label="Monto">{{ gasto.monto | currencyFormat }}</div>
+            <div class="table-cell" data-label="Categoría">{{ gasto.categoria }}</div>
+            <div class="table-cell" data-label="Proveedor">
+              {{ gasto.proveedor_personalizado || gasto.proveedor }}
+              <span *ngIf="gasto.proveedor_personalizado" class="badge-personalizado" title="Proveedor personalizado (no guardado en BD)">
+                <i class="fas fa-user-edit"></i>
+              </span>
+            </div>
+            <div class="table-cell" data-label="Fecha">{{ gasto.fecha | date:'dd/MM/yyyy' }}</div>
+            <div class="table-cell" data-label="Salió de Caja">
+              <span class="status-badge" [class.salio-caja]="gasto.salio_de_caja" [class.no-salio-caja]="!gasto.salio_de_caja">
+                {{ gasto.salio_de_caja ? 'Sí' : 'No' }}
+              </span>
+            </div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarGasto(gasto)" title="Editar gasto">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="eliminarGasto(gasto)" title="Eliminar gasto">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay gastos -->
+          <div *ngIf="gastosFiltrados.length === 0" class="no-gastos">
+            <p>No se encontraron gastos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Gasto -->
+  <app-gasto-modal
+    *ngIf="mostrarModalGasto"
+    [gasto]="gastoSeleccionado"
+    [esEdicion]="esEdicionGasto"
+    (guardar)="guardarGasto($event)"
+    (cerrar)="cerrarModalGasto()">
+  </app-gasto-modal>
+
+  <!-- Diálogo de Confirmación -->
+  <app-confirm-dialog
+    *ngIf="mostrarConfirmDialog"
+    [title]="confirmDialogConfig.title"
+    [message]="confirmDialogConfig.message"
+    [details]="confirmDialogConfig.details"
+    [type]="confirmDialogConfig.type"
+    [confirmText]="confirmDialogConfig.confirmText"
+    [cancelText]="confirmDialogConfig.cancelText"
+    (confirm)="confirmarEliminacion()"
+    (cancel)="cerrarConfirmDialog()">
+  </app-confirm-dialog>
+</div>

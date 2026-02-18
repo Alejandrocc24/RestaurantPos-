@@ -1,0 +1,200 @@
+<div class="config-factura-container">
+  <div class="config-layout">
+    <!-- Panel de Configuración -->
+    <div class="config-panel">
+      <h3>⚙️ Configuración de Factura</h3>
+      
+      <!-- Información del Negocio -->
+      <div class="config-section">
+        <h4>📋 Información del Negocio</h4>
+        
+        <div class="form-group">
+          <label>Nombre del Negocio:</label>
+          <input type="text" [(ngModel)]="config.nombreNegocio" (ngModelChange)="onConfigChange()" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Dirección:</label>
+          <input type="text" [(ngModel)]="config.direccion" (ngModelChange)="onConfigChange()" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Teléfono:</label>
+          <input type="text" [(ngModel)]="config.telefono" (ngModelChange)="onConfigChange()" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>NIT:</label>
+          <input type="text" [(ngModel)]="config.nit" (ngModelChange)="onConfigChange()" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Email:</label>
+          <input type="email" [(ngModel)]="config.email" (ngModelChange)="onConfigChange()" class="form-control">
+        </div>
+      </div>
+
+      <!-- Configuración de Formato -->
+      <div class="config-section">
+        <h4>🎨 Formato de Impresión</h4>
+        
+        <div class="form-group">
+          <label>Tamaño de Fuente (px):</label>
+          <input type="number" [(ngModel)]="config.tamanoFuente" (ngModelChange)="onConfigChange()" min="8" max="16" class="form-control">
+          <small>Recomendado: 10-12px para impresora 80mm</small>
+        </div>
+
+        <div class="form-group">
+          <label>Ancho del Ticket (mm):</label>
+          <select [(ngModel)]="config.anchoTicket" (ngModelChange)="onConfigChange()" class="form-control">
+            <option [value]="58">58mm (Narrow)</option>
+            <option [value]="80">80mm (Estándar)</option>
+            <option [value]="112">112mm (Wide)</option>
+          </select>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="config.mostrarLogo" (ngModelChange)="onConfigChange()">
+            Mostrar Logo
+          </label>
+        </div>
+
+        <div class="form-group" *ngIf="config.mostrarLogo">
+          <label>URL del Logo:</label>
+          <input type="text" [(ngModel)]="config.logoUrl" (ngModelChange)="onConfigChange()" placeholder="https://..." class="form-control">
+        </div>
+      </div>
+
+      <!-- Configuración de IVA -->
+      <div class="config-section">
+        <h4>💰 Configuración de IVA</h4>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="config.mostrarIVA" (ngModelChange)="onConfigChange()">
+            Cobrar IVA
+          </label>
+        </div>
+
+        <div class="form-group" *ngIf="config.mostrarIVA">
+          <label>Porcentaje de IVA (%):</label>
+          <input type="number" [(ngModel)]="config.porcentajeIVA" (ngModelChange)="onConfigChange()" min="0" max="100" class="form-control">
+        </div>
+      </div>
+
+      <!-- Mensaje de Pie -->
+      <div class="config-section">
+        <h4>💬 Mensaje de Pie</h4>
+        
+        <div class="form-group">
+          <label>Mensaje:</label>
+          <textarea [(ngModel)]="config.mensajePie" (ngModelChange)="onConfigChange()" rows="3" class="form-control"></textarea>
+        </div>
+      </div>
+
+      <!-- Código QR -->
+      <div class="config-section">
+        <h4>📱 Código QR</h4>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="config.mostrarQR" (ngModelChange)="onConfigChange()">
+            Mostrar Código QR
+          </label>
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="action-buttons">
+        <button class="btn btn-primary" (click)="guardarConfiguracion()">
+          💾 Guardar Configuración
+        </button>
+        <button class="btn btn-secondary" (click)="restaurarDefecto()">
+          🔄 Restaurar por Defecto
+        </button>
+      </div>
+    </div>
+
+    <!-- Vista Previa -->
+    <div class="preview-panel">
+      <h3>👁️ Vista Previa</h3>
+      
+      <div class="ticket-preview" [style.width.mm]="config.anchoTicket" [style.font-size.px]="config.tamanoFuente">
+        <!-- Logo -->
+        <div class="ticket-logo" *ngIf="config.mostrarLogo && config.logoUrl">
+          <img [src]="config.logoUrl" alt="Logo">
+        </div>
+
+        <!-- Encabezado -->
+        <div class="ticket-header">
+          <h2>{{ config.nombreNegocio }}</h2>
+          <p>{{ config.direccion }}</p>
+          <p>Tel: {{ config.telefono }}</p>
+          <p>NIT: {{ config.nit }}</p>
+          <p>{{ config.email }}</p>
+        </div>
+
+        <div class="ticket-divider">================================</div>
+
+        <!-- Información de Factura -->
+        <div class="ticket-info">
+          <p><strong>Factura:</strong> {{ vistaPrevia?.numeroFactura }}</p>
+          <p><strong>Fecha:</strong> {{ vistaPrevia?.fecha }}</p>
+          <p><strong>Hora:</strong> {{ vistaPrevia?.hora }}</p>
+          <p><strong>Mesa:</strong> {{ vistaPrevia?.mesa }}</p>
+        </div>
+
+        <div class="ticket-divider">================================</div>
+
+        <!-- Productos -->
+        <div class="ticket-items">
+          <div class="item-header">
+            <span>Cant</span>
+            <span>Descripción</span>
+            <span>Total</span>
+          </div>
+          <div class="item-row" *ngFor="let item of vistaPrevia?.items">
+            <span>{{ item.cantidad }}</span>
+            <span>{{ item.descripcion }}</span>
+            <span>${{ formatearMoneda(item.total) }}</span>
+          </div>
+        </div>
+
+        <div class="ticket-divider">================================</div>
+
+        <!-- Totales -->
+        <div class="ticket-totals">
+          <div class="total-row">
+            <span>Subtotal:</span>
+            <span>${{ formatearMoneda(vistaPrevia?.subtotal) }}</span>
+          </div>
+          <div class="total-row" *ngIf="config.mostrarIVA">
+            <span>IVA ({{ config.porcentajeIVA }}%):</span>
+            <span>${{ formatearMoneda(vistaPrevia?.iva) }}</span>
+          </div>
+          <div class="total-row total-final">
+            <span><strong>TOTAL:</strong></span>
+            <span><strong>${{ formatearMoneda(vistaPrevia?.total) }}</strong></span>
+          </div>
+        </div>
+
+        <div class="ticket-divider">================================</div>
+
+        <!-- Mensaje de Pie -->
+        <div class="ticket-footer">
+          <p>{{ config.mensajePie }}</p>
+        </div>
+
+        <!-- Código QR -->
+        <div class="ticket-qr" *ngIf="config.mostrarQR">
+          <div class="qr-placeholder">📱 Código QR</div>
+        </div>
+      </div>
+
+      <button class="btn btn-success" (click)="imprimirVistaPrevia()">
+        🖨️ Imprimir Vista Previa
+      </button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,227 @@
+<div class="categoria-productos-container">
+  <!-- Header del componente -->
+  <div class="categoria-productos-header">
+    <h2>Gestión de Categorías</h2>
+  </div>
+
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
+    <div class="tab-header">
+      <button class="tab-button" 
+              (click)="navegarAProductos()"
+              type="button"
+              title="Ir a Productos">
+        🍦 Productos
+      </button>
+      <button class="tab-button active" 
+              type="button"
+              title="Categoría de Productos (actual)">
+        📂 Categoría de Productos
+      </button>
+      <button class="tab-button" 
+              (click)="navegarAGruposModificadores()"
+              type="button"
+              title="Ir a Grupos Modificadores">
+        ⚙️ Grupos Modificadores
+      </button>
+      <button class="tab-button comentarios-nav" 
+              (click)="navegarAGestionComentarios()"
+              type="button"
+              title="Ir a Gestión de Comentarios">
+        💬 Gestión de Comentarios
+      </button>
+      <button class="tab-button" 
+              (click)="navegarAInventario()"
+              type="button"
+              title="Ir a Inventario">
+        📦 Inventario
+      </button>
+    </div>
+    <div class="tab-actions">
+      <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
+        {{ mostrarInactivos ? 'Ocultar inactivas' : 'Mostrar inactivas' }}
+      </button>
+      <button class="btn btn-primary" (click)="nuevaCategoria()">➕ Nueva categoría</button>
+    </div>
+  </div>
+
+  <!-- Contenido principal -->
+  <div class="main-content">
+    <!-- Área de contenido principal -->
+    <div class="content-area">
+      <!-- Tabla de categorías -->
+      <div class="categorias-table">
+        <div class="table-header">
+          <div class="header-cell">ID</div>
+          <div class="header-cell">Nombre</div>
+          <div class="header-cell">Descripción</div>
+          <div class="header-cell">Subcategorías</div>
+          <div class="header-cell">Estado</div>
+          <div class="header-cell actions">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+        
+        <div class="table-body">
+          <div *ngFor="let categoria of categoriasFiltradas" class="table-row">
+            <div class="table-cell" data-label="ID">{{ categoria.id }}</div>
+            <div class="table-cell" data-label="Nombre">
+              <div class="categoria-nombre">{{ categoria.nombre }}</div>
+            </div>
+            <div class="table-cell" data-label="Descripción">
+              {{ categoria.descripcion || 'Sin descripción' }}
+            </div>
+            <div class="table-cell" data-label="Subcategorías">
+              <div class="subcategorias-display" *ngIf="categoria.subcategorias && categoria.subcategorias.length > 0">
+                <span class="subcategoria-tag" *ngFor="let subcategoria of categoria.subcategorias">
+                  {{ subcategoria }}
+                </span>
+              </div>
+              <span class="no-subcategorias-text" *ngIf="!categoria.subcategorias || categoria.subcategorias.length === 0">
+                Sin subcategorías
+              </span>
+            </div>
+            <div class="table-cell" data-label="Estado">
+              <span 
+                class="status-badge" 
+                [class.active]="categoria.activo"
+                [class.inactive]="!categoria.activo"
+                (click)="confirmarCambioEstado(categoria)">
+                {{ categoria.activo ? 'Activa' : 'Inactiva' }}
+              </span>
+            </div>
+            <div class="table-cell actions" data-label="Acciones">
+              <button class="action-btn" (click)="editarCategoria(categoria)" title="Editar categoría">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="action-btn" (click)="confirmarEliminacion(categoria)" title="Eliminar categoría">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Mensaje cuando no hay categorías -->
+          <div *ngIf="categoriasFiltradas.length === 0" class="no-categorias">
+            <p>No se encontraron categorías</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<!-- Modal: Nueva categoría -->
+<div *ngIf="mostrarModalNuevaCategoria" class="modal-overlay" (click)="cerrarModalNuevaCategoria()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Nueva categoría</h3>
+      <button class="close-btn" (click)="cerrarModalNuevaCategoria()">×</button>
+    </div>
+    <div class="modal-body">
+      <form (ngSubmit)="crearCategoria(nuevaCategoriaModel)" #formNueva="ngForm">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input class="form-control" [(ngModel)]="nuevaCategoriaModel.nombre" name="nombreNueva" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea class="form-control" [(ngModel)]="nuevaCategoriaModel.descripcion" name="descNueva"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="nuevaCategoriaModel.activo" name="activaNueva" />
+            Activa
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Subcategorías</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="form-control" [(ngModel)]="nuevaSubcategoriaNueva" name="subNueva" placeholder="Agregar subcategoría" />
+            <button type="button" class="btn btn-secondary" (click)="agregarSubcategoriaNueva()">Agregar</button>
+          </div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+            <span class="subcategoria-tag" *ngFor="let sub of nuevaCategoriaModel.subcategorias; let i = index">
+              {{ sub }}
+              <button type="button" class="action-btn" title="Quitar" (click)="eliminarSubcategoriaNueva(i)">×</button>
+            </span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalNuevaCategoria()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formNueva.form.valid">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Editar categoría -->
+<div *ngIf="mostrarModalEditarCategoria && categoriaSeleccionada" class="modal-overlay" (click)="cerrarModalEditarCategoria()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Editar categoría</h3>
+      <button class="close-btn" (click)="cerrarModalEditarCategoria()">×</button>
+    </div>
+    <div class="modal-body">
+      <form (ngSubmit)="actualizarCategoria(categoriaSeleccionada!)" #formEdit="ngForm">
+        <div class="form-group">
+          <label>Nombre</label>
+          <input class="form-control" [(ngModel)]="categoriaSeleccionada!.nombre" name="nombreEdit" required />
+        </div>
+        <div class="form-group">
+          <label>Descripción</label>
+          <textarea class="form-control" [(ngModel)]="categoriaSeleccionada!.descripcion" name="descEdit"></textarea>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="categoriaSeleccionada!.activo" name="activaEdit" />
+            Activa
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Subcategorías</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input class="form-control" [(ngModel)]="nuevaSubcategoriaEdit" name="subEdit" placeholder="Agregar subcategoría" />
+            <button type="button" class="btn btn-secondary" (click)="agregarSubcategoriaEdit()">Agregar</button>
+          </div>
+          <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+            <span class="subcategoria-tag" *ngFor="let sub of categoriaSeleccionada!.subcategorias; let i = index">
+              <ng-container *ngIf="editingSubIndex !== i; else editSubTpl">
+                {{ sub }}
+                <button type="button" class="action-btn" title="Editar" (click)="iniciarEdicionSubcategoria(i)">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button type="button" class="action-btn" title="Quitar" (click)="eliminarSubcategoriaEdit(i)">×</button>
+              </ng-container>
+              <ng-template #editSubTpl>
+                <input class="form-control" style="width: 180px;" [(ngModel)]="editingSubValue" name="subedit_{{i}}" />
+                <button type="button" class="btn btn-primary btn-sm" (click)="guardarEdicionSubcategoria()">Guardar</button>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="cancelarEdicionSubcategoria()">Cancelar</button>
+              </ng-template>
+            </span>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalEditarCategoria()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formEdit.form.valid">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación personalizado -->
+<div *ngIf="mostrarConfirmacion" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>{{ tituloConfirmacion }}</h3>
+    </div>
+    <div class="modal-body">
+      <p>{{ mensajeConfirmacion }}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="cerrarConfirmacion()">Cancelar</button>
+      <button class="btn btn-danger" (click)="procederAccion()">Confirmar</button>
+    </div>
+  </div>
+</div>

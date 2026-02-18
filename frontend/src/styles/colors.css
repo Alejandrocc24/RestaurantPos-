@@ -1,0 +1,28 @@
+/* 🎨 Paleta de Colores Pastel - Heladería */
+
+:root {
+  /* Colores Pastel Principales */
+  --color-1: #f9d4a4;  /* Durazno/Melocotón - Cálido */
+  --color-2: #f6a2c1;  /* Rosa Chicle - Dulce */
+  --color-3: #e5b5ed;  /* Lavanda - Suave */
+  --color-4: #a4d6e5;  /* Azul Cielo - Fresco */
+  --color-5: #f4e09f;  /* Vainilla - Cremoso */
+  
+  /* Variantes Oscuras (para hover/active) */
+  --color-1-dark: #f5c47f;
+  --color-2-dark: #f27ba5;
+  --color-3-dark: #d88ee6;
+  --color-4-dark: #7fc4db;
+  --color-5-dark: #efd66f;
+  
+  /* Variantes Claras (para backgrounds) */
+  --color-1-light: #fef5eb;
+  --color-2-light: #fef0f5;
+  --color-3-light: #f9f0fb;
+  --color-4-light: #f0f9fc;
+  --color-5-light: #fefbf0;
+  
+  /* Colores de texto sobre fondos pastel */
+  --text-on-pastel: #333333;
+  --text-on-dark-pastel: #ffffff;
+}

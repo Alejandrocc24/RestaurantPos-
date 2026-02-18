@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login - Restaurant POS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        
+        .response-section {
+            margin-top: 30px;
+            display: none;
+        }
+        
+        .response-section.show {
+            display: block;
+        }
+        
+        .response-section h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .response-data {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #333;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .token-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-radius: 5px;
+            border: 1px solid #b3d9ff;
+        }
+        
+        .token-section h4 {
+            color: #004085;
+            margin-bottom: 8px;
+        }
+        
+        .token-display {
+            background: white;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 11px;
+            color: #666;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            margin-top: 10px;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .test-btn {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .test-btn:hover {
+            background: #138496;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍽️ Restaurant POS - Test Login</h1>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" value="admin@dulcemomento.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" value="Admin123" required>
+            </div>
+            
+            <button type="submit" class="btn">
+                <span id="btnText">Conectar</span>
+            </button>
+        </form>
+        
+        <div id="message" class="message"></div>
+        
+        <div id="responseSection" class="response-section">
+            <h3>Respuesta del servidor:</h3>
+            <div class="response-data" id="responseData"></div>
+        </div>
+        
+        <div id="tokenSection" class="token-section" style="display:none;">
+            <h4>Token JWT Guardado:</h4>
+            <div class="token-display" id="tokenDisplay"></div>
+            <p style="font-size: 12px; margin-top: 10px; color: #004085;">
+                Este token se ha guardado en localStorage. Se incluye automáticamente en todas las solicitudes al servidor.
+            </p>
+            <button type="button" class="test-btn" onclick="testProductosAPI()">
+                Probar GET /api/productos
+            </button>
+            <button type="button" class="test-btn" onclick="testMesasAPI()">
+                Probar GET /api/mesas
+            </button>
+            <button type="button" class="test-btn" onclick="testGastosAPI()">
+                Probar GET /api/gastos
+            </button>
+            <button type="button" class="test-btn" onclick="limpiarDatos()">
+                Limpiar Token
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        
+        function extractTenantFromEmail(email) {
+            const parts = email.split('@');
+            if (parts.length === 2) {
+                const domain = parts[1].split('.')[0];
+                return `tenant-${domain}`;
+            }
+            return 'tenant-unknown';
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.querySelector('button[type="submit"]');
+            const btnText = document.getElementById('btnText');
+            
+            try {
+                btnText.innerHTML = '<span class="loading">⏳</span>&nbsp;Conectando...';
+                btn.disabled = true;
+                
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Guardar token en localStorage
+                    localStorage.setItem('token', data.data.accessToken);
+                    localStorage.setItem('tenantId', data.data.user.tenantId || extractTenantFromEmail(email));
+                    localStorage.setItem('user', JSON.stringify(data.data.user));
+                    
+                    showMessage(`✅ ¡Login exitoso! Bienvenido ${data.data.user.nombre}`, 'success');
+                    showResponse(data);
+                    showTokenSection(data.data.accessToken, data.data.user);
+                } else if (!response.ok) {
+                    showMessage(`❌ Error ${response.status}: ${data.message || 'Error desconocido'}`, 'error');
+                    showResponse(data);
+                } else {
+                    showMessage(`⚠️ ${data.message || 'Error de autenticación'}`, 'error');
+                    showResponse(data);
+                }
+            } catch (error) {
+                showMessage(`❌ Error de conexión: ${error.message}`, 'error');
+                console.error('Error:', error);
+            } finally {
+                btnText.innerHTML = 'Conectar';
+                btn.disabled = false;
+            }
+        });
+        
+        function showMessage(text, type) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.className = `message ${type}`;
+        }
+        
+        function showResponse(data) {
+            const section = document.getElementById('responseSection');
+            const responseEl = document.getElementById('responseData');
+            responseEl.textContent = JSON.stringify(data, null, 2);
+            section.classList.add('show');
+        }
+        
+        function showTokenSection(token, user) {
+            const section = document.getElementById('tokenSection');
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            tokenDisplay.textContent = token;
+            section.style.display = 'block';
+        }
+        
+        async function testProductosAPI() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showMessage('❌ Primero inicia sesión', 'error');
+                return;
+            }
+            
+            try {
+                showMessage('🔄 Obteniendo productos...', 'info');
+                const response = await fetch(`${API_URL}/productos`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                showResponse(data);
+                
+                if (data.success) {
+                    showMessage(`✅ Se obtuvieron ${data.data.length} productos`, 'success');
+                } else {
+                    showMessage(`⚠️ ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testMesasAPI() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showMessage('❌ Primero inicia sesión', 'error');
+                return;
+            }
+            
+            try {
+                showMessage('🔄 Obteniendo mesas...', 'info');
+                const response = await fetch(`${API_URL}/mesas`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                showResponse(data);
+                
+                if (data.success) {
+                    showMessage(`✅ Se obtuvieron ${data.data.length} mesas`, 'success');
+                } else {
+                    showMessage(`⚠️ ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testGastosAPI() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showMessage('❌ Primero inicia sesión', 'error');
+                return;
+            }
+            
+            try {
+                showMessage('🔄 Obteniendo gastos...', 'info');
+                const response = await fetch(`${API_URL}/gastos`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                showResponse(data);
+                
+                if (data.success) {
+                    showMessage(`✅ Se obtuvieron ${data.data.length} gastos`, 'success');
+                } else {
+                    showMessage(`⚠️ ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showMessage(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function limpiarDatos() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('tenantId');
+            localStorage.removeItem('user');
+            document.getElementById('tokenSection').style.display = 'none';
+            document.getElementById('responseSection').classList.remove('show');
+            document.getElementById('message').className = 'message';
+            showMessage('✅ Token limpiado', 'success');
+        }
+        
+        // Verificar si ya hay un token guardado
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            if (token && user) {
+                const userData = JSON.parse(user);
+                showMessage(`👤 Sesión activa: ${userData.email}`, 'info');
+                document.getElementById('tokenSection').style.display = 'block';
+                document.getElementById('tokenDisplay').textContent = token;
+            }
+        });
+    </script>
+</body>
+</html>

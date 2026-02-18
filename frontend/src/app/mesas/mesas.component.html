@@ -1,0 +1,962 @@
+<div class="mesas-container">
+  <!-- Header de la pantalla de mesas -->
+  <div class="mesas-header">
+    <div class="header-left">
+      <h1>🪑 Gestión de Mesas</h1>
+      <p>Administra el estado y disponibilidad de las mesas del restaurante</p>
+    </div>
+    
+    <div class="header-right" *ngIf="puedeEditarMesas">
+      <button 
+        class="btn-edicion" 
+        [class.activo]="modoEdicion"
+        (click)="toggleModoEdicion()">
+        <span class="btn-icon">{{ modoEdicion ? '✏️' : '⚙️' }}</span>
+        <span class="btn-text">{{ modoEdicion ? 'Salir Edición' : 'Modo Edición' }}</span>
+      </button>
+    </div>
+  </div>
+
+
+
+  <!-- Grid de mesas compacto -->
+  <div class="mesas-grid" [class.modo-edicion]="modoEdicion">
+    <!-- Indicador de carga -->
+    <div *ngIf="cargandoMesas" class="sin-mesas">
+      <div class="sin-mesas-icon">⏳</div>
+      <h3>Cargando mesas...</h3>
+      <p>Por favor espera un momento</p>
+    </div>
+    
+    <div *ngIf="!cargandoMesas && mesasFiltradas.length === 0 && !modoEdicion" class="sin-mesas">
+      <div class="sin-mesas-icon">🪑</div>
+      <h3>No hay mesas para mostrar</h3>
+      <p>Activa el modo edición para agregar nuevas mesas</p>
+    </div>
+
+    <!-- Botón de crear mesa en modo edición -->
+    <div *ngIf="modoEdicion" class="btn-crear-mesa-container">
+      <button class="btn-crear-mesa" (click)="abrirModalNuevaMesa()">
+        <span class="btn-icon">➕</span>
+        <span class="btn-text">Crear Nueva Mesa</span>
+      </button>
+    </div>
+
+    <!-- Posiciones preestablecidas en modo edición -->
+    <div 
+      *ngFor="let posicion of posicionesPreestablecidas" 
+      class="posicion-mesa"
+      [class.ocupada]="getMesaEnPosicion(posicion)"
+      [class.disponible]="!getMesaEnPosicion(posicion)"
+      [class.drag-over]="posicionDragOver === posicion.id"
+      (dragover)="onDragOver($event, posicion.id)"
+      (dragleave)="onDragLeave($event, posicion.id)"
+      (drop)="onDrop($event, posicion.id)"
+      (click)="modoEdicion ? manejarClickPosicion(posicion) : null">
+      
+      <!-- Mesa existente en esta posición -->
+      <div 
+        *ngIf="getMesaEnPosicion(posicion)" 
+        class="mesa-compacta" 
+        [ngClass]="'estado-' + getMesaEnPosicion(posicion)?.estado"
+        [draggable]="modoEdicion"
+        (dragstart)="onDragStart($event, getMesaEnPosicion(posicion))"
+        (click)="modoEdicion ? null : abrirModalInfoMesa(getMesaEnPosicion(posicion))"
+        [class.seleccionada]="mesaSeleccionada?.id === getMesaEnPosicion(posicion)?.id">
+        <div class="mesa-numero">{{ getMesaEnPosicion(posicion)?.numero }}</div>
+        
+        <!-- Botones de edición -->
+        <div *ngIf="modoEdicion" class="botones-edicion">
+          <button class="btn-editar-mesa" (click)="editarMesa(getMesaEnPosicion(posicion))" title="Editar">
+            ✏️
+          </button>
+          <button class="btn-eliminar-mesa" (click)="eliminarMesa(getMesaEnPosicion(posicion))" title="Eliminar">
+            🗑️
+          </button>
+        </div>
+      </div>
+      
+      <!-- Posición vacía -->
+      <div 
+        *ngIf="!getMesaEnPosicion(posicion) && modoEdicion" 
+        class="posicion-vacia">
+        <div class="icono-plus">📍</div>
+        <div class="texto-posicion">{{ posicion.nombre }}</div>
+        <div class="texto-arrastrar">Arrastra mesa aquí</div>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<!-- Modal para crear/editar mesa -->
+<div *ngIf="mostrarModalNuevaMesa" class="modal-overlay" (click)="cerrarModalNuevaMesa()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ editandoMesa ? 'Editar Mesa' : 'Agregar Nueva Mesa' }}</h3>
+      <button class="modal-close" (click)="cerrarModalNuevaMesa()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-group">
+        <label for="numero-mesa">Número de Mesa:</label>
+        <input 
+          type="number" 
+          id="numero-mesa" 
+          [(ngModel)]="nuevaMesa.numero" 
+          min="1" 
+          placeholder="Ej: 6">
+      </div>
+      <div class="form-group">
+        <label for="capacidad-mesa">Capacidad:</label>
+        <input 
+          type="number" 
+          id="capacidad-mesa" 
+          [(ngModel)]="nuevaMesa.capacidad" 
+          min="1" 
+          placeholder="Ej: 4">
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancelar" (click)="cerrarModalNuevaMesa()">Cancelar</button>
+      <button class="btn-guardar" (click)="editandoMesa ? actualizarMesa() : agregarMesa()">
+        {{ editandoMesa ? 'Actualizar' : 'Agregar Mesa' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para eliminar mesa -->
+<div *ngIf="mostrarModalConfirmacion" class="modal-overlay" (click)="cerrarModalConfirmacion()">
+  <div class="modal-content modal-confirmacion" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>🗑️ Confirmar Eliminación</h3>
+      <button class="modal-close" (click)="cerrarModalConfirmacion()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="confirmacion-icono">⚠️</div>
+      <div class="confirmacion-mensaje">
+        <p>¿Estás seguro de que quieres eliminar la <strong>Mesa {{ mesaAEliminar?.numero }}</strong>?</p>
+        <p class="confirmacion-advertencia">Esta acción no se puede deshacer.</p>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancelar" (click)="cerrarModalConfirmacion()">Cancelar</button>
+      <button class="btn-eliminar-confirmar" (click)="confirmarEliminacion()">
+        <span class="btn-icon">🗑️</span>
+        <span class="btn-text">Eliminar Mesa</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de información de mesa -->
+<div *ngIf="mostrarModalInfoMesa" class="modal-overlay" (click)="cerrarModalInfoMesa()">
+  <div class="modal-content modal-info-mesa" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>🪑 Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
+      <button class="modal-close" (click)="cerrarModalInfoMesa()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+
+      <!-- Productos comandados -->
+      <div class="seccion-productos" *ngIf="mesaSeleccionadaInfo?.productos && mesaSeleccionadaInfo.productos.length > 0">
+        <h4>🍽️ Productos Comandados</h4>
+        <div class="lista-productos">
+          <div class="producto-item" *ngFor="let producto of mesaSeleccionadaInfo.productos; let i = index">
+            <div class="producto-info">
+              <div class="producto-header">
+                <div class="producto-nombre">{{ obtenerNombreBaseProducto(producto.nombre) }}</div>
+                <button class="btn-eliminar-producto" 
+                        (click)="eliminarProductoComandado(i, producto)"
+                        title="Eliminar producto">
+                  🗑️
+                </button>
+              </div>
+              <div class="producto-detalles">
+                <span class="producto-cantidad">x{{ producto.cantidad }}</span>
+                <span class="producto-precio">${{ formatearMoneda(producto.precio) }}</span>
+                <span class="producto-subtotal">${{ formatearMoneda(producto.subtotal) }}</span>
+              </div>
+              
+              <!-- Mostrar modificadores si existen -->
+              <div class="producto-modificadores" *ngIf="producto.modificadores && producto.modificadores.length > 0">
+                <div class="grupo-modificadores" *ngFor="let grupo of producto.modificadores">
+                  <div class="grupo-titulo">{{ grupo.grupoNombre }}:</div>
+                  <div class="modificadores-lista">
+                    <span class="modificador-item" *ngFor="let mod of grupo.modificadores">
+                      • {{ mod.nombre }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Mostrar personalización si existe (legacy) -->
+              <div class="producto-personalizacion" *ngIf="producto.personalizacion && !producto.modificadores">
+                <small>✨ {{ producto.personalizacion }}</small>
+              </div>
+              
+              <div class="producto-notas" *ngIf="producto.notas">
+                <small>📝 {{ producto.notas }}</small>
+              </div>
+              <div class="producto-comentario" *ngIf="producto.comentario">
+                <small>💬 {{ producto.comentario }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Total de la cuenta -->
+        <div class="total-cuenta">
+          <span class="total-label">Total de la Cuenta:</span>
+          <span class="total-valor">${{ formatearMoneda(calcularTotalMesa(mesaSeleccionadaInfo!)) }}</span>
+        </div>
+      </div>
+
+      <!-- Indicador de carga -->
+      <div class="sin-productos" *ngIf="cargandoPedido">
+        <div class="icono-sin-productos">⏳</div>
+        <p>Cargando pedido...</p>
+      </div>
+      
+      <!-- Mensaje cuando no hay productos -->
+      <div class="sin-productos" *ngIf="!cargandoPedido && (!mesaSeleccionadaInfo?.productos || mesaSeleccionadaInfo.productos.length === 0)">
+        <div class="icono-sin-productos">🍽️</div>
+        <p>No hay productos comandados en esta mesa</p>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <!-- Botón para iniciar/agregar pedido (siempre visible) -->
+      <button 
+        class="btn-iniciar-pedido" 
+        (click)="abrirModalPedido()">
+        <span class="btn-icon">📝</span>
+        <span class="btn-text">{{ mesaSeleccionadaInfo?.estado === 'disponible' ? 'Iniciar Pedido' : 'Agregar Productos' }}</span>
+      </button>
+      
+      <!-- Botón para cerrar cuenta (solo si tiene productos) -->
+      <button 
+        *ngIf="mesaSeleccionadaInfo?.estado === 'ocupado' && mesaSeleccionadaInfo?.productos && mesaSeleccionadaInfo.productos.length > 0"
+        class="btn-cerrar-cuenta" 
+        (click)="cerrarCuenta(mesaSeleccionadaInfo!)">
+        <span class="btn-icon">💳</span>
+        <span class="btn-text">Cerrar Cuenta</span>
+      </button>
+      
+      <!-- Botón para liberar mesa sin productos -->
+      <button 
+        *ngIf="mesaSeleccionadaInfo?.estado === 'ocupado' && (!mesaSeleccionadaInfo?.productos || mesaSeleccionadaInfo.productos.length === 0)"
+        class="btn-liberar-mesa" 
+        (click)="liberarMesaSinPedido(mesaSeleccionadaInfo!)">
+        <span class="btn-icon">🔓</span>
+        <span class="btn-text">Liberar Mesa</span>
+      </button>
+      
+      <!-- Botón para transferir mesa (solo si está ocupada y tiene productos) -->
+      <button 
+        *ngIf="mesaSeleccionadaInfo?.estado === 'ocupado' && mesaSeleccionadaInfo?.productos && mesaSeleccionadaInfo.productos.length > 0"
+        class="btn-transferir-mesa" 
+        (click)="abrirModalTransferirMesa()">
+        <span class="btn-icon">🔄</span>
+        <span class="btn-text">Transferir Mesa</span>
+      </button>
+      
+      <button class="btn-cancelar" (click)="cerrarModalInfoMesa()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para iniciar pedido -->
+<div *ngIf="mostrarModalPedido" class="modal-overlay" (click)="cerrarModalPedido()">
+  <div class="modal-content modal-pedido" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>📝 {{ mesaSeleccionadaInfo?.estado === 'disponible' ? 'Nuevo Pedido' : 'Agregar Productos' }} - Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
+      <button class="modal-close" (click)="cerrarModalPedido()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Selección de productos -->
+      <div class="seleccion-productos">
+        <h4>🍽️ Seleccionar Productos</h4>
+        
+        <!-- Estructura de acordeón para móvil, estructura normal para PC -->
+        <div class="categorias-con-productos">
+          <!-- Versión móvil: acordeón -->
+          <div class="categorias-acordeon-movil">
+            <div class="categoria-contenedor" *ngFor="let categoria of categoriasProductos">
+              <div class="categoria-item" 
+                   [class.activa]="categoriaSeleccionada === categoria.id"
+                   (click)="seleccionarCategoria(categoria.id)">
+                <span class="categoria-icono">{{ categoria.icono }}</span>
+                <span class="categoria-nombre">{{ categoria.nombre }}</span>
+              </div>
+              <!-- Productos de esta categoría (solo en móvil, cuando está seleccionada) -->
+              <div class="categoria-contenido" *ngIf="categoriaSeleccionada === categoria.id">
+                <!-- Subcategorías -->
+                <div class="subcategorias-nav" *ngIf="subcategorias.length > 0">
+                  <div class="subcategoria-item" 
+                       *ngFor="let subcategoria of subcategorias"
+                       [class.activa]="subcategoriaSeleccionada === subcategoria"
+                       (click)="seleccionarSubcategoria(subcategoria)">
+                    {{ subcategoria }}
+                  </div>
+                </div>
+                <!-- Lista de productos filtrados -->
+                <div class="lista-productos-pedido" [class.vacio]="productosFiltrados.length === 0">
+                  <div *ngIf="productosFiltrados.length === 0" class="sin-productos">
+                    <p>No hay productos en esta categoría</p>
+                  </div>
+                  <div class="producto-pedido-item" 
+                       *ngFor="let producto of productosFiltrados; trackBy: trackByProductoId" 
+                       (click)="seleccionarProducto(producto)">
+                    <div class="producto-info-pedido">
+                      <div class="producto-nombre-pedido">{{ producto.nombre }}</div>
+                      <div class="producto-descripcion" *ngIf="producto.descripcion">{{ producto.descripcion }}</div>
+                      <div class="producto-precio-pedido">${{ formatearMoneda(producto.precio) }}</div>
+                    </div>
+                    <div class="producto-accion">
+                      <span class="icono-agregar">➕</span>
+                      <span class="producto-badge" *ngIf="producto.especial">⭐</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Versión PC: estructura tradicional -->
+          <div class="categorias-productos-pc">
+            <div class="categoria-item" 
+                 *ngFor="let categoria of categoriasProductos" 
+                 [class.activa]="categoriaSeleccionada === categoria.id"
+                 (click)="seleccionarCategoria(categoria.id)">
+              <span class="categoria-icono">{{ categoria.icono }}</span>
+              <span class="categoria-nombre">{{ categoria.nombre }}</span>
+            </div>
+          </div>
+          
+          <!-- Subcategorías (PC) -->
+          <div class="subcategorias-nav-pc" *ngIf="subcategorias.length > 0">
+            <div class="subcategoria-item" 
+                 *ngFor="let subcategoria of subcategorias"
+                 [class.activa]="subcategoriaSeleccionada === subcategoria"
+                 (click)="seleccionarSubcategoria(subcategoria)">
+              {{ subcategoria }}
+            </div>
+          </div>
+          
+          <!-- Lista de productos filtrados (PC) -->
+          <div class="lista-productos-pedido-pc">
+            <div class="producto-pedido-item" 
+                 *ngFor="let producto of productosFiltrados; trackBy: trackByProductoId" 
+                 (click)="seleccionarProducto(producto)">
+              <div class="producto-info-pedido">
+                <div class="producto-nombre-pedido">{{ producto.nombre }}</div>
+                <div class="producto-descripcion" *ngIf="producto.descripcion">{{ producto.descripcion }}</div>
+                <div class="producto-precio-pedido">${{ formatearMoneda(producto.precio) }}</div>
+              </div>
+              <div class="producto-accion">
+                <span class="icono-agregar">➕</span>
+                <span class="producto-badge" *ngIf="producto.especial">⭐</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pedido actual -->
+      <div class="pedido-actual">
+        <h4>🛒 {{ mesaSeleccionadaInfo?.estado === 'disponible' ? 'Pedido Actual' : 'Pedido de la Mesa' }}</h4>
+        <div class="lista-pedido-actual">
+          <div class="item-pedido" *ngFor="let item of pedidoActual; let i = index">
+            <div class="item-cantidad-badge">{{ item.cantidad }}x</div>
+            <div class="item-info">
+              <!-- Mostrar solo el nombre base del producto, sin detalles en paréntesis -->
+              <div class="item-nombre">
+                {{ obtenerNombreBaseProducto(item.nombre) }}
+                <!-- Botón para editar producto con modificadores -->
+                <button 
+                  *ngIf="item.modificadores && item.modificadores.length > 0"
+                  class="btn-editar-producto"
+                  (click)="editarProductoPedido(item, i)"
+                  title="Editar modificadores del producto">
+                  ✏️ Editar
+                </button>
+              </div>
+              
+              <!-- Grupos de Modificadores en línea horizontal - Estilo similar a cocina -->
+              <div class="grupos-modificadores-pedido-horizontal" *ngIf="item.modificadores && item.modificadores.length > 0">
+                <div class="grupo-modificador-pedido-horizontal" *ngFor="let grupo of item.modificadores">
+                  <div class="grupo-header-pedido-horizontal">
+                    <span class="grupo-icon-pedido">🔸</span>
+                    <span class="grupo-label-pedido-horizontal">{{ grupo.grupoNombre }}:</span>
+                  </div>
+                  <div class="grupo-items-pedido-horizontal">
+                    <span class="modificador-pedido" *ngFor="let mod of grupo.modificadores">
+                      {{ mod.nombre || mod }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Personalización legacy (si existe y no hay modificadores) -->
+              <div class="item-personalizacion" *ngIf="item.personalizacion && (!item.modificadores || item.modificadores.length === 0)">
+                <span class="personalizacion-icon">✨</span>
+                <span class="personalizacion-texto">{{ item.personalizacion }}</span>
+              </div>
+              
+              <!-- Comentario del producto - Estilo similar a cocina -->
+              <div class="item-comentario-actual" *ngIf="item.comentario">
+                <span class="comentario-icon-pedido">💬</span>
+                <span class="comentario-texto-pedido">{{ item.comentario }}</span>
+              </div>
+              
+              <!-- Precio y subtotal -->
+              <div class="item-precios">
+                <span class="item-precio-unitario">${{ formatearMoneda(item.precio) }}</span>
+                <span class="item-subtotal">Subtotal: ${{ formatearMoneda(item.subtotal) }}</span>
+              </div>
+              
+              <!-- Campo de comentario individual para cada producto -->
+              <div class="item-comentario-editable">
+                <!-- Comentarios preestablecidos - Solo mostrar si hay comentarios asignados al producto -->
+                <div class="comentarios-preestablecidos" *ngIf="obtenerComentariosPreestablecidos(item).length > 0">
+                  <div class="comentarios-titulo">💡 Comentarios rápidos:</div>
+                  <div class="comentarios-chips">
+                    <span 
+                      *ngFor="let comentario of obtenerComentariosPreestablecidos(item)" 
+                      class="comentario-chip"
+                      [class.seleccionado]="item.comentario === comentario"
+                      (click)="seleccionarComentarioPreestablecido(item, comentario)">
+                      {{ comentario }}
+                    </span>
+                  </div>
+                </div>
+                
+                <!-- Campo de comentario personalizado - Siempre visible -->
+                <div class="comentario-personalizado">
+                  <div class="comentario-header">
+                    <label>✏️ Comentario personalizado:</label>
+                    <button 
+                      *ngIf="item.comentario && (obtenerComentariosPreestablecidos(item).length === 0 || !obtenerComentariosPreestablecidos(item).includes(item.comentario))"
+                      class="btn-limpiar-comentario"
+                      (click)="limpiarComentarioPersonalizado(item)"
+                      title="Limpiar comentario">
+                      🗑️
+                    </button>
+                  </div>
+                  <input 
+                    type="text" 
+                    [(ngModel)]="item.comentario" 
+                    placeholder="Escribe tu comentario personalizado..."
+                    class="comentario-input"
+                    maxlength="100">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Controles de cantidad y eliminación -->
+            <div class="item-controles">
+              <button class="btn-cantidad" (click)="decrementarCantidad(i)">-</button>
+              <span class="cantidad">{{ item.cantidad }}</span>
+              <button class="btn-cantidad" (click)="incrementarCantidad(i)">+</button>
+              <button class="btn-eliminar-item" (click)="eliminarItemPedido(i)" title="Eliminar producto">🗑️</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Total del pedido -->
+        <div class="total-pedido">
+          <span class="total-label">Total del Pedido:</span>
+          <span class="total-valor">${{ formatearMoneda(calcularTotalPedido()) }}</span>
+        </div>
+      </div>
+      
+      <!-- Notas del pedido -->
+      <div class="notas-pedido">
+        <label for="notas-pedido">📝 Notas del Pedido:</label>
+        <textarea 
+          id="notas-pedido" 
+          [(ngModel)]="notasPedido" 
+          placeholder="Agregar notas especiales, modificaciones, etc."
+          rows="3"></textarea>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancelar" (click)="cerrarModalPedido()" [disabled]="guardandoPedido">Cancelar</button>
+      <button class="btn-confirmar-pedido" 
+              [disabled]="pedidoActual.length === 0 || guardandoPedido"
+              (click)="confirmarPedido()">
+        <span class="btn-icon">{{ guardandoPedido ? '⏳' : '✅' }}</span>
+        <span class="btn-text">{{ guardandoPedido ? 'Guardando...' : 'Confirmar Pedido' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para productos especiales (paso a paso) -->
+<div *ngIf="mostrarModalEspecial" class="modal-overlay" (click)="cerrarModalEspecial()">
+  <div class="modal-content modal-especial" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>⭐ {{ productoEspecial?.nombre }}</h3>
+      <button class="modal-close" (click)="cerrarModalEspecial()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Progreso -->
+      <div class="progreso-pasos">
+        <div class="paso" 
+             *ngFor="let paso of pasosEspecial; let i = index"
+             [class.completado]="i < pasoActual"
+             [class.actual]="i === pasoActual"
+             [class.disponible]="esPasoDisponible(i)"
+             [class.no-disponible]="!esPasoDisponible(i)"
+             (click)="irAPaso(i)">
+          <span class="paso-numero">{{ i + 1 }}</span>
+          <span class="paso-titulo">{{ paso.titulo }}</span>
+        </div>
+      </div>
+
+      <!-- Contenido del paso actual -->
+      <div class="paso-contenido">
+
+        <div class="paso-scroll">
+          <p class="paso-descripcion" *ngIf="pasosModificadores && pasosModificadores.length > 0 && pasoActual < pasosModificadores.length - 1">
+            {{ pasosModificadores[pasoActual]?.descripcion }}
+          </p>
+
+          <!-- Paso con grupos modificadores -->
+          <div *ngIf="pasosModificadores && pasosModificadores.length > 0 && pasoActual < pasosModificadores.length - 1" class="paso-modificador">
+            <!-- Información de selección -->
+            <div class="seleccion-info">
+              <span class="seleccion-texto">
+                Selecciona {{ pasosModificadores[pasoActual]?.minSelecciones }} a {{ pasosModificadores[pasoActual]?.maxSelecciones }} opciones
+                <span *ngIf="pasosModificadores[pasoActual]?.obligatorio" class="obligatorio">*</span>
+              </span>
+            </div>
+
+            <!-- Botones de categorías -->
+            <div class="categorias-botones" *ngIf="obtenerCategoriasOrdenadas(pasosModificadores[pasoActual]?.modificadores || []).length > 0">
+              <button 
+                class="btn-categoria"
+                [class.activa]="obtenerCategoriaSeleccionada(pasosModificadores[pasoActual]?.grupoId) === null || obtenerCategoriaSeleccionada(pasosModificadores[pasoActual]?.grupoId) === 'Todos'"
+                (click)="seleccionarCategoriaModificador(pasosModificadores[pasoActual]?.grupoId, null)">
+                Todos
+              </button>
+              <button 
+                *ngFor="let categoria of obtenerCategoriasOrdenadas(pasosModificadores[pasoActual]?.modificadores || [])"
+                class="btn-categoria"
+                [class.activa]="obtenerCategoriaSeleccionada(pasosModificadores[pasoActual]?.grupoId) === categoria"
+                (click)="seleccionarCategoriaModificador(pasosModificadores[pasoActual]?.grupoId, categoria)">
+                {{ categoria }}
+              </button>
+            </div>
+
+            <!-- Grid de modificadores filtrados -->
+            <div class="modificadores-grid">
+              <div 
+                class="modificador-item" 
+                *ngFor="let modificador of obtenerModificadoresFiltrados(pasosModificadores[pasoActual]?.grupoId, pasosModificadores[pasoActual]?.modificadores || [])"
+                [class.seleccionado]="esModificadorSeleccionado(pasosModificadores[pasoActual]?.grupoId, modificador.id)">
+                <div class="modificador-icono">🍨</div>
+                <div class="modificador-info">
+                  <div class="modificador-nombre">{{ modificador.nombre }}</div>
+                  <div class="modificador-precio">+${{ formatearMoneda(modificador.precio) }}</div>
+                </div>
+
+                <!-- Controles de cantidad -->
+                <div class="modificador-controles" *ngIf="esModificadorSeleccionado(pasosModificadores[pasoActual]?.grupoId, modificador.id); else agregarBtn">
+                  <button class="btn-cantidad btn-menos" 
+                          (click)="quitarModificador(pasosModificadores[pasoActual]?.grupoId, modificador); $event.stopPropagation()">
+                    −
+                  </button>
+                  <span class="cantidad-badge">
+                    {{ obtenerCantidadModificador(pasosModificadores[pasoActual]?.grupoId, modificador.id) }}
+                  </span>
+                  <button class="btn-cantidad btn-mas" 
+                          [disabled]="!puedeSeleccionarModificador(pasosModificadores[pasoActual]?.grupoId)"
+                          (click)="agregarModificador(pasosModificadores[pasoActual]?.grupoId, modificador); $event.stopPropagation()"
+                          [title]="!puedeSeleccionarModificador(pasosModificadores[pasoActual]?.grupoId) ? 'Límite de selecciones alcanzado' : 'Agregar más'">
+                    +
+                  </button>
+                </div>
+
+                <!-- Botón agregar inicial -->
+                <ng-template #agregarBtn>
+                  <button class="btn-agregar" 
+                          [disabled]="!puedeSeleccionarModificador(pasosModificadores[pasoActual]?.grupoId)"
+                          (click)="agregarModificador(pasosModificadores[pasoActual]?.grupoId, modificador); $event.stopPropagation()">
+                    Agregar
+                  </button>
+                </ng-template>
+              </div>
+            </div>
+
+            <!-- Contador de selecciones -->
+            <div class="contador-selecciones">
+              <span class="contador-texto">
+                {{ obtenerCantidadSeleccionada(pasosModificadores[pasoActual]?.grupoId) }} de {{ pasosModificadores[pasoActual]?.maxSelecciones }} seleccionados
+              </span>
+            </div>
+          </div>
+
+          <!-- Selección de frutas (legacy) -->
+          <div class="opciones-grid" *ngIf="!pasosModificadores && pasoActual === 0">
+            <div class="opcion-item" 
+                 *ngFor="let fruta of frutas"
+                 [class.seleccionada]="frutasSeleccionadas.includes(fruta.nombre)"
+                 (click)="toggleFruta(fruta.nombre)">
+              <span class="opcion-icono">{{ fruta.icono }}</span>
+              <span class="opcion-nombre">{{ fruta.nombre }}</span>
+            </div>
+          </div>
+
+          <!-- Selección de helado (legacy) -->
+          <div class="opciones-grid" *ngIf="!pasosModificadores && pasoActual === 1">
+            <div class="opcion-item" 
+                 *ngFor="let helado of helados"
+                 [class.seleccionada]="heladoSeleccionado === helado.nombre"
+                 (click)="seleccionarHelado(helado.nombre)">
+              <span class="opcion-icono">{{ helado.icono }}</span>
+              <span class="opcion-nombre">{{ helado.nombre }}</span>
+            </div>
+          </div>
+
+          <!-- Resumen final -->
+          <div class="resumen-especial" *ngIf="pasoActual === pasosEspecial.length - 1">
+            <h5>Resumen de tu Pedido Personalizado:</h5>
+
+            <!-- Resumen con grupos modificadores -->
+            <div *ngIf="pasosModificadores && pasosModificadores.length > 0" class="resumen-modificadores">
+              <div class="resumen-grupo" *ngFor="let paso of pasosModificadores.slice(0, -1)">
+                <div class="resumen-grupo-titulo">{{ paso.grupoNombre }}:</div>
+                <div class="resumen-grupo-items">
+                  <span *ngFor="let modificador of modificadoresSeleccionados[paso.grupoId]" class="resumen-item">
+                    {{ modificador.nombre }} (+${{ formatearMoneda(modificador.precio) }})
+                  </span>
+                  <span *ngIf="!modificadoresSeleccionados[paso.grupoId] || modificadoresSeleccionados[paso.grupoId].length === 0" class="resumen-vacio">
+                    Ninguno seleccionado
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Resumen legacy -->
+            <div *ngIf="!pasosModificadores || pasosModificadores.length === 0" class="resumen-legacy">
+              <div class="resumen-item">
+                <span class="resumen-label">Frutas seleccionadas:</span>
+                <span class="resumen-valor">{{ frutasSeleccionadas.join(', ') }}</span>
+              </div>
+              <div class="resumen-item">
+                <span class="resumen-label">Sabor de helado:</span>
+                <span class="resumen-valor">{{ heladoSeleccionado }}</span>
+              </div>
+            </div>
+
+            <div class="resumen-item total">
+              <span class="resumen-label">Precio total:</span>
+              <span class="resumen-valor">${{ formatearMoneda(calcularPrecioTotal()) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de navegación -->
+        <div class="especial-actions">
+          <button class="btn-cancelar-especial" (click)="cerrarModalEspecial()">
+            ❌ Cancelar
+          </button>
+          
+          <button class="btn-anterior" 
+                  (click)="pasoAnterior()"
+                  *ngIf="pasoActual > 0">
+            ⬅️ Anterior
+          </button>
+          
+          <button class="btn-siguiente" 
+                  (click)="pasoSiguiente()"
+                  [disabled]="!puedeContinuar()"
+                  *ngIf="pasoActual < pasosEspecial.length - 1">
+            Siguiente ➡️
+          </button>
+          
+          <button class="btn-confirmar" 
+                  (click)="confirmarProductoEspecial()"
+                  [disabled]="pasosModificadores && pasosModificadores.length > 0 && !validarTodosLosModificadores()"
+                  *ngIf="pasoActual === pasosEspecial.length - 1">
+            ✅ Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para cierre de cuenta -->
+<div *ngIf="mostrarModalCierreCuenta" class="modal-overlay" (click)="cerrarModalCierreCuenta()">
+  <div class="modal-content modal-cierre-cuenta" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>💳 Cerrar Cuenta - Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
+      <button class="modal-close" (click)="cerrarModalCierreCuenta()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- Resumen de la cuenta -->
+      <div class="resumen-cuenta">
+        <h4>📋 Resumen de la Cuenta</h4>
+        <div class="total-general">
+          <span class="total-label">Total de la cuenta:</span>
+          <span class="total-valor">${{ formatearMoneda(totalCuenta) }}</span>
+        </div>
+      </div>
+      
+      <!-- Selección de productos a cobrar -->
+      <div class="seleccion-cobro">
+        <h4>🛒 Productos a Cobrar</h4>
+        <div class="lista-productos-cobro">
+          <div class="producto-cobro-item" *ngFor="let producto of mesaSeleccionadaInfo?.productos">
+            <div class="producto-cobro-info">
+              <div class="producto-cobro-nombre">{{ producto.nombre }}</div>
+              <div class="producto-cobro-detalles">
+                <span class="cantidad">Cantidad total: {{ producto.cantidad }}</span>
+                <span class="precio-unitario">Precio: ${{ formatearMoneda(producto.precio) }}</span>
+                <span class="subtotal">Subtotal: ${{ formatearMoneda(producto.subtotal) }}</span>
+              </div>
+              <div class="producto-cobro-personalizacion" *ngIf="producto.personalizacion">
+                <small>✨ {{ producto.personalizacion }}</small>
+              </div>
+            </div>
+            <div class="producto-cobro-accion">
+              <!-- Controles de cantidad -->
+              <div class="cantidad-cobro-control">
+                <label class="cantidad-label">Cantidad a cobrar:</label>
+                <div class="cantidad-buttons">
+                  <button type="button" 
+                          class="btn-cantidad" 
+                          (click)="decrementarCantidadCobro(producto.id)"
+                          [disabled]="(cantidadesCobro[producto.id] || 0) === 0">
+                    −
+                  </button>
+                  <span class="cantidad-valor">{{ cantidadesCobro[producto.id] || 0 }}</span>
+                  <button type="button" 
+                          class="btn-cantidad" 
+                          (click)="incrementarCantidadCobro(producto.id)"
+                          [disabled]="(cantidadesCobro[producto.id] || 0) >= producto.cantidad">
+                    +
+                  </button>
+                </div>
+              </div>
+              <label class="checkbox-cobro">
+                <input type="checkbox" 
+                       [checked]="productosCobro[producto.id]"
+                       (change)="toggleProductoCobro(producto.id)">
+                <span class="checkmark"></span>
+                <span class="checkbox-text">Seleccionar</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Resumen del cobro -->
+      <div class="resumen-cobro">
+        <div class="subtotal-cobro">
+          <span class="subtotal-label">Subtotal a cobrar:</span>
+          <span class="subtotal-valor">${{ formatearMoneda(subtotalProductos) }}</span>
+        </div>
+      </div>
+      
+      <!-- Método de pago -->
+      <div class="metodo-pago">
+        <h4>💳 Método de Pago</h4>
+        <div class="opciones-metodo-pago">
+          <label class="radio-metodo-pago">
+            <input type="radio" 
+                   name="metodoPago" 
+                   value="efectivo" 
+                   [(ngModel)]="metodoPago"
+                   (change)="onMetodoPagoChange()">
+            <span class="radio-checkmark"></span>
+            <span class="radio-text">💵 Efectivo</span>
+          </label>
+          
+          <label class="radio-metodo-pago">
+            <input type="radio" 
+                   name="metodoPago" 
+                   value="transferencia" 
+                   [(ngModel)]="metodoPago"
+                   (change)="onMetodoPagoChange()">
+            <span class="radio-checkmark"></span>
+            <span class="radio-text">📱 Transferencia</span>
+          </label>
+        </div>
+      </div>
+      
+      <!-- Pago y cambio (solo para efectivo) -->
+      <div class="pago-cambio" *ngIf="metodoPago === 'efectivo'">
+        <h4>💰 Pago y Cambio</h4>
+        
+        <!-- Denominaciones preestablecidas -->
+        <div class="denominaciones-preestablecidas">
+          <label>Denominación recibida:</label>
+          <div class="botones-denominacion">
+            <button type="button" 
+                    class="btn-denominacion" 
+                    *ngFor="let denom of denominacionesPreestablecidas"
+                    [class.activo]="denominacionRecibida === denom && denominacionManual === 0"
+                    (click)="seleccionarDenominacion(denom)">
+              ${{ denom.toLocaleString('es-CO') }}
+            </button>
+          </div>
+        </div>
+        
+        <!-- Campo para denominación manual -->
+        <div class="denominacion-manual">
+          <label>O ingresa el monto manualmente:</label>
+          <div class="input-denominacion-manual">
+            <span class="simbolo-peso">$</span>
+            <input type="number" 
+                   class="input-manual"
+                   [(ngModel)]="denominacionManual"
+                   (ngModelChange)="onDenominacionManualChange()"
+                   (focus)="onDenominacionManualFocus()"
+                   placeholder="Ingresa el monto"
+                   min="0"
+                   step="1000">
+          </div>
+        </div>
+        
+        <div class="cambio-info">
+          <div class="cambio-item">
+            <span class="cambio-label">Cambio a devolver:</span>
+            <span class="cambio-valor" [class.negativo]="cambioCalculado < 0">
+              ${{ formatearMoneda(cambioCalculado) }}
+            </span>
+          </div>
+          
+          <div class="mensaje-cambio" *ngIf="cambioCalculado < 0">
+            <span class="mensaje-error">⚠️ La denominación es insuficiente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancelar" (click)="cerrarModalCierreCuenta()">
+        ❌ Cancelar
+      </button>
+      
+      <button class="btn-confirmar-cobro" 
+              (click)="confirmarCierreCuenta()"
+              [disabled]="subtotalProductos <= 0 || (metodoPago === 'efectivo' && denominacionRecibida > 0 && cambioCalculado < 0)">
+        💳 {{ subtotalProductos > 0 ? 'Confirmar Cobro ($' + formatearMoneda(subtotalProductos) + ')' : 'Selecciona productos' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para transferir mesa -->
+<div *ngIf="mostrarModalTransferirMesa" class="modal-overlay" (click)="cerrarModalTransferirMesa()">
+  <div class="modal-content modal-transferir-mesa" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>🔄 Transferir Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
+      <button class="modal-close" (click)="cerrarModalTransferirMesa()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="info-transferencia">
+        <div class="info-icon">ℹ️</div>
+        <div class="info-text">
+          <p><strong>Transferir pedido de la Mesa {{ mesaSeleccionadaInfo?.numero }}</strong></p>
+          <p>Selecciona los productos que deseas transferir y la mesa de destino.</p>
+        </div>
+      </div>
+      
+      <!-- Resumen del pedido a transferir -->
+      <div class="resumen-transferencia" *ngIf="mesaSeleccionadaInfo?.productos && mesaSeleccionadaInfo.productos.length > 0">
+        <h4>📋 Seleccionar Productos a Transferir</h4>
+        <div class="seleccion-productos-transferencia">
+          <div class="producto-transferencia-item" *ngFor="let producto of mesaSeleccionadaInfo.productos; let i = index">
+            <div class="checkbox-producto">
+              <input type="checkbox" 
+                     [id]="'producto-' + i"
+                     [checked]="productosSeleccionadosTransferencia[i]"
+                     (change)="toggleProductoTransferencia(i)">
+              <label [for]="'producto-' + i"></label>
+            </div>
+            <div class="producto-info-transferencia">
+              <div class="producto-nombre-transferencia">{{ producto.nombre }}</div>
+              <div class="producto-detalles-transferencia">
+                <span class="producto-cantidad">x{{ producto.cantidad }}</span>
+                <span class="producto-precio">${{ formatearMoneda(producto.precio) }}</span>
+                <span class="producto-subtotal">${{ formatearMoneda(producto.subtotal) }}</span>
+              </div>
+              <div class="producto-notas" *ngIf="producto.notas">
+                <small>📝 {{ producto.notas }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="acciones-seleccion">
+          <button class="btn-seleccionar-todos" (click)="seleccionarTodosProductos()">
+            ☑️ Seleccionar Todos
+          </button>
+          <button class="btn-deseleccionar-todos" (click)="deseleccionarTodosProductos()">
+            ☐ Deseleccionar Todos
+          </button>
+        </div>
+        
+        <div class="total-transferencia">
+          <span class="total-label">Total a Transferir:</span>
+          <span class="total-valor">${{ formatearMoneda(calcularTotalProductosSeleccionados()) }}</span>
+        </div>
+      </div>
+      
+      <!-- Selección de mesa de destino -->
+      <div class="seleccion-mesa-destino">
+        <h4>🎯 Mesa de Destino</h4>
+        <div class="mesas-disponibles">
+          <div class="mesa-destino-item" 
+               *ngFor="let mesa of mesasDisponiblesParaTransferencia" 
+               [class.seleccionada]="mesaDestinoSeleccionada === mesa.id"
+               (click)="seleccionarMesaDestino(mesa.id)">
+            <div class="mesa-destino-info">
+              <span class="mesa-numero">Mesa {{ mesa.numero }}</span>
+              <span class="mesa-capacidad">Capacidad: {{ mesa.capacidad }}</span>
+              <span class="mesa-ubicacion">{{ mesa.ubicacion === 'salon' ? 'Salón' : 'Terraza' }}</span>
+            </div>
+            <div class="mesa-destino-estado">
+              <span class="estado-badge estado-{{ mesa.estado }}">
+                {{ mesa.estado === 'disponible' ? 'Disponible' : 'Ocupada' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mensaje-sin-mesas" *ngIf="mesasDisponiblesParaTransferencia.length === 0">
+          <div class="icono-sin-mesas">⚠️</div>
+          <p>No hay mesas disponibles para transferir</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-cancelar" (click)="cerrarModalTransferirMesa()">
+        ❌ Cancelar
+      </button>
+      
+      <button class="btn-confirmar-transferencia" 
+              (click)="confirmarTransferenciaMesa()"
+              [disabled]="!mesaDestinoSeleccionada || !hayProductosSeleccionados()">
+        🔄 Confirmar Transferencia
+      </button>
+    </div>
+  </div>
+</div>

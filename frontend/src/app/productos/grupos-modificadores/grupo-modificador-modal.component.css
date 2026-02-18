@@ -1,0 +1,696 @@
+/* Overlay del modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+/* Contenido del modal */
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* Header del modal */
+.modal-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #212529;
+  font-size: 1.5rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+/* Cuerpo del modal */
+.modal-body {
+  padding: 2rem;
+}
+
+/* Secciones del formulario */
+.form-section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+
+.form-section h3 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.2rem;
+  border-bottom: 2px solid #007bff;
+  padding-bottom: 0.5rem;
+}
+
+/* Grupos de formulario */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-group small {
+  display: block;
+  margin-top: 0.25rem;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Filas de formulario */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Checkbox personalizado */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+}
+
+/* Header de sección con botón */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* Lista de modificadores */
+.modificadores-list {
+  margin-top: 1rem;
+}
+
+.modificador-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.modificador-item:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+.modificador-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.modificador-nombre {
+  font-weight: 500;
+  color: #212529;
+  min-width: 150px;
+}
+
+.modificador-precio {
+  font-weight: 600;
+  color: #28a745;
+  min-width: 80px;
+}
+
+.modificador-estado {
+  min-width: 80px;
+}
+
+.modificador-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Botones de acción */
+.action-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.action-btn.edit {
+  color: #007bff;
+}
+
+.action-btn.edit:hover {
+  background-color: #e3f2fd;
+}
+
+.action-btn.delete {
+  color: #dc3545;
+}
+
+.action-btn.delete:hover {
+  background-color: #f8d7da;
+}
+
+/* Mensaje cuando no hay modificadores */
+.no-modificadores {
+  padding: 2rem;
+  text-align: center;
+  color: #6c757d;
+  background: white;
+  border: 2px dashed #dee2e6;
+  border-radius: 6px;
+}
+
+.no-modificadores p {
+  margin: 0;
+  font-style: italic;
+}
+
+/* Formulario de modificador */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Botones del modal */
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+  margin-top: 2rem;
+}
+
+/* Botones */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+  transform: translateY(-1px);
+}
+
+/* Status badge para modificadores */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-content {
+    margin: 1rem;
+    max-height: 95vh;
+  }
+  
+  .modal-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .form-section {
+    padding: 1rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  
+  .modificador-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .modificador-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  
+  .modificador-nombre,
+  .modificador-precio,
+  .modificador-estado {
+    min-width: auto;
+  }
+  
+  .modificador-actions {
+    align-self: flex-end;
+  }
+  
+  .form-actions,
+  .modal-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Estilos específicos para el formulario de modificadores */
+.form-section[style*="display: none"] {
+  display: block !important;
+}
+
+/* Asegurar que el formulario de modificadores sea visible */
+.form-section:has(.form-row) {
+  display: block !important;
+  background-color: #ffffff;
+  border: 2px solid #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+/* Estilos para los campos del formulario de modificadores */
+.form-section .form-group input,
+.form-section .form-group select {
+  border: 2px solid #ced4da;
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-section .form-group input:focus,
+.form-section .form-group select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Estilos para el botón de agregar modificador */
+.section-header .btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.section-header .btn-secondary:hover {
+  background-color: #5a6268;
+}
+
+/* Estilos para el campo checkbox */
+.form-group input[type="checkbox"] {
+  width: auto;
+  margin-right: 0.5rem;
+  accent-color: #007bff;
+  cursor: pointer;
+}
+
+.form-group label[for="cobrarPrecio"] {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-group label[for="cobrarPrecio"]:hover {
+  color: #007bff;
+}
+
+/* Estilos para el texto de ayuda */
+.form-text {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Buscador de modificadores */
+.modificador-search {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.modificador-search .search-input {
+  flex: 1;
+  position: relative;
+}
+
+.modificador-search .search-input i {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+  z-index: 1;
+}
+
+.modificador-search .search-input input {
+  width: 100%;
+  padding: 12px 15px 12px 45px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  background: #ffffff;
+}
+
+.modificador-search .search-input input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Modificadores disponibles */
+.modificadores-disponibles {
+  margin-bottom: 20px;
+}
+
+.modificadores-disponibles h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modificadores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.modificador-option {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #ffffff;
+}
+
+.modificador-option:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.modificador-option.selected {
+  border-color: #007bff;
+  background-color: #f8f9ff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+/* Modificadores agregados */
+.modificadores-agregados {
+  margin-bottom: 20px;
+}
+
+.modificadores-agregados h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modificadores-list {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.modificador-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.3s ease;
+}
+
+.modificador-item:last-child {
+  border-bottom: none;
+}
+
+.modificador-item:hover {
+  background-color: #f8f9fa;
+}
+
+.modificador-info {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.modificador-nombre {
+  font-weight: 500;
+  color: #495057;
+  min-width: 150px;
+}
+
+.modificador-categoria {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.modificador-categoria label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.modificador-categoria input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.modificador-categoria input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
+}
+
+.modificador-precio {
+  font-weight: 600;
+  color: #28a745;
+  min-width: 80px;
+}
+
+.modificador-estado {
+  min-width: 80px;
+}
+
+.modificador-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Botones de acción */
+.action-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.action-btn:hover {
+  transform: scale(1.1);
+}
+
+.action-btn.delete {
+  color: #dc3545;
+}
+
+.action-btn.delete:hover {
+  background-color: #f8d7da;
+}
+
+/* Status badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactivo {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Estilos para el modal de confirmación */
+app-confirm-modal {
+  z-index: 10001;
+}
+
+/* Asegurar que el modal de confirmación esté por encima del modal principal */
+app-confirm-modal .modal-overlay {
+  z-index: 10001;
+}
+
+app-confirm-modal .modal-content {
+  z-index: 10002;
+}
