@@ -22,7 +22,7 @@ export class GrupoModificadorModalComponent implements OnInit {
   constructor(private productosService: ProductosService) { }
 
   formData: GrupoModificador = {
-    id: 0,
+    id: '',
     nombre: '',
     estado: 'activo',
     modificadores: [],
@@ -48,7 +48,7 @@ export class GrupoModificadorModalComponent implements OnInit {
     } else {
       console.log('Creando nuevo grupo');
       this.formData = {
-        id: 0,
+        id: '',
         nombre: '',
         estado: 'activo',
         modificadores: [],

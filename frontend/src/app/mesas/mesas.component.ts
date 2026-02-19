@@ -76,7 +76,7 @@ interface Fruta {
 interface PasoModificador {
   titulo: string;
   descripcion: string;
-  grupoId: number;
+  grupoId: string;
   grupoNombre: string;
   modificadores: Modificador[];
   maxSelecciones: number;
@@ -511,66 +511,66 @@ export class MesasComponent implements OnInit, OnDestroy {
     // Datos de ejemplo para grupos modificadores
     this.gruposModificadores = [
       {
-        id: 1,
+        id: 'grupo-1',
         nombre: 'Frutas',
         descripcion: 'Selecciona las frutas que desees',
         tipo: 'multiple',
         obligatorio: true,
         estado: 'activo',
         modificadores: [
-          { id: 1, nombre: 'Fresa', precio: 0.50, estado: 'activo' },
-          { id: 2, nombre: 'Plátano', precio: 0.50, estado: 'activo' },
-          { id: 3, nombre: 'Kiwi', precio: 0.75, estado: 'activo' },
-          { id: 4, nombre: 'Mango', precio: 0.75, estado: 'activo' },
-          { id: 5, nombre: 'Piña', precio: 0.50, estado: 'activo' },
-          { id: 6, nombre: 'Uvas', precio: 0.50, estado: 'activo' }
+          { id: 'mod-1', nombre: 'Fresa', precio: 0.50, estado: 'activo' },
+          { id: 'mod-2', nombre: 'Plátano', precio: 0.50, estado: 'activo' },
+          { id: 'mod-3', nombre: 'Kiwi', precio: 0.75, estado: 'activo' },
+          { id: 'mod-4', nombre: 'Mango', precio: 0.75, estado: 'activo' },
+          { id: 'mod-5', nombre: 'Piña', precio: 0.50, estado: 'activo' },
+          { id: 'mod-6', nombre: 'Uvas', precio: 0.50, estado: 'activo' }
         ],
         maxSelecciones: 3,
         minSelecciones: 1
       },
       {
-        id: 2,
+        id: 'grupo-2',
         nombre: 'Salsas',
         descripcion: 'Elige tu salsa favorita',
         tipo: 'unico',
         obligatorio: true,
         estado: 'activo',
         modificadores: [
-          { id: 7, nombre: 'Chocolate', precio: 0.75, estado: 'activo' },
-          { id: 8, nombre: 'Caramelo', precio: 0.75, estado: 'activo' },
-          { id: 9, nombre: 'Fresa', precio: 0.75, estado: 'activo' },
-          { id: 10, nombre: 'Dulce de Leche', precio: 0.75, estado: 'activo' }
+          { id: 'mod-7', nombre: 'Chocolate', precio: 0.75, estado: 'activo' },
+          { id: 'mod-8', nombre: 'Caramelo', precio: 0.75, estado: 'activo' },
+          { id: 'mod-9', nombre: 'Fresa', precio: 0.75, estado: 'activo' },
+          { id: 'mod-10', nombre: 'Dulce de Leche', precio: 0.75, estado: 'activo' }
         ],
         maxSelecciones: 1,
         minSelecciones: 1
       },
       {
-        id: 3,
+        id: 'grupo-3',
         nombre: 'Toppings',
         descripcion: 'Adiciones para tu helado',
         tipo: 'multiple',
         obligatorio: false,
         estado: 'activo',
         modificadores: [
-          { id: 11, nombre: 'Nueces', precio: 1.00, estado: 'activo' },
-          { id: 12, nombre: 'Chispas de Chocolate', precio: 0.50, estado: 'activo' },
-          { id: 13, nombre: 'Coco Rallado', precio: 0.50, estado: 'activo' },
-          { id: 14, nombre: 'Crema Batida', precio: 0.75, estado: 'activo' }
+          { id: 'mod-11', nombre: 'Nueces', precio: 1.00, estado: 'activo' },
+          { id: 'mod-12', nombre: 'Chispas de Chocolate', precio: 0.50, estado: 'activo' },
+          { id: 'mod-13', nombre: 'Coco Rallado', precio: 0.50, estado: 'activo' },
+          { id: 'mod-14', nombre: 'Crema Batida', precio: 0.75, estado: 'activo' }
         ],
         maxSelecciones: 2,
         minSelecciones: 0
       },
       {
-        id: 4,
+        id: 'grupo-4',
         nombre: 'Decoraciones',
         descripcion: 'Elementos decorativos',
         tipo: 'multiple',
         obligatorio: false,
         estado: 'activo',
         modificadores: [
-          { id: 15, nombre: 'Galletas', precio: 0.75, estado: 'activo' },
-          { id: 16, nombre: 'Chocolate Decorativo', precio: 1.00, estado: 'activo' },
-          { id: 17, nombre: 'Frutas Secas', precio: 0.75, estado: 'activo' }
+          { id: 'mod-15', nombre: 'Galletas', precio: 0.75, estado: 'activo' },
+          { id: 'mod-16', nombre: 'Chocolate Decorativo', precio: 1.00, estado: 'activo' },
+          { id: 'mod-17', nombre: 'Frutas Secas', precio: 0.75, estado: 'activo' }
         ],
         maxSelecciones: 3,
         minSelecciones: 0
@@ -1738,7 +1738,7 @@ export class MesasComponent implements OnInit, OnDestroy {
       console.log('  ✅ Producto tiene grupos modificadores configurados');
 
       this.pasosModificadores = producto.configuracionGrupos.map(config => {
-        const grupo = this.gruposModificadores.find(g => g.id === Number(config.grupoId));
+        const grupo = this.gruposModificadores.find(g => g.id === config.grupoId);
         if (grupo) {
           console.log(`    📦 Paso creado: ${grupo.nombre} (min: ${config.minSelecciones}, max: ${config.maxSelecciones}, cobra: ${grupo.cobrarPrecio ? 'SÍ' : 'NO'})`);
           return {
@@ -1770,7 +1770,7 @@ export class MesasComponent implements OnInit, OnDestroy {
       this.pasosModificadores.push({
         titulo: 'Confirmar Pedido',
         descripcion: 'Revisa los detalles de tu pedido personalizado',
-        grupoId: 0,
+        grupoId: '',
         grupoNombre: 'Confirmación',
         modificadores: [],
         maxSelecciones: 0,
@@ -1987,7 +1987,7 @@ export class MesasComponent implements OnInit, OnDestroy {
       console.log('  📦 Procesando grupos modificadores...');
 
       this.pasosModificadores.forEach(paso => {
-        if (paso.grupoId > 0) { // Excluir el paso de confirmación
+        if (paso.grupoId !== '') { // Excluir el paso de confirmación
           const seleccionados = this.modificadoresSeleccionados[paso.grupoId] || [];
           console.log(`    - ${paso.grupoNombre}: ${seleccionados.length} seleccionados`);
 
@@ -2145,7 +2145,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     // Si es un producto con grupos modificadores
     if (this.pasosModificadores && this.pasosModificadores.length > 0) {
       this.pasosModificadores.forEach(paso => {
-        if (paso.grupoId > 0 && paso.cobrarPrecio) { // Excluir el paso de confirmación y solo cobrar si el grupo lo indica
+        if (paso.grupoId !== '' && paso.cobrarPrecio) { // Excluir el paso de confirmación y solo cobrar si el grupo lo indica
           const seleccionados = this.modificadoresSeleccionados[paso.grupoId] || [];
           const precioAdicional = seleccionados.reduce((sum, m) => sum + m.precio, 0);
           precioTotal += precioAdicional;
@@ -2671,7 +2671,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     });
   }
   private validarGrupoModificador(paso: PasoModificador | undefined): boolean {
-    if (!paso || paso.grupoId === 0) {
+    if (!paso || paso.grupoId === '') {
       return true;
     }
 
@@ -2696,7 +2696,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
 
     return this.pasosModificadores
-      .filter(paso => paso.grupoId > 0)
+      .filter(paso => paso.grupoId !== '')
       .every(paso => this.validarGrupoModificador(paso));
   }
 

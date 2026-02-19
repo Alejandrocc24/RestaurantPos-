@@ -5,7 +5,7 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface Modificador {
-  id: number;
+  id: string | number;
   nombre: string;
   precio: number;
   estado: 'activo' | 'inactivo';
@@ -13,7 +13,7 @@ export interface Modificador {
 }
 
 export interface GrupoModificador {
-  id: number;
+  id: string;
   nombre: string;
   descripcion?: string;
   tipo?: 'unico' | 'multiple';
@@ -93,7 +93,7 @@ export class GrupoModificadorService {
   }
 
   // Obtener un grupo modificador por ID
-  getGrupoModificador(id: number): Observable<GrupoModificador> {
+  getGrupoModificador(id: string): Observable<GrupoModificador> {
     return this.http.get<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() }).pipe(
       map(response => {
         if (!response.success) {
@@ -121,9 +121,9 @@ export class GrupoModificadorService {
   }
 
   // Actualizar un grupo modificador existente
-  actualizarGrupoModificador(id: number, grupo: Partial<GrupoModificador>): Observable<GrupoModificador> {
+  actualizarGrupoModificador(id: string, grupo: Partial<GrupoModificador>): Observable<GrupoModificador> {
     const grupoData = this.mapToDbGrupo(grupo as GrupoModificador);
-    return this.http.put<any>(`${this.apiUrl}/${id}`, grupoData, { headers: this.getHeaders() }).pipe(
+    return this.http.patch<any>(`${this.apiUrl}/${id}`, grupoData, { headers: this.getHeaders() }).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.error || 'Error al actualizar grupo modificador');
@@ -142,7 +142,7 @@ export class GrupoModificadorService {
   }
 
   // Eliminar un grupo modificador
-  eliminarGrupoModificador(id: number): Observable<void> {
+  eliminarGrupoModificador(id: string): Observable<void> {
     return this.http.delete<any>(`${this.apiUrl}/${id}`, { headers: this.getHeaders() }).pipe(
       map(response => {
         if (!response.success) {
@@ -156,7 +156,7 @@ export class GrupoModificadorService {
   }
 
   // Cambiar el estado de un grupo modificador
-  cambiarEstado(id: number, nuevoEstado: 'activo' | 'inactivo'): Observable<GrupoModificador> {
+  cambiarEstado(id: string, nuevoEstado: 'activo' | 'inactivo'): Observable<GrupoModificador> {
     return this.actualizarGrupoModificador(id, { estado: nuevoEstado });
   }
 

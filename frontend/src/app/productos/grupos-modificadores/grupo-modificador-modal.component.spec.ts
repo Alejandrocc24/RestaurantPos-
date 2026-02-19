@@ -8,14 +8,14 @@ describe('GrupoModificadorModalComponent', () => {
   let fixture: ComponentFixture<GrupoModificadorModalComponent>;
 
   const mockGrupo: GrupoModificador = {
-    id: 1,
+    id: 'grupo-test-1',
     nombre: 'Test Group',
     descripcion: 'Test Description',
     tipo: 'multiple',
     obligatorio: false,
     estado: 'activo',
     modificadores: [
-      { id: 1, nombre: 'Test Modifier', precio: 1.50, estado: 'activo' }
+      { id: 'mod-test-1', nombre: 'Test Modifier', precio: 1.50, estado: 'activo' }
     ],
     maxSelecciones: 3
   };
@@ -58,7 +58,7 @@ describe('GrupoModificadorModalComponent', () => {
     // Llenar datos requeridos
     component.formData.nombre = 'Test';
     component.formData.descripcion = 'Test Description';
-    component.formData.modificadores = [{ id: 1, nombre: 'Test', precio: 1.50, estado: 'activo' }];
+    component.formData.modificadores = [{ id: 'mod-test-1', nombre: 'Test', precio: 1.50, estado: 'activo' }];
     
     expect(component.validarFormulario()).toBeTrue();
   });
@@ -88,7 +88,7 @@ describe('GrupoModificadorModalComponent', () => {
   });
 
   it('should edit existing modifier', () => {
-    component.formData.modificadores = [{ id: 1, nombre: 'Original', precio: 1.00, estado: 'activo' }];
+    component.formData.modificadores = [{ id: 'mod-original', nombre: 'Original', precio: 1.00, estado: 'activo' }];
     
     component.editarModificador(0);
     
@@ -98,7 +98,7 @@ describe('GrupoModificadorModalComponent', () => {
   });
 
   it('should update existing modifier', () => {
-    component.formData.modificadores = [{ id: 1, nombre: 'Original', precio: 1.00, estado: 'activo' }];
+    component.formData.modificadores = [{ id: 'mod-original-2', nombre: 'Original', precio: 1.00, estado: 'activo' }];
     component.editandoModificadorIndex = 0;
     
     component.nuevoModificador.nombre = 'Updated';
@@ -113,8 +113,8 @@ describe('GrupoModificadorModalComponent', () => {
 
   it('should remove modifier', () => {
     component.formData.modificadores = [
-      { id: 1, nombre: 'Test 1', precio: 1.00, estado: 'activo' },
-      { id: 2, nombre: 'Test 2', precio: 2.00, estado: 'activo' }
+      { id: 'mod-test-1', nombre: 'Test 1', precio: 1.00, estado: 'activo' },
+      { id: 'mod-test-2', nombre: 'Test 2', precio: 2.00, estado: 'activo' }
     ];
     
     const initialCount = component.formData.modificadores.length;
@@ -167,7 +167,7 @@ describe('GrupoModificadorModalComponent', () => {
     
     component.formData.nombre = 'Test';
     component.formData.descripcion = 'Test Description';
-    component.formData.modificadores = [{ id: 1, nombre: 'Test', precio: 1.50, estado: 'activo' }];
+    component.formData.modificadores = [{ id: 'mod-test-final', nombre: 'Test', precio: 1.50, estado: 'activo' }];
     
     component.guardarGrupo();
     

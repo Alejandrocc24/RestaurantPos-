@@ -134,19 +134,12 @@ export class ProductoController {
           ...(precio && { precio: parseFloat(precio) }),
           // Usar la syntaxis de relación para categoriaId
           ...(categoriaId && { categoria: { connect: { id: categoriaId } } }),
-          ...(subcategoria !== undefined && { subcategoria: subcategoria || null }),
+          ...(subcategoria && { subcategoria }),
           ...(activo !== undefined && { activo }),
           ...(imagen && { imagen }),
-          // Manejar grupos modificadores si se proporciona el array
-          ...(gruposModificadores && gruposModificadores.length > 0 && {
-            modificadores: {
-              set: gruposModificadores.map((id: string) => ({ id }))
-            }
-          }),
         },
         include: { 
           categoria: true,
-          modificadores: true,
         },
       });
 
