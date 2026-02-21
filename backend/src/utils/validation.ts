@@ -1,8 +1,9 @@
 /**
  * Valida que el email sea válido
+ * Acepta emails con o sin punto en el dominio (usuario@negocio o usuario@negocio.com)
  */
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+$/;
   return emailRegex.test(email);
 }
 

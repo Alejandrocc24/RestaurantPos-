@@ -16,53 +16,39 @@ import Swal from 'sweetalert2';
 export class LoginComponent {
   email: string = '';
   password: string = '';
-  tenantId: string = '';
   isLoading: boolean = false;
   showPassword: boolean = false;
-
-  // Tenants disponibles en el sistema
-  availableTenants = [
-    { id: 'dulcemomento', name: 'Dulce Momento' },
-    { id: 'buenosaires', name: 'Buenos Aires' },
-  ];
 
   constructor(
     private router: Router,
     private authService: AuthService
-  ) {
-    // Preseleccionar el primer tenant
-    this.tenantId = this.availableTenants[0]?.id || '';
-  }
+  ) {}
 
+  /**
+   * Alternar la visibilidad de la contraseña
+   */
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
   }
 
   /**
-   * Detectar tenantId desde el email si tiene dominio reconocido
+   * Extraer tenantId automáticamente del dominio del email
    */
-  detectTenantFromEmail(): void {
-    if (!this.email.includes('@')) {
-      return;
+  private extractTenantFromEmail(email: string): string {
+    if (!email.includes('@')) {
+      throw new Error('Email inválido');
     }
-
-    const domain = this.email.split('@')[1]?.toLowerCase().trim();
-    const foundTenant = this.availableTenants.find(t => 
-      t.id === domain || t.id === domain.replace('_', '')
-    );
-
-    if (foundTenant) {
-      this.tenantId = foundTenant.id;
-    }
+    const domain = email.split('@')[1]?.toLowerCase().trim();
+    return domain || '';
   }
 
   async onSubmit(event: Event): Promise<void> {
     event.preventDefault();
     
-    if (!this.email || !this.password || !this.tenantId) {
+    if (!this.email || !this.password) {
       Swal.fire({
         title: 'Error',
-        text: 'Por favor completa todos los campos incluyendo el tenant',
+        text: 'Por favor completa todos los campos',
         icon: 'warning',
         confirmButtonText: 'Entendido'
       });
@@ -77,7 +63,7 @@ export class LoginComponent {
       if (!emailTrimmed.includes('@')) {
         Swal.fire({
           title: 'Email inválido',
-          text: 'Por favor ingresa un email válido',
+          text: 'Por favor ingresa un email válido con formato usuario@negocio',
           icon: 'warning',
           confirmButtonText: 'Entendido'
         });
@@ -85,12 +71,15 @@ export class LoginComponent {
         return;
       }
 
+      // Extraer tenantId del dominio del email
+      const tenantId = this.extractTenantFromEmail(emailTrimmed);
+
       console.log('🔐 [LoginComponent] Intentando login...');
       console.log('  - Email:', emailTrimmed);
-      console.log('  - TenantId:', this.tenantId);
+      console.log('  - TenantId (extraído del email):', tenantId);
 
       // Llamar a AuthService con el nuevo formato
-      const result = await this.authService.signIn(emailTrimmed, this.password, this.tenantId);
+      const result = await this.authService.signIn(emailTrimmed, this.password, tenantId);
       
       if (result.success) {
         console.log('✅ [LoginComponent] Login exitoso, redirigiendo...');

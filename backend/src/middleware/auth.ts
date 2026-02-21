@@ -86,7 +86,7 @@ export function optionalTenantMiddleware(req: Request, res: Response, next: Next
     const emailParts = email.split('@');
     if (emailParts.length === 2) {
       const domain = emailParts[1].split('.')[0];
-      tenantId = `tenant-${domain}`;
+      tenantId = domain; // Sin prefijo 'tenant-'
       console.log('  - TenantId extraído del email:', tenantId);
     }
   }

@@ -11,7 +11,7 @@ import { hashPassword } from '../utils/auth.js';
  */
 async function main() {
   const prisma = new PrismaClient();
-  const tenantId = 'tenant-dulcemomento';
+  const tenantId = 'dulcemomento';
 
   console.log('🌱 Iniciando seed de datos...');
 
@@ -79,13 +79,165 @@ async function main() {
     console.log('✓ Roles creados');
 
     // ============================================
+    // CREAR PERMISOS
+    // ============================================
+    const permisos = await Promise.all([
+      // Permisos de Usuarios
+      prisma.permiso.create({ data: { nombre: 'usuarios.ver', descripcion: 'Ver lista de usuarios' } }),
+      prisma.permiso.create({ data: { nombre: 'usuarios.crear', descripcion: 'Crear nuevos usuarios' } }),
+      prisma.permiso.create({ data: { nombre: 'usuarios.editar', descripcion: 'Editar usuarios existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'usuarios.eliminar', descripcion: 'Eliminar usuarios' } }),
+      
+      // Permisos de Roles
+      prisma.permiso.create({ data: { nombre: 'roles.ver', descripcion: 'Ver lista de roles' } }),
+      prisma.permiso.create({ data: { nombre: 'roles.crear', descripcion: 'Crear nuevos roles' } }),
+      prisma.permiso.create({ data: { nombre: 'roles.editar', descripcion: 'Editar roles existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'roles.eliminar', descripcion: 'Eliminar roles' } }),
+      
+      // Permisos de Productos
+      prisma.permiso.create({ data: { nombre: 'productos.ver', descripcion: 'Ver lista de productos' } }),
+      prisma.permiso.create({ data: { nombre: 'productos.crear', descripcion: 'Crear nuevos productos' } }),
+      prisma.permiso.create({ data: { nombre: 'productos.editar', descripcion: 'Editar productos existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'productos.eliminar', descripcion: 'Eliminar productos' } }),
+      
+      // Permisos de Categorías
+      prisma.permiso.create({ data: { nombre: 'categorias.ver', descripcion: 'Ver lista de categorías' } }),
+      prisma.permiso.create({ data: { nombre: 'categorias.crear', descripcion: 'Crear nuevas categorías' } }),
+      prisma.permiso.create({ data: { nombre: 'categorias.editar', descripcion: 'Editar categorías existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'categorias.eliminar', descripcion: 'Eliminar categorías' } }),
+      
+      // Permisos de Mesas
+      prisma.permiso.create({ data: { nombre: 'mesas.ver', descripcion: 'Ver lista de mesas' } }),
+      prisma.permiso.create({ data: { nombre: 'mesas.crear', descripcion: 'Crear nuevas mesas' } }),
+      prisma.permiso.create({ data: { nombre: 'mesas.editar', descripcion: 'Editar mesas existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'mesas.eliminar', descripcion: 'Eliminar mesas' } }),
+      
+      // Permisos de Órdenes
+      prisma.permiso.create({ data: { nombre: 'ordenes.ver', descripcion: 'Ver list de órdenes' } }),
+      prisma.permiso.create({ data: { nombre: 'ordenes.crear', descripcion: 'Crear nuevas órdenes' } }),
+      prisma.permiso.create({ data: { nombre: 'ordenes.editar', descripcion: 'Editar órdenes existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'ordenes.eliminar', descripcion: 'Eliminar órdenes' } }),
+      
+      // Permisos de Gastos
+      prisma.permiso.create({ data: { nombre: 'gastos.ver', descripcion: 'Ver lista de gastos' } }),
+      prisma.permiso.create({ data: { nombre: 'gastos.crear', descripcion: 'Crear nuevos gastos' } }),
+      prisma.permiso.create({ data: { nombre: 'gastos.editar', descripcion: 'Editar gastos existentes' } }),
+      prisma.permiso.create({ data: { nombre: 'gastos.eliminar', descripcion: 'Eliminar gastos' } }),
+      
+      // Permisos de Categorías de Gastos
+      prisma.permiso.create({ data: { nombre: 'categoriasGastos.ver', descripcion: 'Ver categorías de gastos' } }),
+      prisma.permiso.create({ data: { nombre: 'categoriasGastos.crear', descripcion: 'Crear categorías de gastos' } }),
+      prisma.permiso.create({ data: { nombre: 'categoriasGastos.editar', descripcion: 'Editar categorías de gastos' } }),
+      prisma.permiso.create({ data: { nombre: 'categoriasGastos.eliminar', descripcion: 'Eliminar categorías de gastos' } }),
+      
+      // Permisos de Configuración
+      prisma.permiso.create({ data: { nombre: 'configuracion.ver', descripcion: 'Ver configuración' } }),
+      prisma.permiso.create({ data: { nombre: 'configuracion.editar', descripcion: 'Editar configuración' } }),
+      
+      // Permisos generales
+      prisma.permiso.create({ data: { nombre: 'reportes.ver', descripcion: 'Ver reportes' } }),
+      prisma.permiso.create({ data: { nombre: 'dashboard.ver', descripcion: 'Ver dashboard' } }),
+    ]);
+
+    console.log('✓ Permisos creados (53 permisos)');
+
+    // Asignar todos los permisos al rol admin
+    await prisma.rol.update({
+      where: { id: adminRole.id },
+      data: {
+        permisos: {
+          connect: permisos.map(p => ({ id: p.id }))
+        }
+      }
+    });
+
+    // Asignar permisos específicos al rol gerente
+    const permisosGerenteIds = permisos
+      .filter(p => 
+        p.nombre.includes('productos') ||
+        p.nombre.includes('mesas') ||
+        p.nombre.includes('ordenes') ||
+        p.nombre.includes('gastos') ||
+        p.nombre.includes('dashboard') ||
+        p.nombre.includes('reportes')
+      )
+      .map(p => ({ id: p.id }));
+
+    await prisma.rol.update({
+      where: { id: gerenteRole.id },
+      data: {
+        permisos: {
+          connect: permisosGerenteIds
+        }
+      }
+    });
+
+    // Asignar permisos específicos al rol camarero
+    const permisosCamareroIds = permisos
+      .filter(p => 
+        p.nombre.includes('mesas') ||
+        p.nombre.includes('ordenes.ver') ||
+        p.nombre.includes('ordenes.crear') ||
+        p.nombre.includes('ordenes.editar') ||
+        p.nombre.includes('dashboard')
+      )
+      .map(p => ({ id: p.id }));
+
+    await prisma.rol.update({
+      where: { id: cameraRole.id },
+      data: {
+        permisos: {
+          connect: permisosCamareroIds
+        }
+      }
+    });
+
+    // Asignar permisos específicos al rol cocina
+    const permisosCocinaIds = permisos
+      .filter(p => 
+        p.nombre.includes('ordenes.ver') ||
+        p.nombre.includes('productos.ver')
+      )
+      .map(p => ({ id: p.id }));
+
+    await prisma.rol.update({
+      where: { id: cocinaRole.id },
+      data: {
+        permisos: {
+          connect: permisosCocinaIds
+        }
+      }
+    });
+
+    // Asignar permisos específicos al rol caja
+    const permisosBoxIds = permisos
+      .filter(p => 
+        p.nombre.includes('ordenes.ver') ||
+        p.nombre.includes('gastos') ||
+        p.nombre.includes('dashboard') ||
+        p.nombre.includes('reportes')
+      )
+      .map(p => ({ id: p.id }));
+
+    await prisma.rol.update({
+      where: { id: cajaRole.id },
+      data: {
+        permisos: {
+          connect: permisosBoxIds
+        }
+      }
+    });
+
+    console.log('✓ Permisos asignados a roles');
+
+    // ============================================
     // CREAR USUARIOS
     // ============================================
-    const adminUser = await prisma.usuario.create({
+    const desarrolladorUser = await prisma.usuario.create({
       data: {
-        email: 'admin@dulcemomento.com',
-        nombre: 'Administrador',
-        password: await hashPassword('Admin123'),
+        email: 'desarrollador@dulcemomento',
+        nombre: 'Desarrollador',
+        password: await hashPassword('Desarrollo123'),
         activo: true,
         roles: {
           create: [{ rolId: adminRole.id }],
@@ -93,31 +245,9 @@ async function main() {
       },
     });
 
-    const gerenteUser = await prisma.usuario.create({
-      data: {
-        email: 'gerente@dulcemomento.com',
-        nombre: 'Juan Gerente',
-        password: await hashPassword('Gerente123'),
-        activo: true,
-        roles: {
-          create: [{ rolId: gerenteRole.id }],
-        },
-      },
-    });
-
-    const cameraUser = await prisma.usuario.create({
-      data: {
-        email: 'camarero@dulcemomento.com',
-        nombre: 'Carlos Camarero',
-        password: await hashPassword('Camarero123'),
-        activo: true,
-        roles: {
-          create: [{ rolId: cameraRole.id }],
-        },
-      },
-    });
-
-    console.log('✓ Usuarios creados');
+    console.log('✓ Usuario predeterminado creado');
+    console.log('   Email: desarrollador@dulcemomento');
+    console.log('   Contraseña: Desarrollo123');
 
     // ============================================
     // CREAR CATEGORÍAS DE PRODUCTOS
@@ -293,10 +423,9 @@ async function main() {
 ╠════════════════════════════════════════╣
 ║  Tenant ID: ${tenantId}
 ║  
-║  Usuarios de ejemplo:
-║  📧 admin@dulcemomento.com / Admin123
-║  📧 gerente@dulcemomento.com / Gerente123
-║  📧 camarero@dulcemomento.com / Camarero123
+║  Usuario Predeterminado:
+║  📧 desarrollador@dulcemomento
+║  🔑 Contraseña: Desarrollo123
 ╚════════════════════════════════════════╝
     `);
   } catch (error) {

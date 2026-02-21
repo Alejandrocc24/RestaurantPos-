@@ -3,30 +3,12 @@
   <div class="login">
     <h1>Iniciar Sesión</h1>
     <form (submit)="onSubmit($event)">
-      <div class="form-group">
-        <label for="tenant">Selecciona tu Negocio</label>
-        <select
-          id="tenant"
-          name="tenantId"
-          [(ngModel)]="tenantId"
-          required="required"
-          [disabled]="isLoading"
-          class="form-control"
-        >
-          <option value="" disabled>-- Elige un negocio --</option>
-          <option *ngFor="let tenant of availableTenants" [value]="tenant.id">
-            {{ tenant.name }}
-          </option>
-        </select>
-      </div>
-
       <input
         type="email"
         name="email"
-        placeholder="Ingresa tu correo electrónico"
+        placeholder="Correo (usuario@negocio)"
         required="required"
         [(ngModel)]="email"
-        (blur)="detectTenantFromEmail()"
         [disabled]="isLoading"
         class="form-control"
       />
