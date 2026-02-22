@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { hashPassword } from '../utils/auth.js';
 
 export class UsuarioController {
   static async getUsuarios(req: Request, res: Response) {
@@ -38,9 +39,15 @@ export class UsuarioController {
         }
       });
 
+      // Agregar campo 'rol' simplificado para el frontend
+      const usuariosConRol = usuarios.map((u: any) => ({
+        ...u,
+        rol: u.roles && u.roles.length > 0 ? u.roles[0].rol.nombre.toLowerCase() : 'usuario'
+      }));
+
       res.json({
         success: true,
-        data: usuarios
+        data: usuariosConRol
       });
     } catch (error: any) {
       res.status(500).json({
@@ -81,9 +88,15 @@ export class UsuarioController {
         });
       }
 
+      // Agregar campo 'rol' simplificado para el frontend
+      const usuarioConRol = {
+        ...usuario,
+        rol: usuario.roles && usuario.roles.length > 0 ? usuario.roles[0].rol.nombre.toLowerCase() : 'usuario'
+      };
+
       res.json({
         success: true,
-        data: usuario
+        data: usuarioConRol
       });
     } catch (error: any) {
       res.status(500).json({
@@ -95,13 +108,13 @@ export class UsuarioController {
 
   static async createUsuario(req: Request, res: Response) {
     try {
-      const { email, nombre, password, roles } = req.body;
+      const { email, nombre, password, rol, roles } = req.body;
 
       // Validar campos requeridos
-      if (!email || !nombre || !password) {
+      if (!email || !nombre) {
         return res.status(400).json({
           success: false,
-          message: 'email, nombre y password son requeridos'
+          message: 'email y nombre son requeridos'
         });
       }
 
@@ -117,15 +130,35 @@ export class UsuarioController {
         });
       }
 
+      // Hash la contraseña (usar default si no se proporciona)
+      const defaultPassword = Math.random().toString(36).slice(-8);
+      const passwordToHash = password || defaultPassword;
+      const hashedPassword = await hashPassword(passwordToHash);
+
+      // Determinar roles a asignar
+      let rolesToAssign = [];
+      if (roles && Array.isArray(roles)) {
+        // Si viene un array de IDs
+        rolesToAssign = roles;
+      } else if (rol) {
+        // Si viene un string de rol, buscar el rol por nombre
+        const rolObj = await req.prisma.rol.findUnique({
+          where: { nombre: rol }
+        });
+        if (rolObj) {
+          rolesToAssign = [rolObj.id];
+        }
+      }
+
       // Crear usuario
       const usuario = await req.prisma.usuario.create({
         data: {
           email,
           nombre,
-          password,
+          password: hashedPassword,
           activo: true,
-          roles: roles && roles.length > 0 ? {
-            create: roles.map((rolId: string) => ({
+          roles: rolesToAssign.length > 0 ? {
+            create: rolesToAssign.map((rolId: string) => ({
               rolId
             }))
           } : undefined
@@ -164,7 +197,7 @@ export class UsuarioController {
   static async updateUsuario(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { nombre, activo, roles } = req.body;
+      const { nombre, activo, password, rol, roles } = req.body;
 
       // Verificar que el usuario existe
       const existe = await req.prisma.usuario.findUnique({
@@ -178,24 +211,44 @@ export class UsuarioController {
         });
       }
 
+      // Preparar data a actualizar
+      const updateData: any = {
+        nombre,
+        activo
+      };
+
+      // Hash la contraseña si se proporciona
+      if (password) {
+        updateData.password = await hashPassword(password);
+      }
+
       // Si se actualizar los roles, primero eliminar los existentes
-      if (roles) {
+      let rolesToAssign = [];
+      if (roles && Array.isArray(roles)) {
+        rolesToAssign = roles;
+      } else if (rol) {
+        const rolObj = await req.prisma.rol.findUnique({
+          where: { nombre: rol }
+        });
+        if (rolObj) {
+          rolesToAssign = [rolObj.id];
+        }
+      }
+
+      if (rolesToAssign.length > 0) {
         await req.prisma.usuarioRol.deleteMany({
           where: { usuarioId: id }
         });
+        updateData.roles = {
+          create: rolesToAssign.map((rolId: string) => ({
+            rolId
+          }))
+        };
       }
 
       const usuario = await req.prisma.usuario.update({
         where: { id },
-        data: {
-          nombre,
-          activo,
-          roles: roles ? {
-            create: roles.map((rolId: string) => ({
-              rolId
-            }))
-          } : undefined
-        },
+        data: updateData,
         select: {
           id: true,
           email: true,

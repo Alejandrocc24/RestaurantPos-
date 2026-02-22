@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -9,7 +9,7 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './rol-modal.component.html',
   styleUrl: './rol-modal.component.css'
 })
-export class RolModalComponent implements OnInit {
+export class RolModalComponent implements OnInit, OnChanges {
   @Input() rol: any = null;
   @Input() esEdicion: boolean = false;
   @Output() rolCreado = new EventEmitter<any>();
@@ -145,15 +145,46 @@ export class RolModalComponent implements OnInit {
   constructor() { }
 
   ngOnInit() {
+    // Inicializar los datos del rol si es edición
+    if (this.esEdicion && this.rol) {
+      this.nuevoRol = {
+        id: this.rol.id,
+        nombre: this.rol.nombre,
+        descripcion: this.rol.descripcion,
+        permisos: Array.isArray(this.rol.permisos) ? [...this.rol.permisos] : [],
+        activo: this.rol.activo
+      };
+    }
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Si los inputs cambian, actualizar los datos del rol
+    if (changes['rol'] && !changes['rol'].firstChange) {
+      if (this.esEdicion && this.rol) {
+        this.nuevoRol = {
+          id: this.rol.id,
+          nombre: this.rol.nombre,
+          descripcion: this.rol.descripcion,
+          permisos: Array.isArray(this.rol.permisos) ? [...this.rol.permisos] : [],
+          activo: this.rol.activo
+        };
+      }
+    }
+  }
+
+  private cargarDatosRol(): void {
     if (this.esEdicion && this.rol) {
       // Si es edición, copiar los datos del rol
       this.nuevoRol = {
         id: this.rol.id,
         nombre: this.rol.nombre,
         descripcion: this.rol.descripcion,
-        permisos: [...this.rol.permisos],
+        permisos: Array.isArray(this.rol.permisos) ? [...this.rol.permisos] : [],
         activo: this.rol.activo
       };
+    } else {
+      // Si es creación, reinicializar el formulario
+      this.limpiarFormulario();
     }
   }
 
@@ -175,12 +206,16 @@ export class RolModalComponent implements OnInit {
     return Object.keys(this.errores).length === 0;
   }
 
-  togglePermiso(permiso: string): void {
-    const index = this.nuevoRol.permisos.indexOf(permiso);
-    if (index > -1) {
-      this.nuevoRol.permisos.splice(index, 1);
-    } else {
-      this.nuevoRol.permisos.push(permiso);
+  togglePermiso(permiso: string, event?: any): void {
+    if (event) {
+      const isChecked = (event.target as HTMLInputElement).checked;
+      const index = this.nuevoRol.permisos.indexOf(permiso);
+      
+      if (isChecked && index === -1) {
+        this.nuevoRol.permisos.push(permiso);
+      } else if (!isChecked && index > -1) {
+        this.nuevoRol.permisos.splice(index, 1);
+      }
     }
   }
 

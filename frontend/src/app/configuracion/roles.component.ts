@@ -143,7 +143,16 @@ export class RolesComponent implements OnInit, OnDestroy {
 
   editarRol(rol: any) {
     this.esEdicionRol = true;
-    this.rolSeleccionado = { ...rol };
+    // Copiar el rol con todos sus datos, asegurándose que los permisos se copien como array
+    this.rolSeleccionado = {
+      id: rol.id,
+      nombre: rol.nombre,
+      codigo: rol.codigo,
+      descripcion: rol.descripcion,
+      permisos: Array.isArray(rol.permisos) ? [...rol.permisos] : [],
+      activo: rol.activo,
+      fechaCreacion: rol.fechaCreacion
+    };
     this.modalHistoryManager.registerModalOpen('modal-rol', this.mostrarModalRol);
     this.mostrarModalRol = true;
   }
@@ -159,15 +168,27 @@ export class RolesComponent implements OnInit, OnDestroy {
 
   onRolCreado(rol: any) {
     console.log('Rol creado:', rol);
-    // Crear nuevo rol con ID único
-    const nuevoRol = {
-      ...rol,
-      id: Math.max(...this.roles.map(r => r.id || 0)) + 1,
-      fechaCreacion: new Date()
-    };
-    this.roles.unshift(nuevoRol);
-    this.rolesFiltrados = [...this.roles];
-    this.cerrarModalRol();
+    try {
+      // Crear nuevo rol con ID único
+      const nuevoRol: any = {
+        id: (this.roles && this.roles.length > 0) ? Math.max(...this.roles.map(r => r.id || 0)) + 1 : 1,
+        nombre: rol.nombre || '',
+        descripcion: rol.descripcion || '',
+        permisos: Array.isArray(rol.permisos) ? [...rol.permisos] : [],
+        activo: rol.activo !== undefined ? rol.activo : true,
+        codigo: (rol.nombre || '').toLowerCase().replace(/\s+/g, '-'),
+        fechaCreacion: new Date()
+      };
+      
+      if (this.roles) {
+        this.roles.unshift(nuevoRol);
+        this.rolesFiltrados = [...this.roles];
+      }
+      
+      this.cerrarModalRol();
+    } catch (error) {
+      console.error('Error al crear rol:', error);
+    }
   }
 
   onRolEditado(rol: any) {
@@ -175,10 +196,17 @@ export class RolesComponent implements OnInit, OnDestroy {
     // Actualizar rol existente
     const index = this.roles.findIndex(r => r.id === rol.id);
     if (index !== -1) {
-      this.roles[index] = { ...rol };
+      // Preservar todos los datos del rol original y actualizar con los nuevos
+      this.roles[index] = {
+        ...this.roles[index],
+        nombre: rol.nombre,
+        descripcion: rol.descripcion,
+        permisos: Array.isArray(rol.permisos) ? [...rol.permisos] : [],
+        activo: rol.activo
+      };
       this.rolesFiltrados = [...this.roles];
     }
-    this.mostrarModalRol = false;
+    this.cerrarModalRol();
   }
 
   cambiarEstadoRol(rol: any) {

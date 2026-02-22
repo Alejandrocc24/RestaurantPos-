@@ -33,22 +33,6 @@ model Usuario {
   @@index([activo])
 }
 
-model Rol {
-  id          String   @id @default(cuid())
-  nombre      String   @unique
-  descripcion String?
-  activo      Boolean  @default(true)
-  
-  // Permisos del rol
-  permisos    Permiso[]
-  usuarios    UsuarioRol[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([activo])
-}
-
 model UsuarioRol {
   id        String   @id @default(cuid())
   usuarioId String
@@ -64,14 +48,20 @@ model UsuarioRol {
   @@index([rolId])
 }
 
-model Permiso {
-  id        String   @id @default(cuid())
-  nombre    String   @unique
+model Rol {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
   descripcion String?
+  permisos    String[] @default([])  // Array de strings con nombres de permisos
+  activo      Boolean  @default(true)
   
-  roles     Rol[]
+  // Relaciones
+  usuarios    UsuarioRol[]
   
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([activo])
 }
 
 // ============================================

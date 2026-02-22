@@ -211,6 +211,7 @@ export class ConfiguracionComponent implements OnInit, OnDestroy {
       });
       
       if (nuevoUsuario) {
+        // Agregar el nuevo usuario a la lista directamente
         this.usuarios.unshift(nuevoUsuario);
         this.usuariosFiltrados = [...this.usuarios];
         this.toast.success('Usuario creado', `Usuario "${usuario.nombre}" creado exitosamente`);
@@ -239,16 +240,22 @@ export class ConfiguracionComponent implements OnInit, OnDestroy {
       }
       
       // Actualizar usuario en la base de datos
-      const usuarioActualizado = await this.supabase.actualizarUsuario(usuario.id, datosActualizar);
+      await this.supabase.actualizarUsuario(usuario.id, datosActualizar);
       
-      if (usuarioActualizado) {
-        const index = this.usuarios.findIndex(u => u.id === usuario.id);
-        if (index !== -1) {
-          this.usuarios[index] = { ...this.usuarios[index], ...usuarioActualizado };
-          this.usuariosFiltrados = [...this.usuarios];
-        }
-        this.toast.success('Usuario actualizado', `Usuario "${usuario.nombre}" actualizado exitosamente`);
+      // Actualizar el usuario en la lista local
+      const index = this.usuarios.findIndex(u => u.id === usuario.id);
+      if (index !== -1) {
+        // Actualizar solo los campos que cambiaron
+        this.usuarios[index] = {
+          ...this.usuarios[index],
+          nombre: usuario.nombre,
+          email: usuario.email,
+          rol: usuario.rol,
+          activo: usuario.activo
+        };
+        this.usuariosFiltrados = [...this.usuarios];
       }
+      this.toast.success('Usuario actualizado', `Usuario "${usuario.nombre}" actualizado exitosamente`);
       this.cerrarModalUsuario();
     } catch (error) {
       console.error('Error al actualizar usuario:', error);
@@ -547,6 +554,8 @@ export class ConfiguracionComponent implements OnInit, OnDestroy {
             item.activo = nuevoEstado;
             const mensaje = nuevoEstado ? 'activado' : 'desactivado';
             this.toast.info('Estado cambiado', `Usuario "${item.nombre}" ${mensaje}`);
+            // Actualizar la lista en la vista
+            this.usuariosFiltrados = [...this.usuarios];
           } else if (this.confirmacionData.tipo === 'rol') {
             // Actualizar estado del rol
             await this.supabase.actualizarRol(item.id, { activo: nuevoEstado });
@@ -577,6 +586,7 @@ export class ConfiguracionComponent implements OnInit, OnDestroy {
     if (confirm(`¿Está seguro de que desea eliminar al usuario "${usuario.nombre}"?`)) {
       try {
         await this.supabase.eliminarUsuario(usuario.id);
+        // Eliminar el usuario de la lista
         this.usuarios = this.usuarios.filter(u => u.id !== usuario.id);
         this.usuariosFiltrados = [...this.usuarios];
         this.toast.success('Usuario eliminado', `"${usuario.nombre}" eliminado correctamente`);

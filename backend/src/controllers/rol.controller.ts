@@ -15,15 +15,7 @@ export class RolController {
         where,
         skip: skip ? Number(skip) : undefined,
         take: take ? Number(take) : undefined,
-        orderBy: { nombre: 'asc' },
-        include: {
-          permisos: {
-            select: {
-              id: true,
-              nombre: true
-            }
-          }
-        }
+        orderBy: { nombre: 'asc' }
       });
 
       res.json({
@@ -42,15 +34,7 @@ export class RolController {
     try {
       const { id } = req.params;
       const rol = await req.prisma.rol.findUnique({
-        where: { id },
-        include: {
-          permisos: {
-            select: {
-              id: true,
-              nombre: true
-            }
-          }
-        }
+        where: { id }
       });
 
       if (!rol) {
@@ -74,7 +58,7 @@ export class RolController {
 
   static async createRol(req: Request, res: Response) {
     try {
-      const { nombre, descripcion, permisos } = req.body;
+      const { nombre, descripcion, permisos, activo } = req.body;
 
       // Validar campos requeridos
       if (!nombre) {
@@ -101,24 +85,15 @@ export class RolController {
         data: {
           nombre,
           descripcion,
-          activo: true,
-          permisos: permisos && permisos.length > 0 ? {
-            connect: permisos.map((id: string) => ({ id }))
-          } : undefined
-        },
-        include: {
-          permisos: {
-            select: {
-              id: true,
-              nombre: true
-            }
-          }
+          permisos: Array.isArray(permisos) ? permisos : [],
+          activo: activo !== undefined ? activo : true
         }
       });
 
       res.status(201).json({
         success: true,
-        data: rol
+        data: rol,
+        message: 'Rol creado exitosamente'
       });
     } catch (error: any) {
       res.status(500).json({
@@ -135,14 +110,7 @@ export class RolController {
 
       // Verificar que el rol existe
       const existe = await req.prisma.rol.findUnique({
-        where: { id },
-        include: {
-          permisos: {
-            select: {
-              id: true
-            }
-          }
-        }
+        where: { id }
       });
 
       if (!existe) {
@@ -154,65 +122,43 @@ export class RolController {
 
       // Preparar los datos de actualización
       const updateData: any = {
-        nombre,
-        descripcion,
-        activo
+        activo: activo !== undefined ? activo : existe.activo
       };
 
-      // Si se proporcionan permisos, validar que existan y actualizar
-      if (permisos && Array.isArray(permisos) && permisos.length > 0) {
-        // Extraer IDs de los permisos (pueden ser strings o objetos con id)
-        const permisosIds = permisos.map((p: any) => typeof p === 'string' ? p : p.id).filter(Boolean);
-
-        if (permisosIds.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'No se proporcionaron IDs de permisos válidos'
+      if (nombre) {
+        // Validar que no exista otro rol con el mismo nombre
+        if (nombre !== existe.nombre) {
+          const otroRol = await req.prisma.rol.findUnique({
+            where: { nombre }
           });
-        }
 
-        // Validar que todos los permisos existan
-        const permisosExistentes = await req.prisma.permiso.findMany({
-          where: {
-            id: {
-              in: permisosIds
-            }
-          },
-          select: {
-            id: true
+          if (otroRol) {
+            return res.status(400).json({
+              success: false,
+              message: 'Ya existe otro rol con ese nombre'
+            });
           }
-        });
-
-        if (permisosExistentes.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Los permisos especificados no existen'
-          });
         }
-
-        // Desconectar todos los permisos actuales y conectar los nuevos
-        updateData.permisos = {
-          disconnect: existe.permisos.map((p: any) => ({ id: p.id })),
-          connect: permisosExistentes.map((p: any) => ({ id: p.id }))
-        };
+        updateData.nombre = nombre;
       }
 
-      const rol = await req.prisma.rol.update({
+      if (descripcion !== undefined) {
+        updateData.descripcion = descripcion;
+      }
+
+      if (Array.isArray(permisos)) {
+        updateData.permisos = permisos;
+      }
+
+      const rolActualizado = await req.prisma.rol.update({
         where: { id },
-        data: updateData,
-        include: {
-          permisos: {
-            select: {
-              id: true,
-              nombre: true
-            }
-          }
-        }
+        data: updateData
       });
 
       res.json({
         success: true,
-        data: rol
+        data: rolActualizado,
+        message: 'Rol actualizado exitosamente'
       });
     } catch (error: any) {
       console.error('Error al actualizar rol:', error);

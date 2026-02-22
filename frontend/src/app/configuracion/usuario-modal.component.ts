@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, Input, OnInit } from '@angular/core';
+import { Component, EventEmitter, Output, Input, OnInit, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SupabaseService } from '../services/supabase.service';
@@ -10,7 +10,7 @@ import { SupabaseService } from '../services/supabase.service';
   templateUrl: './usuario-modal.component.html',
   styleUrl: './usuario-modal.component.css'
 })
-export class UsuarioModalComponent implements OnInit {
+export class UsuarioModalComponent implements OnInit, OnChanges {
   @Input() usuario: any = null;
   @Input() esEdicion: boolean = false;
   @Output() usuarioCreado = new EventEmitter<any>();
@@ -51,23 +51,36 @@ export class UsuarioModalComponent implements OnInit {
   async ngOnInit() {
     // Cargar roles desde la base de datos
     await this.cargarRoles();
-    
+    this.inicializarFormulario();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Reinicializar formulario cuando cambien los inputs (usuario o esEdicion)
+    if (changes['usuario'] || changes['esEdicion']) {
+      this.inicializarFormulario();
+    }
+  }
+
+  private inicializarFormulario() {
     if (this.esEdicion && this.usuario) {
-      // Extraer el nombre de usuario del formato nombre@dulcemomento
-      const nombreCompleto = this.usuario.nombre || '';
-      if (nombreCompleto.includes('@dulcemomento')) {
-        this.nombreUsuario = nombreCompleto.split('@')[0];
+      // Extraer el nombre de usuario del email (formato: usuario@dulcemomento)
+      const email = this.usuario.email || '';
+      if (email.includes('@dulcemomento')) {
+        this.nombreUsuario = email.split('@')[0];
       } else {
-        this.nombreUsuario = nombreCompleto;
+        this.nombreUsuario = '';
       }
+      
+      // El rol ahora viene simplificado del backend como esta.usuario.rol
+      const rolUsuario = this.usuario.rol || 'usuario';
       
       // Si es edición, copiar los datos del usuario (sin contraseña)
       this.nuevoUsuario = {
         id: this.usuario.id,
         nombre: this.usuario.nombre,
-        nombreCompleto: this.usuario.nombre_completo || this.usuario.nombreCompleto || '',
+        nombreCompleto: this.usuario.nombre_completo || this.usuario.nombreCompleto || this.usuario.nombre || '',
         email: this.usuario.email || '',
-        rol: this.usuario.rol,
+        rol: rolUsuario,
         activo: this.usuario.activo,
         password: '', // No mostrar contraseña en edición
         confirmPassword: ''
@@ -75,6 +88,9 @@ export class UsuarioModalComponent implements OnInit {
       this.cambiarPassword = false; // Por defecto no cambiar contraseña
       this.showPassword = false;
       this.showConfirmPassword = false;
+    } else {
+      // Crear nuevo usuario - formulario vacío
+      this.limpiarFormulario();
     }
   }
 
@@ -90,9 +106,9 @@ export class UsuarioModalComponent implements OnInit {
   async cargarRoles() {
     try {
       const rolesDB = await this.supabase.getRoles({ incluirInactivos: false });
-      // Mapear roles de la base de datos
+      // Mapear roles de la base de datos - normalizar a minúsculas
       this.roles = rolesDB.map((rol: any) => ({
-        valor: rol.codigo || rol.nombre.toLowerCase(),
+        valor: (rol.codigo || rol.nombre || '').toLowerCase(),
         etiqueta: rol.nombre
       }));
       
@@ -146,7 +162,8 @@ export class UsuarioModalComponent implements OnInit {
   }
 
   validarEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Aceptar emails con @dulcemomento (sin punto) y emails estándar
+    const emailRegex = /^[^\s@]+@[^\s@]+$/;
     return emailRegex.test(email);
   }
 
@@ -165,9 +182,8 @@ export class UsuarioModalComponent implements OnInit {
         // Editar usuario existente
         const usuarioEditado: any = {
           id: this.nuevoUsuario.id,
-          nombre: this.nuevoUsuario.nombre, // formato: usuario@dulcemomento
-          nombre_completo: this.nuevoUsuario.nombreCompleto,
-          email: this.nuevoUsuario.email || null,
+          nombre: this.nuevoUsuario.nombreCompleto, // Nombre real
+          email: `${this.nombreUsuario.toLowerCase().trim()}@dulcemomento`, // Email generado
           rol: this.nuevoUsuario.rol,
           activo: this.nuevoUsuario.activo
         };
@@ -181,9 +197,8 @@ export class UsuarioModalComponent implements OnInit {
       } else {
         // Crear nuevo usuario
         const usuario = {
-          nombre: this.nuevoUsuario.nombre, // formato: usuario@dulcemomento
-          nombre_completo: this.nuevoUsuario.nombreCompleto,
-          email: this.nuevoUsuario.email || null,
+          nombre: this.nuevoUsuario.nombreCompleto, // Nombre real de la persona
+          email: `${this.nombreUsuario.toLowerCase().trim()}@dulcemomento`, // Generar email automáticamente
           password: this.nuevoUsuario.password,
           rol: this.nuevoUsuario.rol,
           activo: this.nuevoUsuario.activo

@@ -59,7 +59,8 @@
                   <input 
                     type="checkbox" 
                     [checked]="nuevoRol.permisos.includes(permiso.valor)"
-                    (change)="togglePermiso(permiso.valor)">
+                    (change)="togglePermiso(permiso.valor, $event)"
+                    [attr.data-permiso]="permiso.valor">
                   <div class="permission-content">
                     <span class="permission-label">{{ permiso.etiqueta }}</span>
                     <span class="permission-description">{{ permiso.descripcion }}</span>

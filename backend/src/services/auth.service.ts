@@ -102,9 +102,25 @@ export class AuthService {
 
     console.log('✅ [AuthService.login] Token generado con tenantId:', tenantId);
 
-    // Extraer nombres de roles
+    // Extraer nombres de roles y permisos
     const roleNames = user.roles.map(ur => ur.rol.nombre);
     const firstRoleName = roleNames.length > 0 ? roleNames[0] : undefined;
+    
+    // Obtener permisos del primer rol (rol principal)
+    let permisos: string[] = [];
+    if (user.roles.length > 0) {
+      const firstRol = user.roles[0].rol;
+      // Los permisos están almacenados como JSON en la BD
+      if (typeof firstRol.permisos === 'string') {
+        try {
+          permisos = JSON.parse(firstRol.permisos);
+        } catch (e) {
+          permisos = [];
+        }
+      } else if (Array.isArray(firstRol.permisos)) {
+        permisos = firstRol.permisos;
+      }
+    }
 
     return {
       accessToken: token,
@@ -116,6 +132,7 @@ export class AuthService {
         roles: roleNames,
         rol: firstRoleName, // Para compatibilidad con frontend
         rol_id: user.roles.length > 0 ? user.roles[0].rolId : undefined,
+        permisos: permisos, // Incluir permisos del rol
       },
     };
   }
@@ -141,6 +158,22 @@ export class AuthService {
 
     const roleNames = user.roles.map(ur => ur.rol.nombre);
     const firstRoleName = roleNames.length > 0 ? roleNames[0] : undefined;
+    
+    // Obtener permisos del primer rol (rol principal)
+    let permisos: string[] = [];
+    if (user.roles.length > 0) {
+      const firstRol = user.roles[0].rol;
+      // Los permisos están almacenados como JSON en la BD
+      if (typeof firstRol.permisos === 'string') {
+        try {
+          permisos = JSON.parse(firstRol.permisos);
+        } catch (e) {
+          permisos = [];
+        }
+      } else if (Array.isArray(firstRol.permisos)) {
+        permisos = firstRol.permisos;
+      }
+    }
 
     return {
       id: user.id,
@@ -150,6 +183,7 @@ export class AuthService {
       roles: roleNames,
       rol: firstRoleName, // Para compatibilidad con frontend
       rol_id: user.roles.length > 0 ? user.roles[0].rolId : undefined,
+      permisos: permisos, // Incluir permisos del rol
     };
   }
 
