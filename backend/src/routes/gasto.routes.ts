@@ -10,6 +10,8 @@ router.use(authMiddleware, ensurePrismaMiddleware);
 
 router.get('/', GastoController.getAll);
 router.post('/', GastoController.create);
+router.get('/:id', GastoController.getById);
+router.patch('/:id', GastoController.update);
 router.delete('/:id', GastoController.delete);
 
 export default router;

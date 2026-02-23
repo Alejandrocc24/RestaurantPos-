@@ -34,6 +34,7 @@ export class GastoModalComponent implements OnInit, OnDestroy {
   };
 
   categorias: string[] = [];
+  categoriasGastosCompletas: any[] = []; // Almacenar categorías con ID
   proveedores: string[] = [];
   cargando: boolean = false;
   mostrarModalNuevoProveedor: boolean = false;
@@ -64,14 +65,26 @@ export class GastoModalComponent implements OnInit, OnDestroy {
   cargarCategorias() {
     this.gastosService.getCategoriasGastos().subscribe({
       next: (categorias) => {
-        this.categorias = categorias
-          .filter(c => c.activo !== false)
-          .map(c => c.nombre);
+        // Almacenar las categorías completas para poder acceder al ID
+        this.categoriasGastosCompletas = categorias.filter(c => c.activo !== false);
+        // Crear un array solo con nombres para el display
+        this.categorias = this.categoriasGastosCompletas.map(c => c.nombre);
+
+        // Si estamos en modo edición y tenemos un categoriaId, buscar el nombre de la categoría
+        if (this.esEdicion && this.gastoForm.categoriaId && !this.gastoForm.categoria) {
+          const categoriaEncontrada = this.categoriasGastosCompletas.find(
+            c => c.id === this.gastoForm.categoriaId
+          );
+          if (categoriaEncontrada) {
+            this.gastoForm.categoria = categoriaEncontrada.nombre;
+          }
+        }
       },
       error: (error) => {
         console.error('Error cargando categorías:', error);
         // Fallback a categorías por defecto
         this.categorias = ['Insumos', 'Equipos', 'Servicios', 'Marketing', 'Otros'];
+        this.categoriasGastosCompletas = [];
       }
     });
   }
@@ -94,9 +107,25 @@ export class GastoModalComponent implements OnInit, OnDestroy {
   }
 
   onSubmit() {
+    // Validar que la categoría sea requerida
+    if (!this.gastoForm.categoria) {
+      alert('Por favor seleccione una categoría');
+      return;
+    }
+
+    // Encontrar el ID de la categoría basado en el nombre
+    const categoriaSeleccionada = this.categoriasGastosCompletas.find(
+      c => c.nombre === this.gastoForm.categoria
+    );
+
+    if (categoriaSeleccionada) {
+      this.gastoForm.categoriaId = categoriaSeleccionada.id;
+    }
+
     if (this.esEdicion && this.gasto?.id) {
       this.gastoForm.id = this.gasto.id;
     }
+
     this.guardar.emit(this.gastoForm);
   }
 

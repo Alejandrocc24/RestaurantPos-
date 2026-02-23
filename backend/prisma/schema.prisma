@@ -329,24 +329,29 @@ enum Severidad {
 // ============================================
 
 model Gasto {
-  id            String   @id @default(cuid())
-  descripcion   String
-  monto         Float
-  categoriaId   String
-  usuarioId     String
-  fecha         DateTime @default(now())
-  recibo        String?
-  observaciones String?
-  activo        Boolean  @default(true)
+  id                   String   @id @default(cuid())
+  descripcion          String
+  monto                Float
+  categoriaId          String
+  usuarioId            String
+  proveedorId          String?
+  proveedorPersonalizado String?
+  fecha                DateTime @default(now())
+  recibo               String?
+  observaciones        String?
+  salio_de_caja        Boolean  @default(true)
+  activo               Boolean  @default(true)
   
-  categoria     CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  categoria            CategoriaGasto @relation(fields: [categoriaId], references: [id], onDelete: Restrict)
+  usuario              Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  proveedor            Proveedor? @relation(fields: [proveedorId], references: [id], onDelete: SetNull)
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   @@index([categoriaId])
   @@index([usuarioId])
+  @@index([proveedorId])
   @@index([fecha])
   @@index([activo])
 }
@@ -362,6 +367,7 @@ model Proveedor {
   activo        Boolean  @default(true)
   
   compras       Compra[]
+  gastos        Gasto[]
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

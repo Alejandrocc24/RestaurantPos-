@@ -148,23 +148,23 @@ export class ApiService {
     let params = new HttpParams();
     if (skip !== undefined) params = params.set('skip', skip.toString());
     if (take !== undefined) params = params.set('take', take.toString());
-    return this.withHandling(this.http.get<ApiResponse<CategoriaGasto[]>>(`${this.baseUrl}/categorias`, { params }));
+    return this.withHandling(this.http.get<ApiResponse<CategoriaGasto[]>>(`${this.baseUrl}/categoria-gastos`, { params }));
   }
 
   getCategoriaGastoById(id: string): Observable<ApiResponse<CategoriaGasto>> {
-    return this.withHandling(this.http.get<ApiResponse<CategoriaGasto>>(`${this.baseUrl}/categorias/${id}`));
+    return this.withHandling(this.http.get<ApiResponse<CategoriaGasto>>(`${this.baseUrl}/categoria-gastos/${id}`));
   }
 
   createCategoriaGasto(data: Partial<CategoriaGasto>): Observable<ApiResponse<CategoriaGasto>> {
-    return this.withHandling(this.http.post<ApiResponse<CategoriaGasto>>(`${this.baseUrl}/categorias`, data));
+    return this.withHandling(this.http.post<ApiResponse<CategoriaGasto>>(`${this.baseUrl}/categoria-gastos`, data));
   }
 
   updateCategoriaGasto(id: string, data: Partial<CategoriaGasto>): Observable<ApiResponse<CategoriaGasto>> {
-    return this.withHandling(this.http.patch<ApiResponse<CategoriaGasto>>(`${this.baseUrl}/categorias/${id}`, data));
+    return this.withHandling(this.http.patch<ApiResponse<CategoriaGasto>>(`${this.baseUrl}/categoria-gastos/${id}`, data));
   }
 
   deleteCategoriaGasto(id: string): Observable<ApiResponse<void>> {
-    return this.withHandling(this.http.delete<ApiResponse<void>>(`${this.baseUrl}/categorias/${id}`));
+    return this.withHandling(this.http.delete<ApiResponse<void>>(`${this.baseUrl}/categoria-gastos/${id}`));
   }
 
   // ============ USUARIOS ============

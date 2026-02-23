@@ -548,6 +548,15 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.mostrarConfirmacion = true;
   }
 
+  eliminarProducto(producto: any): void {
+    this.tituloConfirmacion = '🗑️ Eliminar Producto';
+    this.mensajeConfirmacion = `¿Estás seguro de que quieres eliminar "${producto.nombre}"?`;
+    this.accionConfirmacion = 'eliminar';
+    this.productoParaAccion = producto;
+    this.registerModalOpen('confirmacion-producto', this.mostrarConfirmacion);
+    this.mostrarConfirmacion = true;
+  }
+
   nuevoProducto(): void {
     this.esEdicionProducto = false;
     this.productoSeleccionado = null;
@@ -658,7 +667,35 @@ export class ProductosComponent implements OnInit, OnDestroy {
   procederAccion(): void {
     if (this.accionConfirmacion === 'cambiarEstado') {
       this.procederCambioEstado();
+    } else if (this.accionConfirmacion === 'eliminar') {
+      this.procederEliminacion();
     }
+  }
+
+  procederEliminacion(): void {
+    if (!this.productoParaAccion) return;
+    const producto = this.productoParaAccion;
+
+    this.productosService.deleteProducto(String(producto.id))
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (deleted) => {
+          if (deleted) {
+            const index = this.productos.findIndex(p => p.id === producto.id);
+            if (index !== -1) {
+              this.productos.splice(index, 1);
+              this.filtrarProductos();
+            }
+            this.toast.success('Producto eliminado', `"${producto.nombre}" ha sido eliminado`);
+          }
+          this.cerrarConfirmacion();
+        },
+        error: (error) => {
+          console.error('Error eliminando producto:', error);
+          this.toast.error('Error', 'No se pudo eliminar el producto');
+          this.cerrarConfirmacion();
+        }
+      });
   }
 
 

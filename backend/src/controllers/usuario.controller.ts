@@ -141,9 +141,14 @@ export class UsuarioController {
         // Si viene un array de IDs
         rolesToAssign = roles;
       } else if (rol) {
-        // Si viene un string de rol, buscar el rol por nombre
-        const rolObj = await req.prisma.rol.findUnique({
-          where: { nombre: rol }
+        // Si viene un string de rol, buscar el rol por nombre (case-insensitive)
+        const rolObj = await req.prisma.rol.findFirst({
+          where: { 
+            nombre: {
+              mode: 'insensitive',
+              equals: rol
+            }
+          }
         });
         if (rolObj) {
           rolesToAssign = [rolObj.id];
@@ -182,9 +187,15 @@ export class UsuarioController {
         }
       });
 
+      // Agregar campo 'rol' simplificado para el frontend
+      const usuarioConRol = {
+        ...usuario,
+        rol: usuario.roles && usuario.roles.length > 0 ? usuario.roles[0].rol.nombre.toLowerCase() : 'usuario'
+      };
+
       res.status(201).json({
         success: true,
-        data: usuario
+        data: usuarioConRol
       });
     } catch (error: any) {
       res.status(500).json({
@@ -227,8 +238,14 @@ export class UsuarioController {
       if (roles && Array.isArray(roles)) {
         rolesToAssign = roles;
       } else if (rol) {
-        const rolObj = await req.prisma.rol.findUnique({
-          where: { nombre: rol }
+        // Buscar el rol de manera case-insensitive
+        const rolObj = await req.prisma.rol.findFirst({
+          where: { 
+            nombre: {
+              mode: 'insensitive',
+              equals: rol
+            }
+          }
         });
         if (rolObj) {
           rolesToAssign = [rolObj.id];
@@ -268,9 +285,15 @@ export class UsuarioController {
         }
       });
 
+      // Agregar campo 'rol' simplificado para el frontend
+      const usuarioConRol = {
+        ...usuario,
+        rol: usuario.roles && usuario.roles.length > 0 ? usuario.roles[0].rol.nombre.toLowerCase() : 'usuario'
+      };
+
       res.json({
         success: true,
-        data: usuario
+        data: usuarioConRol
       });
     } catch (error: any) {
       res.status(500).json({
