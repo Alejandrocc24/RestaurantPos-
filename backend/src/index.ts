@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { config } from './config/index.js';
 import { loggerMiddleware, ensurePrismaMiddleware } from './middleware/request.js';
@@ -19,8 +20,12 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: config.isDevelopment ? '*' : process.env.FRONTEND_URL || '*',
+    origin: config.isDevelopment 
+      ? ['http://localhost:4200', 'http://localhost:3000', 'http://127.0.0.1:4200', 'http://127.0.0.1:3000']
+      : process.env.FRONTEND_URL || '*',
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
   })
 );
 
@@ -30,6 +35,8 @@ app.use(morgan('combined'));
 // Body parsers
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+// Cookie parser (para refresh tokens en cookies HttpOnly)
+app.use(cookieParser());
 
 // Middleware de logging personalizado
 app.use(loggerMiddleware);

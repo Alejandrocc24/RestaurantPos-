@@ -26,7 +26,7 @@ export class AuthService {
         this.http.post<ApiResponse<LoginResponse>>(`${this.baseUrl}/auth/login`, {
           email,
           password,
-        }),
+        }, { withCredentials: true }),
       );
 
       if (response.success && response.data) {
@@ -70,7 +70,7 @@ export class AuthService {
    */
   async signOut(): Promise<void> {
     try {
-      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}));
+      await firstValueFrom(this.http.post(`${this.baseUrl}/auth/logout`, {}, { withCredentials: true }));
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     } finally {

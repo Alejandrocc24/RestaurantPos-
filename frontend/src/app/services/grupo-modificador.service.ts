@@ -47,34 +47,44 @@ export class GrupoModificadorService {
       ...g,
       estado: g.activo ? 'activo' : 'inactivo',
       cobrarPrecio: g.cobrarPrecio ?? g.cobrar_precio ?? false,
-      modificadores: g.modificadores ? g.modificadores.map((m: any) => ({
-        ...m,
+      modificadores: g.opciones ? g.opciones.map((m: any) => ({
+        id: m.id,
+        nombre: m.nombre,
+        precio: m.precioAdicional ?? 0,
         estado: m.activo ? 'activo' : 'inactivo',
-        categoria: m.categoria ?? null
+        categoria: null
       })) : []
     };
   }
 
   private mapToDbGrupo(grupo: GrupoModificador, isUpdate: boolean = false): any {
-    const dbGrupo = {
-      ...grupo,
+    const dbGrupo: any = {
+      nombre: grupo.nombre.trim(),
+      requerido: (grupo as any).obligatorio ?? false,
       activo: grupo.estado === 'activo',
-      cobrar_precio: grupo.cobrarPrecio ?? false,
-      modificadores: grupo.modificadores ? grupo.modificadores.map((m: Modificador) => ({
-        ...m,
-        activo: m.estado === 'activo',
-        categoria: m.categoria ?? null
-      })) : []
+      cobrar_precio: grupo.cobrarPrecio ?? false
     };
-    // Omitir campos no en DB
-    delete (dbGrupo as any).estado;
-    delete (dbGrupo as any).cobrarPrecio;
-    delete (dbGrupo as any).id; // Always omit id from group
-    (dbGrupo.modificadores as any[]).forEach((m: any) => {
-      delete m.estado;
-      delete m.id; // Always omit id from modifiers to avoid conflicts
-    });
 
+    // Solo agregar descripcion si tiene valor (evitar undefined)
+    const descripcion = (grupo as any).descripcion?.trim();
+    if (descripcion) {
+      dbGrupo.descripcion = descripcion;
+    }
+
+    // Mapear modificadores a 'opciones' esperado por el backend (Prisma)
+    // IMPORTANTE: Esto reemplaza todas las opciones existentes
+    if (grupo.modificadores && Array.isArray(grupo.modificadores) && grupo.modificadores.length > 0) {
+      dbGrupo.opciones = grupo.modificadores.map((m: Modificador) => ({
+        nombre: m.nombre.trim(),
+        precioAdicional: typeof (m.precio) === 'number' ? m.precio : Number(m.precio) || 0,
+        activo: m.estado === 'activo'
+      }));
+    } else {
+      // Si no hay modificadores, incluir array vacío para reemplazar opciones existentes
+      dbGrupo.opciones = [];
+    }
+
+    console.log('📤 [mapToDbGrupo] Payload enviado al backend:', JSON.stringify(dbGrupo, null, 2));
     return dbGrupo;
   }
 

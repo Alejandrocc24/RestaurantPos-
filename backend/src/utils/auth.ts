@@ -30,8 +30,23 @@ export function generateToken(payload: JwtPayload): string {
 }
 
 /**
+ * Genera un refresh token (JWT) con expiración más larga
+ */
+export function generateRefreshToken(payload: JwtPayload): string {
+  const secret = config.jwtSecret || 'your-secret-key-change-in-production';
+  const options: any = {
+    expiresIn: (config as any).refreshJwtExpiresIn || '7d',
+  };
+  return jwt.sign(payload, secret, options);
+}
+
+/**
  * Verifica y decodifica un JWT token
  */
 export function verifyToken(token: string): JwtPayload {
+  return jwt.verify(token, config.jwtSecret) as JwtPayload;
+}
+
+export function verifyRefreshToken(token: string): JwtPayload {
   return jwt.verify(token, config.jwtSecret) as JwtPayload;
 }

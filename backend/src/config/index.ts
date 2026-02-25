@@ -11,6 +11,7 @@ export const config = {
   // JWT
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
+  refreshJwtExpiresIn: process.env.REFRESH_JWT_EXPIRES_IN || '7d',
 
   // Database
   databaseUrl: process.env.DATABASE_URL || '',

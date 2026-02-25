@@ -11,7 +11,7 @@
       <button class="tab-button" (click)="navegarACategoriaProductos()">📂 Categoría de Productos</button>
       <button class="tab-button" (click)="navegarAGruposModificadores()">⚙️ Grupos Modificadores</button>
       <button class="tab-button active">💬 Gestión de Comentarios</button>
-      <button class="tab-button" (click)="navegarAInventario()">📦 Inventario</button>
+
     </div>
     <div class="tab-actions">
       <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
@@ -28,16 +28,16 @@
       <!-- Tabla de comentarios -->
       <div class="comentarios-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Comentario</div>
           <div class="header-cell">Estado</div>
           <div class="header-cell">Acciones</div>
         </div>
         
         <div class="table-body">
-          <div *ngFor="let comentario of comentariosFiltrados" class="table-row">
-            <div class="table-cell">{{ comentario.id }}</div>
-            <div class="table-cell">{{ comentario.texto }}</div>
+          <div *ngFor="let comentario of comentariosFiltrados; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
+            <div class="table-cell" data-label="Comentario">{{ comentario.texto }}</div>
             <div class="table-cell">
               <span class="status-badge" 
                     [class.activo]="comentario.activo"

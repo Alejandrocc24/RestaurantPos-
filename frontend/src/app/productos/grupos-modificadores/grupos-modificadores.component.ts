@@ -163,10 +163,6 @@ export class GruposModificadoresComponent implements OnInit, OnDestroy {
     this.viewChangeRequested.emit('gestion-comentarios');
   }
 
-  navegarAInventario(): void {
-    this.viewChangeRequested.emit('inventario');
-  }
-
   procederCambioEstado(): void {
     if (!this.grupoParaAccion) return;
 

@@ -51,7 +51,7 @@
       <!-- VISTA DE USUARIOS -->
       <div *ngIf="tabActivo === 'usuarios'" class="usuarios-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Nombre</div>
           <div class="header-cell">Email</div>
           <div class="header-cell">Rol</div>
@@ -63,8 +63,8 @@
         </div>
 
         <div class="table-body">
-          <div *ngFor="let usuario of usuariosFiltrados" class="table-row">
-            <div class="table-cell" data-label="ID">{{ usuario.id }}</div>
+          <div *ngFor="let usuario of usuariosFiltrados; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Nombre">{{ usuario.nombre }}</div>
             <div class="table-cell" data-label="Email">{{ usuario.email }}</div>
             <div class="table-cell" data-label="Rol">{{ obtenerEtiquetaRol(usuario.rol) }}</div>
@@ -98,7 +98,7 @@
       <!-- VISTA DE ROLES -->
       <div *ngIf="tabActivo === 'roles'" class="roles-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Nombre del Rol</div>
           <div class="header-cell">Descripción</div>
           <div class="header-cell">Permisos</div>
@@ -110,8 +110,8 @@
         </div>
 
         <div class="table-body">
-          <div *ngFor="let rol of roles" class="table-row">
-            <div class="table-cell" data-label="ID">{{ rol.id }}</div>
+          <div *ngFor="let rol of roles; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Nombre del Rol">
               <span class="role-name">{{ rol.nombre }}</span>
               <span class="role-code">({{ rol.codigo }})</span>

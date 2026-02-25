@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { hashPassword, verifyPassword, generateToken } from '../utils/auth.js';
+import { hashPassword, verifyPassword, generateToken, generateRefreshToken } from '../utils/auth.js';
 import { isValidEmail, isValidPassword, isValidName } from '../utils/validation.js';
 
 export class AuthService {
@@ -100,6 +100,18 @@ export class AuthService {
       tenantId,
     });
 
+    // Generar refresh token y guardarlo en la BD
+    const refreshToken = generateRefreshToken({
+      userId: user.id,
+      email: user.email,
+      tenantId,
+    });
+
+    await this.prisma.usuario.update({
+      where: { id: user.id },
+      data: { refreshToken },
+    });
+
     console.log('✅ [AuthService.login] Token generado con tenantId:', tenantId);
 
     // Extraer nombres de roles y permisos
@@ -124,6 +136,7 @@ export class AuthService {
 
     return {
       accessToken: token,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,

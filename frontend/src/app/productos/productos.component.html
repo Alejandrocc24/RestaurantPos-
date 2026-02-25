@@ -1,11 +1,11 @@
 <div class="productos-container">
-  <!-- Header del componente (solo visible cuando NO está en inventario) -->
-  <div class="productos-header" *ngIf="tabActivo !== 'inventario'">
+  <!-- Header del componente -->
+  <div class="productos-header">
     <h2>Gestión de Productos</h2>
   </div>
 
-  <!-- Barra de navegación superior (solo visible cuando NO está en inventario) -->
-  <div class="tabs-container" *ngIf="tabActivo !== 'inventario'">
+  <!-- Barra de navegación superior -->
+  <div class="tabs-container">
     <div class="tab-header">
       <button class="tab-button" 
               [class.active]="tabActivo === 'productos'" 
@@ -30,12 +30,6 @@
               (click)="navegarAGestionComentarios()"
               type="button">
         💬 Gestión de Comentarios
-      </button>
-      <button class="tab-button" 
-              [class.active]="tabActivo === 'inventario'" 
-              (click)="cambiarTab('inventario')"
-              type="button">
-        📦 Inventario
       </button>
     </div>
     <div class="tab-actions">
@@ -101,13 +95,10 @@
 
     <!-- Área de contenido principal -->
     <div class="content-area">
-      <!-- Componente de Inventario -->
-      <app-inventario *ngIf="tabActivo === 'inventario'" (viewChangeRequested)="handleViewChange($event)"></app-inventario>
-      
       <!-- Tabla de productos -->
       <div class="products-table" *ngIf="tabActivo === 'productos'">
         <div class="table-header">
-          <div class="header-cell">Cód.</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Producto</div>
           <div class="header-cell">Precio</div>
           <div class="header-cell">Estado</div>
@@ -117,8 +108,8 @@
         </div>
         
         <div class="table-body">
-          <div *ngFor="let producto of productosFiltrados" class="table-row">
-            <div class="table-cell" data-label="Código">{{ producto.codigo }}</div>
+          <div *ngFor="let producto of productosFiltrados; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Producto">{{ producto.nombre }}</div>
             <div class="table-cell" data-label="Precio">{{ producto.precio | currencyFormat }}</div>
             <div class="table-cell" data-label="Estado">

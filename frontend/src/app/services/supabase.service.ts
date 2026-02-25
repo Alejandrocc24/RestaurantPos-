@@ -205,22 +205,57 @@ export class SupabaseService {
     if (!resp?.success) throw new Error(resp?.error || 'Error al eliminar grupo modificador');
   }
 
-  // Métodos para comentarios - Vacío hasta que se implemente en backend
+  // Métodos para comentarios preestablecidos
   async getComentariosPreestablecidos(options: { incluirInactivos?: boolean } = {}) {
-    // Retornar array vacío - sin datos de ejemplo
-    return [];
+    try {
+      const resp = await firstValueFrom(this.api.getData('comentarios-preestablecidos'));
+      if (!resp?.success) throw new Error(resp?.error || 'Error al obtener comentarios preestablecidos');
+      
+      const comentarios = resp.data || [];
+      
+      // Si incluirInactivos es false, filtrar solo activos
+      if (!options.incluirInactivos) {
+        return comentarios.filter((c: any) => c.activo === true);
+      }
+      
+      return comentarios;
+    } catch (error) {
+      console.error('Error en getComentariosPreestablecidos:', error);
+      throw error;
+    }
   }
 
   async crearComentarioPreestablecido(comentario: { texto: string; activo?: boolean }) {
-    throw new Error('Comentarios preestablecidos no implementados aún en el backend');
+    try {
+      const resp = await firstValueFrom(this.api.insertData('comentarios-preestablecidos', comentario));
+      if (!resp?.success) throw new Error(resp?.error || 'Error al crear comentario preestablecido');
+      return resp.data ?? null;
+    } catch (error) {
+      console.error('Error en crearComentarioPreestablecido:', error);
+      throw error;
+    }
   }
 
-  async actualizarComentarioPreestablecido(id: number, comentario: { texto?: string; activo?: boolean }) {
-    throw new Error('Comentarios preestablecidos no implementados aún en el backend');
+  async actualizarComentarioPreestablecido(id: string | number, comentario: { texto?: string; activo?: boolean }) {
+    try {
+      const resp = await firstValueFrom(this.api.updateData('comentarios-preestablecidos', { id }, comentario));
+      if (!resp?.success) throw new Error(resp?.error || 'Error al actualizar comentario preestablecido');
+      return resp.data ?? null;
+    } catch (error) {
+      console.error('Error en actualizarComentarioPreestablecido:', error);
+      throw error;
+    }
   }
 
-  async eliminarComentarioPreestablecido(id: number) {
-    throw new Error('Comentarios preestablecidos no implementados aún en el backend');
+  async eliminarComentarioPreestablecido(id: string | number) {
+    try {
+      const resp = await firstValueFrom(this.api.deleteData('comentarios-preestablecidos', { id }));
+      if (!resp?.success) throw new Error(resp?.error || 'Error al eliminar comentario preestablecido');
+      return true;
+    } catch (error) {
+      console.error('Error en eliminarComentarioPreestablecido:', error);
+      throw error;
+    }
   }
 
   // Métodos para ventas

@@ -30,12 +30,6 @@
               title="Ir a Gestión de Comentarios">
         💬 Gestión de Comentarios
       </button>
-      <button class="tab-button" 
-              (click)="navegarAInventario()"
-              type="button"
-              title="Ir a Inventario">
-        📦 Inventario
-      </button>
     </div>
     <div class="tab-actions">
       <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
@@ -52,7 +46,7 @@
       <!-- Tabla de categorías -->
       <div class="categorias-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Nombre</div>
           <div class="header-cell">Descripción</div>
           <div class="header-cell">Subcategorías</div>
@@ -63,8 +57,8 @@
         </div>
         
         <div class="table-body">
-          <div *ngFor="let categoria of categoriasFiltradas" class="table-row">
-            <div class="table-cell" data-label="ID">{{ categoria.id }}</div>
+          <div *ngFor="let categoria of categoriasFiltradas; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Nombre">
               <div class="categoria-nombre">{{ categoria.nombre }}</div>
             </div>

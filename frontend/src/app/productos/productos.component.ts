@@ -600,11 +600,6 @@ export class ProductosComponent implements OnInit, OnDestroy {
     this.viewChangeRequested.emit('gestion-comentarios');
   }
 
-  navegarAInventario(): void {
-    this.tabActivo = 'inventario';
-    this.viewChangeRequested.emit('inventario');
-  }
-
   cambiarTab(tab: string): void {
     this.tabActivo = tab;
   }
@@ -618,8 +613,6 @@ export class ProductosComponent implements OnInit, OnDestroy {
       this.navegarAGruposModificadores();
     } else if (view === 'gestion-comentarios') {
       this.navegarAGestionComentarios();
-    } else if (view === 'inventario') {
-      this.navegarAInventario();
     } else {
       // Si es otra vista, emitir el evento al dashboard
       this.viewChangeRequested.emit(view);

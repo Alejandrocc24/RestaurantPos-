@@ -160,10 +160,6 @@ export class GestionComentariosComponent implements OnInit, OnDestroy {
     this.viewChangeRequested.emit('grupos-modificadores');
   }
 
-  navegarAInventario(): void {
-    this.viewChangeRequested.emit('inventario');
-  }
-
   async procederCambioEstado(): Promise<void> {
     if (!this.comentarioParaAccion) return;
     const comentario = this.comentarioParaAccion;

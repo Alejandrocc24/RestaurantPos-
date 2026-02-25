@@ -8,8 +8,10 @@ const router = Router();
 // Rutas públicas (requieren tenantId pero no JWT)
 router.post('/login', optionalTenantMiddleware, ensurePrismaMiddleware, AuthController.login);
 router.post('/register', optionalTenantMiddleware, ensurePrismaMiddleware, AuthController.register);
+router.post('/refresh', ensurePrismaMiddleware, AuthController.refresh);
 router.post('/logout', (req, res) => {
-    // El logout se maneja en el frontend limpiando localStorage
+    // Limpiar cookie de refresh token
+    res.clearCookie('refreshToken');
     res.json({ success: true, message: 'Logout exitoso' });
 });
 

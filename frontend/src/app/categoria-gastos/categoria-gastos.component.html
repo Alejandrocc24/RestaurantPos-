@@ -31,7 +31,7 @@
       <!-- Tabla de categorías -->
       <div class="categorias-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Nombre</div>
           <div class="header-cell">Estado</div>
           <div class="header-cell actions">
@@ -40,8 +40,8 @@
         </div>
         
         <div class="table-body">
-          <div *ngFor="let categoria of categorias" class="table-row">
-            <div class="table-cell" data-label="ID">{{ categoria.id }}</div>
+          <div *ngFor="let categoria of categorias; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Nombre">{{ categoria.nombre }}</div>
             <div class="table-cell" data-label="Estado">
               <span 

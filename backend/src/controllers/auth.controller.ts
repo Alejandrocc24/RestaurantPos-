@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
+import { config } from '../config/index.js';
+import { verifyRefreshToken, generateToken, generateRefreshToken } from '../utils/auth.js';
 
 export class AuthController {
   /**
@@ -62,16 +64,80 @@ export class AuthController {
       const authService = new AuthService(req.prisma);
       const response = await authService.login(email, password, tenantId);
 
+      console.log('✅ [AuthController.login] Response recibida:', !!response, !!response.accessToken, !!response.refreshToken);
+
+      // Guardar refresh token en cookie HttpOnly
+      try {
+        res.cookie('refreshToken', response.refreshToken, {
+          httpOnly: true,
+          secure: config.isProduction,
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+        });
+        console.log('✅ [AuthController.login] Cookie de refresh token seteada');
+      } catch (e) {
+        console.error('⚠️ [AuthController.login] Error al setear cookie:', (e as any).message);
+        // Ignorar si la cookie no se puede setear en SSR/tests
+      }
+
+      console.log('✅ [AuthController.login] Enviando respuesta de login exitoso');
       res.json({
         success: true,
         message: 'Login exitoso',
-        data: response,
+        data: {
+          accessToken: response.accessToken,
+          user: response.user,
+        },
       });
     } catch (error: any) {
+      console.error('❌ [AuthController.login] Error en login:', error.name, error.message);
       res.status(401).json({
         success: false,
         message: error.message,
       });
+    }
+  }
+
+  /**
+   * POST /api/auth/refresh
+   * Refresca access token usando refresh token en cookie
+   */
+  static async refresh(req: Request, res: Response) {
+    try {
+      const refreshToken = req.cookies?.refreshToken;
+      if (!refreshToken) {
+        return res.status(401).json({ success: false, message: 'Refresh token no proporcionado' });
+      }
+
+      // Verificar refresh token
+      const payload = verifyRefreshToken(refreshToken);
+      const userId = payload.userId;
+
+      // Obtener usuario y comparar
+      const authService = new AuthService(req.prisma);
+      const user = await req.prisma.usuario.findUnique({ where: { id: userId } });
+      if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
+        return res.status(401).json({ success: false, message: 'Refresh token inválido' });
+      }
+
+      // Generar nuevo access token y refresh token (rotación)
+      const accessToken = generateToken({ userId: user.id, email: user.email, tenantId: payload.tenantId });
+      const newRefreshToken = generateRefreshToken({ userId: user.id, email: user.email, tenantId: payload.tenantId });
+
+      // Guardar nuevo refresh token
+      await req.prisma.usuario.update({ where: { id: user.id }, data: { refreshToken: newRefreshToken } });
+
+      // Setear cookie con nuevo refresh token
+      res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: config.isProduction,
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json({ success: true, data: { accessToken } });
+    } catch (error: any) {
+      res.status(401).json({ success: false, message: 'No se pudo refrescar token' });
     }
   }
 

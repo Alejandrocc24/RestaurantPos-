@@ -534,17 +534,60 @@
   cursor: pointer;
   transition: all 0.3s ease;
   background: #ffffff;
+  position: relative;
+  justify-content: space-between;
 }
 
 .modificador-option:hover {
   border-color: #007bff;
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+  background-color: #f0f7ff;
+  transform: translateY(-2px);
 }
 
 .modificador-option.selected {
-  border-color: #007bff;
-  background-color: #f8f9ff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+  border-color: #28a745;
+  background-color: #f0fdf4;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+  border-width: 2px;
+}
+
+.modificador-option.selected .check-indicator {
+  opacity: 1;
+  visibility: visible;
+  color: #28a745;
+}
+
+.check-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #d1d5db;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.modificador-option.selected .check-indicator {
+  background-color: #d4edda;
+  color: #28a745;
+}
+
+.hint-text {
+  margin: 0 0 15px 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Modificadores agregados */

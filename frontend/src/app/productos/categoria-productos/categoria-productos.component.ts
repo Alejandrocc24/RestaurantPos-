@@ -378,11 +378,6 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
     this.viewChangeRequested.emit('gestion-comentarios');
   }
 
-  navegarAInventario(): void {
-    console.log('Navegando a inventario desde categoria-productos');
-    this.viewChangeRequested.emit('inventario');
-  }
-
   private handleModalClose(modalId: string): void {
     switch (modalId) {
       case 'modal-nueva-categoria':

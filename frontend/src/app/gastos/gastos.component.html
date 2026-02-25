@@ -63,7 +63,7 @@
       <!-- Tabla de gastos -->
       <div class="gastos-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Descripción</div>
           <div class="header-cell">Monto</div>
           <div class="header-cell">Categoría</div>
@@ -76,8 +76,8 @@
         </div>
         
         <div class="table-body">
-          <div *ngFor="let gasto of gastosFiltrados" class="table-row">
-            <div class="table-cell" data-label="ID">{{ gasto.id }}</div>
+          <div *ngFor="let gasto of gastosFiltrados; let i = index" class="table-row">
+            <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Descripción">{{ gasto.descripcion }}</div>
             <div class="table-cell" data-label="Monto">{{ gasto.monto | currencyFormat }}</div>
             <div class="table-cell" data-label="Categoría">{{ gasto.categoria }}</div>

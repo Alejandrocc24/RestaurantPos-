@@ -20,6 +20,7 @@ model Usuario {
   nombre    String
   password  String
   activo    Boolean  @default(true)
+  refreshToken String?
   
   // Relaciones
   roles     UsuarioRol[]
@@ -140,17 +141,18 @@ model Producto {
 }
 
 model GrupoModificador {
-  id          String   @id @default(cuid())
-  nombre      String
-  descripcion String?
-  requerido   Boolean  @default(false)
-  activo      Boolean  @default(true)
+  id            String   @id @default(cuid())
+  nombre        String
+  descripcion   String?
+  requerido     Boolean  @default(false)
+  cobrar_precio Boolean  @default(false)
+  activo        Boolean  @default(true)
   
-  productos   Producto[]
-  opciones    OpcionModificador[]
+  productos     Producto[]
+  opciones      OpcionModificador[]
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([activo])
 }
@@ -306,6 +308,17 @@ model Comentario {
   @@index([ordenId])
   @@index([tipoComentario])
   @@index([severidad])
+  @@index([activo])
+}
+
+model ComentarioPreestablecido {
+  id            String   @id @default(cuid())
+  texto         String
+  activo        Boolean  @default(true)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
   @@index([activo])
 }
 

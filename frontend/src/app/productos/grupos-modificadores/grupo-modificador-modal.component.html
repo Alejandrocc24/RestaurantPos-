@@ -10,7 +10,7 @@
 
     <!-- Contenido del modal -->
     <div class="modal-body">
-      <form>
+      <div>
         <!-- Información básica del grupo -->
         <div class="form-section">
           <h3>Información del Grupo</h3>
@@ -66,26 +66,19 @@
               <input 
                 type="text" 
                 placeholder="Buscar modificadores..."
-                [(ngModel)]="terminoBusquedaModificador"
-                (input)="filtrarModificadores()">
+                [(ngModel)]="terminoBusquedaModificador">
             </div>
-            <button 
-              type="button" 
-              class="btn btn-primary"
-              (click)="agregarModificadorSeleccionado()"
-              [disabled]="!modificadorSeleccionado">
-              <i class="fas fa-plus"></i> Agregar
-            </button>
           </div>
 
           <!-- Lista de modificadores disponibles -->
           <div class="modificadores-disponibles" *ngIf="modificadoresFiltrados.length > 0">
             <h4>Modificadores Disponibles</h4>
+            <p class="hint-text"><i class="fas fa-info-circle"></i> Haz clic en un modificador para agregarlo</p>
             <div class="modificadores-grid">
               <div 
-                *ngFor="let mod of modificadoresFiltrados" 
+                *ngFor="let mod of modificadoresFiltrados; trackBy: trackByModificadorId"
                 class="modificador-option"
-                [class.selected]="modificadorSeleccionado?.id === mod.id"
+                [class.selected]="estaModificadorAgregado(mod.id)"
                 (click)="seleccionarModificador(mod)">
                 <div class="modificador-info">
                   <div class="modificador-nombre">{{ mod.nombre }}</div>
@@ -96,6 +89,9 @@
                     </span>
                   </div>
                 </div>
+                <div class="check-indicator">
+                  <i class="fas fa-check"></i>
+                </div>
               </div>
             </div>
           </div>
@@ -104,7 +100,7 @@
           <div class="modificadores-agregados" *ngIf="formData.modificadores && formData.modificadores.length > 0">
             <h4>Modificadores Agregados</h4>
             <div class="modificadores-list">
-              <div *ngFor="let modificador of formData.modificadores; let i = index" class="modificador-item">
+              <div *ngFor="let modificador of formData.modificadores; let i = index; trackBy: trackByModificadorIndex" class="modificador-item">
                 <div class="modificador-info">
                   <div class="modificador-nombre">{{ modificador.nombre }}</div>
                   <div class="modificador-precio">{{ formatCOP(modificador.precio) }}</div>
@@ -119,8 +115,7 @@
                       id="categoria-mod-{{ i }}"
                       type="text"
                       placeholder="Ej: Cremas, Proteínas, Toppings"
-                      [(ngModel)]="modificador.categoria"
-                      [ngModelOptions]="{ standalone: true }">
+                      [(ngModel)]="modificador.categoria">
                   </div>
                 </div>
                 <div class="modificador-actions">
@@ -157,7 +152,7 @@
             {{ getBotonGuardarTexto() }}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>

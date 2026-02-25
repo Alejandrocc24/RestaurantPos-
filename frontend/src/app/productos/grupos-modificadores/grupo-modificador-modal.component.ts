@@ -32,8 +32,22 @@ export class GrupoModificadorModalComponent implements OnInit {
   // Variables para la búsqueda de modificadores
   terminoBusquedaModificador = '';
   modificadoresDisponibles: Modificador[] = [];
-  modificadoresFiltrados: Modificador[] = [];
-  modificadorSeleccionado: Modificador | null = null;
+
+  // Getter para calcular modificadores filtrados en tiempo real
+  get modificadoresFiltrados(): Modificador[] {
+    // Filtrar por nombre (no por ID) porque los IDs de opciones != IDs de productos
+    const nombresAgregados = this.formData.modificadores.map(m => m.nombre.toLowerCase());
+    const filtrados = this.modificadoresDisponibles.filter(mod =>
+      !nombresAgregados.includes(mod.nombre.toLowerCase())
+    );
+    
+    if (!this.terminoBusquedaModificador.trim()) {
+      return filtrados;
+    }
+    return filtrados.filter(mod =>
+      mod.nombre.toLowerCase().includes(this.terminoBusquedaModificador.toLowerCase())
+    );
+  }
 
   // Variables para la confirmación
   mostrarConfirmacion = false;
@@ -44,7 +58,13 @@ export class GrupoModificadorModalComponent implements OnInit {
     console.log('ngOnInit llamado, modo:', this.modo);
     if (this.grupo) {
       console.log('Editando grupo existente:', this.grupo);
-      this.formData = { ...this.grupo };
+      this.formData = { 
+        ...this.grupo,
+        modificadores: (this.grupo.modificadores || []).map(m => ({
+          ...m,
+          id: typeof m.id === 'string' && !isNaN(Number(m.id)) ? Number(m.id) : m.id
+        }))
+      };
     } else {
       console.log('Creando nuevo grupo');
       this.formData = {
@@ -63,67 +83,64 @@ export class GrupoModificadorModalComponent implements OnInit {
     this.productosService.getProductosActivos().subscribe({
       next: (productos) => {
         // Convertir productos a modificadores
-        this.modificadoresDisponibles = productos.map(producto => ({
-          id: Number(producto.id), // Ensure ID is a number for Modificador interface
+        const list: Modificador[] = productos.map(producto => ({
+          id: typeof producto.id === 'string' && !isNaN(Number(producto.id)) ? Number(producto.id) : producto.id,
           nombre: producto.nombre,
           precio: producto.precio,
-          estado: producto.activo ? 'activo' : 'inactivo'
+          estado: (producto.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo'
         }));
-        this.modificadoresFiltrados = [...this.modificadoresDisponibles];
+        // Eliminar duplicados por id (normalizados a String para comparar)
+        const seen = new Set<string>();
+        this.modificadoresDisponibles = list.filter(m => {
+          const key = String(m.id);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        console.log('modificadoresDisponibles cargados:', this.modificadoresDisponibles.length);
       },
       error: (error) => {
         console.error('Error al cargar productos para modificadores:', error);
         // Fallback a datos vacíos
         this.modificadoresDisponibles = [];
-        this.modificadoresFiltrados = [];
       }
     });
   }
 
-  filtrarModificadores() {
-    if (!this.terminoBusquedaModificador.trim()) {
-      this.modificadoresFiltrados = this.modificadoresDisponibles.filter(mod =>
-        !this.formData.modificadores.some(existente => existente.id === mod.id)
-      );
-    } else {
-      this.modificadoresFiltrados = this.modificadoresDisponibles.filter(mod =>
-        mod.nombre.toLowerCase().includes(this.terminoBusquedaModificador.toLowerCase()) &&
-        !this.formData.modificadores.some(existente => existente.id === mod.id)
-      );
-    }
-    this.modificadorSeleccionado = null;
-  }
-
   seleccionarModificador(modificador: Modificador) {
-    this.modificadorSeleccionado = modificador;
+    console.log('seleccionarModificador() llamado para:', modificador.nombre);
+    
+    // Verificar si ya existe por nombre (no por ID)
+    const yaExiste = this.formData.modificadores.some(mod =>
+      mod.nombre.toLowerCase() === modificador.nombre.toLowerCase()
+    );
+    
+    if (yaExiste) {
+      console.log('Modificador ya agregado, ignorando:', modificador.nombre);
+      return;
+    }
+    
+    // Agregar
+    this.formData.modificadores = [...this.formData.modificadores, { ...modificador }];
+    this.terminoBusquedaModificador = '';
+    console.log('Agregado. Total:', this.formData.modificadores.length);
   }
 
-  agregarModificadorSeleccionado() {
-    console.log('agregarModificadorSeleccionado() llamado');
-    console.log('modificadorSeleccionado:', this.modificadorSeleccionado);
+  estaModificadorAgregado(modificadorId: number): boolean {
+    return this.formData.modificadores.some(mod => String(mod.id) === String(modificadorId));
+  }
 
-    if (this.modificadorSeleccionado) {
-      // Verificar que no esté ya agregado
-      const yaExiste = this.formData.modificadores.some(mod => mod.id === this.modificadorSeleccionado!.id);
-      console.log('yaExiste:', yaExiste);
+  trackByModificadorId(_index: number, mod: Modificador): number {
+    return Number(mod.id);
+  }
 
-      if (!yaExiste) {
-        this.formData.modificadores.push({ ...this.modificadorSeleccionado });
-        console.log('Modificador agregado. Total modificadores:', this.formData.modificadores.length);
-        this.modificadorSeleccionado = null;
-        this.terminoBusquedaModificador = '';
-        this.filtrarModificadores();
-      } else {
-        console.log('Modificador ya existe, no se agrega');
-      }
-    } else {
-      console.log('No hay modificador seleccionado');
-    }
+  trackByModificadorIndex(index: number, _mod: Modificador): number {
+    return index;
   }
 
   eliminarModificador(index: number) {
-    this.formData.modificadores.splice(index, 1);
-    this.filtrarModificadores();
+    // Usar asignación para forzar detección de cambios
+    this.formData.modificadores = this.formData.modificadores.filter((_, i) => i !== index);
   }
 
   formatCOP(valor: number | null | undefined): string {

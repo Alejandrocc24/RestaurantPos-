@@ -1,11 +1,12 @@
 import { inject } from '@angular/core';
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { HttpInterceptorFn, HttpErrorResponse, HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { throwError, from } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
+  const http = inject(HttpClient);
 
   // Verificar que estamos en el navegador (no en SSR)
   if (typeof window === 'undefined') {
@@ -47,13 +48,44 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
       console.error('❌ [authInterceptor] Error de respuesta:', error.status, error.message);
       
-      // Si token es inválido, limpiar y redirigir a login
       if (error.status === 401) {
-        console.error('❌ [authInterceptor] 401 Unauthorized - limpiando sesión');
-        localStorage.removeItem('token');
-        localStorage.removeItem('tenantId');
-        localStorage.removeItem('user');
-        router.navigate(['/login']);
+        console.error('❌ [authInterceptor] 401 Unauthorized - intentando refresh');
+
+        // No intentar refresh si la petición ya es al endpoint de refresh
+        if (req.url.includes('/auth/refresh')) {
+          console.error('❌ [authInterceptor] Refresh request falló, limpiando sesión');
+          localStorage.removeItem('token');
+          localStorage.removeItem('tenantId');
+          localStorage.removeItem('user');
+          router.navigate(['/login']);
+          return throwError(() => error);
+        }
+
+        return from(http.post('/api/auth/refresh', {}, { withCredentials: true })).pipe(
+          switchMap((resp: any) => {
+            const newAccessToken = resp?.data?.accessToken || resp?.accessToken || resp?.access_token;
+            if (newAccessToken) {
+              localStorage.setItem('token', newAccessToken);
+              const retryReq = req.clone({ setHeaders: { Authorization: `Bearer ${newAccessToken}` } });
+              return next(retryReq);
+            }
+
+            // Si no hay token en respuesta, limpiar sesión
+            localStorage.removeItem('token');
+            localStorage.removeItem('tenantId');
+            localStorage.removeItem('user');
+            router.navigate(['/login']);
+            return throwError(() => error);
+          }),
+          catchError((refreshError) => {
+            console.error('❌ [authInterceptor] Refresh falló:', refreshError);
+            localStorage.removeItem('token');
+            localStorage.removeItem('tenantId');
+            localStorage.removeItem('user');
+            router.navigate(['/login']);
+            return throwError(() => error);
+          }),
+        );
       }
 
       return throwError(() => error);

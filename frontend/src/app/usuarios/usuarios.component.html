@@ -70,7 +70,7 @@
     <div class="table-container">
       <div class="usuarios-table">
         <div class="table-header">
-          <div class="header-cell">ID</div>
+          <div class="header-cell">#</div>
           <div class="header-cell">Nombre</div>
           <div class="header-cell">Email</div>
           <div class="header-cell">Rol</div>
@@ -79,8 +79,8 @@
           <div class="header-cell actions">Acciones</div>
         </div>
         <div class="table-body">
-          <div *ngFor="let usuario of usuarios" class="table-row" [class.inactive]="!usuario.activo">
-            <div class="table-cell">{{ usuario.id }}</div>
+          <div *ngFor="let usuario of usuarios; let i = index" class="table-row" [class.inactive]="!usuario.activo">
+            <div class="table-cell">{{ i + 1 }}</div>
             <div class="table-cell">{{ usuario.nombre }}</div>
             <div class="table-cell">{{ usuario.email }}</div>
             <div class="table-cell">

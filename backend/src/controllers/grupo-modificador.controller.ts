@@ -69,7 +69,7 @@ export class GrupoModificadorController {
 
     static async createGrupo(req: Request, res: Response) {
         try {
-            const { nombre, descripcion, requerido, opciones } = req.body;
+            const { nombre, descripcion, requerido, cobrar_precio, opciones } = req.body;
 
             if (!nombre) {
                 return res.status(400).json({
@@ -114,21 +114,49 @@ export class GrupoModificadorController {
             const { id } = req.params;
             const { opciones, ...data } = req.body;
 
-            // Actualizar solo el grupo, las opciones se manejan por separado o requerirían lógica compleja de upsert
-            // Por ahora, actualizamos datos básicos del grupo
+            console.log('🔍 [GrupoModificadorController.updateGrupo] ID:', id);
+            console.log('📦 [GrupoModificadorController.updateGrupo] Body recibido:', JSON.stringify(req.body, null, 2));
+            console.log('📦 [GrupoModificadorController.updateGrupo] Data a actualizar:', JSON.stringify(data, null, 2));
+            console.log('📦 [GrupoModificadorController.updateGrupo] Opciones:', opciones);
+
+            // Si vienen opciones, realizamos replace: eliminamos las opciones anteriores y creamos las nuevas
+            let updateData: any = { ...data };
+            if (opciones && Array.isArray(opciones)) {
+                console.log('✅ [GrupoModificadorController.updateGrupo] Reemplazando opciones. Cantidad:', opciones.length);
+                updateData.opciones = {
+                    deleteMany: {},
+                    create: opciones.map((op: any) => ({
+                        nombre: op.nombre,
+                        precioAdicional: op.precioAdicional || 0,
+                        activo: typeof op.activo === 'boolean' ? op.activo : true
+                    }))
+                };
+            } else {
+                console.log('⚠️ [GrupoModificadorController.updateGrupo] Sin opciones en el body');
+            }
+
+            console.log('📤 [GrupoModificadorController.updateGrupo] UpdateData final:', JSON.stringify(updateData, null, 2));
+
             const grupo = await req.prisma.grupoModificador.update({
                 where: { id },
-                data: data,
+                data: {
+                    ...updateData,
+                    // Permitir actualización de cobrar_precio si viene en el body
+                    ...(data.cobrar_precio !== undefined && { cobrar_precio: data.cobrar_precio })
+                },
                 include: {
                     opciones: true
                 }
             });
 
+            console.log('✅ [GrupoModificadorController.updateGrupo] Actualización exitosa');
             res.json({
                 success: true,
                 data: grupo
             });
         } catch (error: any) {
+            console.error('❌ [GrupoModificadorController.updateGrupo] Error:', error.name, error.message);
+            console.error('   Stack:', error.stack);
             res.status(400).json({
                 success: false,
                 message: error.message

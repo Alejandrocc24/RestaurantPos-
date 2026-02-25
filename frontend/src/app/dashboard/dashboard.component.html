@@ -51,7 +51,7 @@
         <p>Hola {{ userName }}, selecciona una opción del menú para comenzar</p>
       </div>
       
-      <app-productos *ngIf="currentView === 'productos' || currentView === 'inventario'" [initialTab]="currentView === 'inventario' ? 'inventario' : 'productos'" (viewChangeRequested)="showView($event)"></app-productos>
+      <app-productos *ngIf="currentView === 'productos'" [initialTab]="'productos'" (viewChangeRequested)="showView($event)"></app-productos>
       
       <app-categoria-productos *ngIf="currentView === 'categoria-productos'" (viewChangeRequested)="showView($event)"></app-categoria-productos>
       
