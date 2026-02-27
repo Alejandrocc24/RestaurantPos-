@@ -51,11 +51,11 @@
         <div class="filtros-content">
           <div class="filtro-item">
             <label for="fechaInicio">Fecha Inicio:</label>
-            <input type="date" id="fechaInicio" [(ngModel)]="fechaInicio" class="form-control">
+            <input type="date" id="fechaInicio" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosGastos()" class="form-control">>
           </div>
           <div class="filtro-item">
             <label for="fechaFin">Fecha Fin:</label>
-            <input type="date" id="fechaFin" [(ngModel)]="fechaFin" class="form-control">
+            <input type="date" id="fechaFin" [(ngModel)]="fechaFin" (change)="aplicarFiltrosGastos()" class="form-control">
           </div>
           <div class="filtro-item">
             <label for="filtroMesa">Filtrar por Mesa:</label>
@@ -168,11 +168,11 @@
         <div class="filtros-content">
           <div class="filtro-item">
             <label for="fechaInicioGastos">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioGastos" [(ngModel)]="fechaInicio" class="form-control">
+            <input type="date" id="fechaInicioGastos" [(ngModel)]="fechaInicio" (change)="onFechagastoChange()" class="form-control">
           </div>
           <div class="filtro-item">
             <label for="fechaFinGastos">Fecha Fin:</label>
-            <input type="date" id="fechaFinGastos" [(ngModel)]="fechaFin" class="form-control">
+            <input type="date" id="fechaFinGastos" [(ngModel)]="fechaFin" (change)="onFechagastoChange()" class="form-control">
           </div>
           <div class="filtro-item">
             <label for="filtroGasto">Filtrar Gasto:</label>
@@ -189,9 +189,12 @@
         <h3>Reporte de Gastos</h3>
         <div class="tab-summary">
           <span class="summary-item">
-            <strong>Total Gastos:</strong> {{ formatearMoneda(totalGastosHoy) }}
+            <strong>Total Gastos:</strong> {{ formatearMoneda(gastosTotalFiltrados) }}
             <span *ngIf="filtroGasto && filtroGasto.trim() !== ''" class="filtro-info">
-              (Filtrado: {{ gastosFiltrados.length }} de {{ gastosHoy.length }})
+              (Filtrado: {{ gastosFiltrados.length }} de {{ gastosHoy.length }} gastos)
+            </span>
+            <span *ngIf="!filtroGasto || filtroGasto.trim() === ''" class="filtro-info">
+              ({{ gastosHoy.length }} gastos)
             </span>
           </span>
           <button class="btn btn-success btn-sm" (click)="exportarReporteGastos()">
@@ -241,11 +244,11 @@
         <div class="filtros-content">
           <div class="filtro-item">
             <label for="fechaInicioProductos">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioProductos" [(ngModel)]="fechaInicio" class="form-control">
+            <input type="date" id="fechaInicioProductos" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosProductos()" class="form-control">
           </div>
           <div class="filtro-item">
             <label for="fechaFinProductos">Fecha Fin:</label>
-            <input type="date" id="fechaFinProductos" [(ngModel)]="fechaFin" class="form-control">
+            <input type="date" id="fechaFinProductos" [(ngModel)]="fechaFin" (change)="aplicarFiltrosProductos()" class="form-control">
           </div>
           <div class="filtro-item">
             <label for="filtroCategoria">Filtrar Categoría:</label>
@@ -882,7 +885,7 @@
             </div>
             <div class="stat-item" *ngIf="tipoReporteActual === 'gastos'">
               <span class="stat-label">Total:</span>
-              <span class="stat-valor">{{ formatearMoneda(gastosTotal) }}</span>
+              <span class="stat-valor">{{ formatearMoneda(gastosTotalFiltrados) }}</span>
             </div>
           </div>
         </div>

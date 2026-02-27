@@ -1,5 +1,18 @@
 import { Request, Response } from 'express';
 
+// Función auxiliar para convertir string de fecha (YYYY-MM-DD) a Date en zona horaria local
+function parseFechaLocal(fechaString?: string): Date {
+  if (!fechaString) {
+    // Si no hay fecha, retornar hoy en hora local
+    const hoy = new Date();
+    return new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  }
+
+  // Si viene como string YYYY-MM-DD, parsear directamente sin UTC
+  const [year, month, day] = fechaString.split('-').map(x => parseInt(x, 10));
+  return new Date(year, month - 1, day);
+}
+
 export class GastoController {
   /**
    * GET /api/gastos
@@ -15,8 +28,18 @@ export class GastoController {
       const where: any = { activo: true };
       if (fechaInicio || fechaFin) {
         where.fecha = {};
-        if (fechaInicio) where.fecha.gte = new Date(fechaInicio as string);
-        if (fechaFin) where.fecha.lte = new Date(fechaFin as string);
+        if (fechaInicio) {
+          // Convertir string YYYY-MM-DD a Date sin asumir UTC
+          const [year, month, day] = (fechaInicio as string).split('-').map(x => parseInt(x, 10));
+          const inicioDate = new Date(year, month - 1, day);
+          where.fecha.gte = inicioDate;
+        }
+        if (fechaFin) {
+          // Convertir string YYYY-MM-DD a Date sin asumir UTC, y sumar un día completo
+          const [year, month, day] = (fechaFin as string).split('-').map(x => parseInt(x, 10));
+          const finDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+          where.fecha.lte = finDate;
+        }
       }
       if (categoriaId) where.categoriaId = categoriaId;
 
@@ -62,7 +85,7 @@ export class GastoController {
    */
   static async create(req: Request, res: Response) {
     try {
-      const { descripcion, monto, categoriaId, recibo, observaciones, salio_de_caja, proveedor, proveedor_personalizado } = req.body;
+      const { descripcion, monto, categoriaId, fecha, recibo, observaciones, salio_de_caja, proveedor, proveedor_personalizado } = req.body;
 
       if (!descripcion || !monto || !categoriaId) {
         return res.status(400).json({
@@ -101,7 +124,7 @@ export class GastoController {
           recibo,
           observaciones,
           salio_de_caja: salio_de_caja !== undefined ? Boolean(salio_de_caja) : true,
-          fecha: new Date(),
+          fecha: parseFechaLocal(fecha),
         },
         include: {
           categoria: true,
@@ -181,7 +204,7 @@ export class GastoController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { descripcion, monto, categoriaId, recibo, observaciones, salio_de_caja, proveedor, proveedor_personalizado } = req.body;
+      const { descripcion, monto, categoriaId, fecha, recibo, observaciones, salio_de_caja, proveedor, proveedor_personalizado } = req.body;
 
       // Verificar que el gasto existe
       const gastoExistente = await req.prisma.gasto.findUnique({
@@ -218,6 +241,7 @@ export class GastoController {
           descripcion: descripcion !== undefined ? descripcion : gastoExistente.descripcion,
           monto: monto !== undefined ? parseFloat(monto) : gastoExistente.monto,
           categoriaId: categoriaId !== undefined ? categoriaId : gastoExistente.categoriaId,
+          fecha: fecha !== undefined ? parseFechaLocal(fecha) : gastoExistente.fecha,
           proveedorId,
           proveedorPersonalizado,
           recibo: recibo !== undefined ? recibo : gastoExistente.recibo,

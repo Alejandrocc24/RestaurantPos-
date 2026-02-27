@@ -369,6 +369,26 @@ model Gasto {
   @@index([activo])
 }
 
+// Modelo para cajas (apertura / cierre de caja)
+model Caja {
+  id                  String   @id @default(cuid())
+  monto_inicial       Float    @default(0)
+  monto_final         Float?
+  estado              String   @default("abierta")
+  usuario_apertura_id String?
+  usuario_cierre_id   String?
+  fecha_apertura      DateTime @default(now())
+  fecha_cierre        DateTime?
+  total_gastos        Float    @default(0)
+  activo              Boolean  @default(true)
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([estado])
+  @@index([fecha_apertura])
+}
+
 model Proveedor {
   id            String   @id @default(cuid())
   nombre        String   @unique

@@ -153,3 +153,19 @@ export interface Tenant {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// Caja
+export interface Caja {
+  id: string;
+  monto_inicial: number;
+  monto_final?: number;
+  estado: 'abierta' | 'cerrada';
+  usuario_apertura_id?: string;
+  usuario_cierre_id?: string;
+  fecha_apertura: string;
+  fecha_cierre?: string;
+  total_gastos?: number;
+  activo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}

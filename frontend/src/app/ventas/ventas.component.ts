@@ -216,8 +216,30 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   cargarGastos(): void {
     this.isLoadingGastos = true;
-    // Nota: Si tienes GastosService, úsalo aquí. Por ahora usamos VentasService como placeholder
-    this.isLoadingGastos = false;
+    
+    // Usar fechaInicio y fechaFin del componente, o la fecha de hoy si no están seteadas
+    const inicio = this.fechaInicio || this.formatearFechaLocal();
+    const fin = this.fechaFin || this.formatearFechaLocal();
+    
+    console.log(`📊 Cargando gastos desde ${inicio} hasta ${fin}`);
+    
+    // Usar el servicio de Supabase para obtener gastos del rango de fechas
+    this.supabaseService.obtenerGastos(inicio, fin)
+      .then((gastos: any[]) => {
+        this.gastosHoy = gastos || [];
+        this.totalGastosHoy = this.gastosHoy.length;
+        this.gastosTotal = this.gastosHoy.reduce((sum: number, gasto: any) => sum + (gasto.monto || 0), 0);
+        
+        console.log('✅ Gastos cargados:', this.gastosHoy.length, 'Total:', this.gastosTotal);
+        this.isLoadingGastos = false;
+      })
+      .catch((error: any) => {
+        console.error('❌ Error cargando gastos:', error);
+        this.gastosHoy = [];
+        this.totalGastosHoy = 0;
+        this.gastosTotal = 0;
+        this.isLoadingGastos = false;
+      });
   }
 
   cargarEstadisticasProductos(): void {
@@ -301,7 +323,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.resumenCierreCaja.gastosTotal = gastos.reduce((total: number, gasto: any) => total + (gasto.monto || 0), 0);
 
       // Calcular efectivo esperado = Monto inicial + Pagos en efectivo - Gastos
-      const montoInicial = this.cajaActual?.monto_inicial || this.cajaActual?.montoInicial || 0;
+      const montoInicial = this.cajaActual?.monto_inicial || 0;
       this.resumenCierreCaja.efectivoEsperado = montoInicial + this.resumenCierreCaja.pagosEfectivo - this.resumenCierreCaja.gastosTotal;
 
       // Resetear campos de efectivo real y diferencia
@@ -402,8 +424,8 @@ export class VentasComponent implements OnInit, OnDestroy {
       console.log('📄 Generando ticket para caja:', caja);
       
       // Obtener ventas y gastos de esta caja específica
-      const fechaApertura = caja.fecha_apertura || caja.fechaApertura;
-      const fechaCierre = caja.fecha_cierre || caja.fechaCierre;
+      const fechaApertura = caja.fecha_apertura;
+      const fechaCierre = caja.fecha_cierre;
       
       console.log('📅 Fecha apertura:', fechaApertura);
       console.log('📅 Fecha cierre:', fechaCierre);
@@ -502,10 +524,10 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
   
   imprimirTicketCajaCerrada(caja: any, datos: any): void {
-    const montoInicial = caja.monto_inicial || caja.montoInicial || 0;
-    const montoFinal = caja.monto_final || caja.montoFinal || 0;
-    const fechaCierre = new Date(caja.fecha_cierre || caja.fechaCierre);
-    const fechaApertura = new Date(caja.fecha_apertura || caja.fechaApertura);
+    const montoInicial = caja.monto_inicial || 0;
+    const montoFinal = caja.monto_final || 0;
+    const fechaCierre = new Date(caja.fecha_cierre);
+    const fechaApertura = new Date(caja.fecha_apertura);
     
     const fechaCierreFormateada = fechaCierre.toLocaleDateString('es-CO', { 
       year: 'numeric', 
@@ -833,7 +855,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       minute: '2-digit'
     });
     
-    const montoInicial = this.cajaActual?.monto_inicial || this.cajaActual?.montoInicial || 0;
+    const montoInicial = this.cajaActual?.monto_inicial || 0;
     
     return `
       <!DOCTYPE html>
@@ -1061,6 +1083,12 @@ export class VentasComponent implements OnInit, OnDestroy {
   onFiltroGastoChange() {
     // Recargar gastos cuando cambie el filtro de texto
     this.cargarGastos();
+  }
+
+  onFechagastoChange() {
+    // Recargar gastos automáticamente cuando cambian las fechas
+    console.log(`📅 Fechas cambiadas: ${this.fechaInicio} - ${this.fechaFin}`);
+    this.aplicarFiltrosGastos();
   }
 
   // Métodos de filtros para Productos
@@ -1486,6 +1514,10 @@ export class VentasComponent implements OnInit, OnDestroy {
     }
 
     return gastos;
+  }
+
+  get gastosTotalFiltrados(): number {
+    return this.gastosFiltrados.reduce((sum: number, gasto: any) => sum + (gasto.monto || 0), 0);
   }
 
   get mesasPaginadas() {
@@ -2141,13 +2173,13 @@ export class VentasComponent implements OnInit, OnDestroy {
       [],
       ['RESUMEN GENERAL'],
       ['Concepto', 'Valor'],
-      ['Total Gastos', this.formatearMoneda(this.gastosTotal)],
-      ['Número de Gastos', this.gastosHoy.length.toString()],
+      ['Total Gastos', this.formatearMoneda(this.gastosTotalFiltrados)],
+      ['Número de Gastos', this.gastosFiltrados.length.toString()],
       [],
       ['DETALLE DE GASTOS'],
       ['Fecha', 'Descripción', 'Categoría', 'Monto', 'Proveedor']
     ].concat(
-      this.gastosHoy.map(gasto => [
+      this.gastosFiltrados.map(gasto => [
         new Date(gasto.fecha).toLocaleDateString('es-CO'),
         gasto.descripcion,
         gasto.categoria,
@@ -2191,18 +2223,18 @@ export class VentasComponent implements OnInit, OnDestroy {
       ['ESTADO ACTUAL DE CAJA'],
       ['Concepto', 'Valor'],
       ['Estado', this.cajaAbierta ? 'Abierta' : 'Cerrada'],
-      ['Monto Inicial', this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.montoInicial || 0) : 'N/A'],
-      ['Fecha Apertura', this.cajaAbierta ? new Date(this.cajaActual?.fechaApertura).toLocaleDateString('es-CO') : 'N/A'],
+      ['Monto Inicial', this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.monto_inicial || 0) : 'N/A'],
+      ['Fecha Apertura', this.cajaAbierta ? new Date(this.cajaActual?.fecha_apertura).toLocaleDateString('es-CO') : 'N/A'],
       [],
       ['REPORTE DE CAJAS CERRADAS'],
       ['ID', 'Fecha Apertura', 'Fecha Cierre', 'Monto Inicial', 'Monto Final', 'Usuario']
     ].concat(
       this.cajasCerradas.map(caja => [
         caja.id.toString(),
-        new Date(caja.fechaApertura).toLocaleDateString('es-CO'),
-        caja.fechaCierre ? new Date(caja.fechaCierre).toLocaleDateString('es-CO') : 'N/A',
-        this.formatearMoneda(caja.montoInicial),
-        caja.montoFinal ? this.formatearMoneda(caja.montoFinal) : 'N/A',
+        new Date(caja.fecha_apertura).toLocaleDateString('es-CO'),
+        caja.fecha_cierre ? new Date(caja.fecha_cierre).toLocaleDateString('es-CO') : 'N/A',
+        this.formatearMoneda(caja.monto_inicial),
+        caja.monto_final ? this.formatearMoneda(caja.monto_final) : 'N/A',
         caja.usuarioApertura
       ])
     );
@@ -2292,8 +2324,8 @@ export class VentasComponent implements OnInit, OnDestroy {
         
         <div class="resumen">
           <h2>💰 Resumen General</h2>
-          <p><strong>Total Gastos:</strong> ${this.formatearMoneda(this.gastosTotal)}</p>
-          <p><strong>Número de Gastos:</strong> ${this.gastosHoy.length}</p>
+          <p><strong>Total Gastos:</strong> ${this.formatearMoneda(this.gastosTotalFiltrados)}</p>
+          <p><strong>Número de Gastos:</strong> ${this.gastosFiltrados.length}</p>
         </div>
         
         <div class="seccion">
@@ -2309,7 +2341,7 @@ export class VentasComponent implements OnInit, OnDestroy {
               </tr>
             </thead>
             <tbody>
-              ${this.gastosHoy.map(gasto => `
+              ${this.gastosFiltrados.map(gasto => `
                 <tr>
                   <td>${new Date(gasto.fecha).toLocaleDateString('es-CO')}</td>
                   <td>${gasto.descripcion}</td>
@@ -2411,8 +2443,8 @@ export class VentasComponent implements OnInit, OnDestroy {
         <div class="resumen">
           <h2>💰 Estado Actual de Caja</h2>
           <p><strong>Estado:</strong> ${this.cajaAbierta ? 'Abierta' : 'Cerrada'}</p>
-          <p><strong>Monto Inicial:</strong> ${this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.montoInicial || 0) : 'N/A'}</p>
-          <p><strong>Fecha Apertura:</strong> ${this.cajaAbierta ? new Date(this.cajaActual?.fechaApertura).toLocaleDateString('es-CO') : 'N/A'}</p>
+          <p><strong>Monto Inicial:</strong> ${this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.monto_inicial || 0) : 'N/A'}</p>
+          <p><strong>Fecha Apertura:</strong> ${this.cajaAbierta ? new Date(this.cajaActual?.fecha_apertura).toLocaleDateString('es-CO') : 'N/A'}</p>
         </div>
         
         <div class="seccion">
@@ -2432,10 +2464,10 @@ export class VentasComponent implements OnInit, OnDestroy {
               ${this.cajasCerradas.map(caja => `
                 <tr>
                   <td>${caja.id}</td>
-                  <td>${new Date(caja.fechaApertura).toLocaleDateString('es-CO')}</td>
-                  <td>${caja.fechaCierre ? new Date(caja.fechaCierre).toLocaleDateString('es-CO') : 'N/A'}</td>
-                  <td>${this.formatearMoneda(caja.montoInicial)}</td>
-                  <td>${caja.montoFinal ? this.formatearMoneda(caja.montoFinal) : 'N/A'}</td>
+                  <td>${new Date(caja.fecha_apertura).toLocaleDateString('es-CO')}</td>
+                  <td>${caja.fecha_cierre ? new Date(caja.fecha_cierre).toLocaleDateString('es-CO') : 'N/A'}</td>
+                  <td>${this.formatearMoneda(caja.monto_inicial)}</td>
+                  <td>${caja.monto_final ? this.formatearMoneda(caja.monto_final) : 'N/A'}</td>
                   <td>${caja.usuarioApertura}</td>
                 </tr>
               `).join('')}
@@ -2479,12 +2511,12 @@ export class VentasComponent implements OnInit, OnDestroy {
     
     texto += '💰 RESUMEN GENERAL\n';
     texto += '-'.repeat(30) + '\n';
-    texto += `Total Gastos: ${this.formatearMoneda(this.gastosTotal)}\n`;
-    texto += `Número de Gastos: ${this.gastosHoy.length}\n\n`;
+    texto += `Total Gastos: ${this.formatearMoneda(this.gastosTotalFiltrados)}\n`;
+    texto += `Número de Gastos: ${this.gastosFiltrados.length}\n\n`;
     
     texto += '💸 DETALLE DE GASTOS\n';
     texto += '-'.repeat(30) + '\n';
-    this.gastosHoy.forEach(gasto => {
+    this.gastosFiltrados.forEach(gasto => {
       texto += `${new Date(gasto.fecha).toLocaleDateString('es-CO')}: ${gasto.descripcion} - ${gasto.categoria} - ${this.formatearMoneda(gasto.monto)} - ${(gasto.proveedor === 'personalizado' ? gasto.proveedor_personalizado || 'N/A' : gasto.proveedor || 'N/A')}\n`;
     });
     
@@ -2522,13 +2554,13 @@ export class VentasComponent implements OnInit, OnDestroy {
     texto += '💰 ESTADO ACTUAL DE CAJA\n';
     texto += '-'.repeat(30) + '\n';
     texto += `Estado: ${this.cajaAbierta ? 'Abierta' : 'Cerrada'}\n`;
-    texto += `Monto Inicial: ${this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.montoInicial || 0) : 'N/A'}\n`;
-    texto += `Fecha Apertura: ${this.cajaAbierta ? new Date(this.cajaActual?.fechaApertura).toLocaleDateString('es-CO') : 'N/A'}\n\n`;
+    texto += `Monto Inicial: ${this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.monto_inicial || 0) : 'N/A'}\n`;
+    texto += `Fecha Apertura: ${this.cajaAbierta ? new Date(this.cajaActual?.fecha_apertura).toLocaleDateString('es-CO') : 'N/A'}\n\n`;
     
     texto += '📊 CAJAS CERRADAS\n';
     texto += '-'.repeat(30) + '\n';
     this.cajasCerradas.forEach(caja => {
-      texto += `ID ${caja.id}: ${new Date(caja.fechaApertura).toLocaleDateString('es-CO')} - ${caja.fechaCierre ? new Date(caja.fechaCierre).toLocaleDateString('es-CO') : 'N/A'} - ${this.formatearMoneda(caja.montoInicial)} - ${caja.montoFinal ? this.formatearMoneda(caja.montoFinal) : 'N/A'} - ${caja.usuarioApertura}\n`;
+      texto += `ID ${caja.id}: ${new Date(caja.fecha_apertura).toLocaleDateString('es-CO')} - ${caja.fecha_cierre ? new Date(caja.fecha_cierre).toLocaleDateString('es-CO') : 'N/A'} - ${this.formatearMoneda(caja.monto_inicial)} - ${caja.monto_final ? this.formatearMoneda(caja.monto_final) : 'N/A'}\n`;
     });
     
     return texto;

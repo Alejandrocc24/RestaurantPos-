@@ -126,7 +126,18 @@ export class GastoModalComponent implements OnInit, OnDestroy {
       this.gastoForm.id = this.gasto.id;
     }
 
-    this.guardar.emit(this.gastoForm);
+    // Convertir fecha a string ISO normalizado (YYYY-MM-DD) para evitar desfases de timezone
+    const fechaObj = this.gastoForm.fecha instanceof Date
+      ? this.gastoForm.fecha
+      : new Date(this.gastoForm.fecha);
+    
+    const fechaString = `${fechaObj.getFullYear()}-${String(fechaObj.getMonth() + 1).padStart(2, '0')}-${String(fechaObj.getDate()).padStart(2, '0')}`;
+    
+    // Emitir con fecha como string
+    this.guardar.emit({
+      ...this.gastoForm,
+      fecha: fechaString as any
+    });
   }
 
   onCerrar() {

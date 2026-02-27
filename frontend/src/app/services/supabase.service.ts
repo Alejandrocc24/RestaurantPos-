@@ -295,19 +295,16 @@ export class SupabaseService {
 
   async getGastos(fechaInicio?: string, fechaFin?: string) {
     try {
-      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService
-      const gastosResp = await firstValueFrom(this.api.getData('gastos'));
+      // ✅ FILTRADO EN SERVIDOR: Enviar fechas como parámetros para filtrado en el backend
+      const params = new URLSearchParams();
+      if (fechaInicio) params.append('fechaInicio', fechaInicio);
+      if (fechaFin) params.append('fechaFin', fechaFin);
+      
+      const query = params.toString() ? `?${params.toString()}` : '';
+      const gastosResp = await firstValueFrom(this.api.getData(`gastos${query}`));
       const gastos = gastosResp.data || [];
 
-      if (!fechaInicio || !fechaFin) {
-        return gastos;
-      }
-
-      // Filtrar gastos en el rango de fechas
-      return gastos.filter((gasto: any) => {
-        const fechaGasto = gasto.fecha?.split('T')[0] || gasto.fecha;
-        return fechaGasto >= fechaInicio && fechaGasto <= fechaFin;
-      });
+      return gastos;
     } catch (error) {
       console.error('Error al obtener gastos:', error);
       return [];
@@ -322,18 +319,17 @@ export class SupabaseService {
   async abrirCaja(montoInicial: number): Promise<any> {
     const caja = {
       monto_inicial: montoInicial,
-      estado: 'abierta',
-      usuario_apertura_id: 1 // ID del usuario actual
+      estado: 'abierta'
     };
     const resp = await firstValueFrom(this.api.insertData('cajas', caja));
     if (!resp?.success) throw new Error(resp?.error || 'Error al abrir caja');
-    return resp.data?.[0] ?? null;
+    return resp.data ?? null;
   }
 
-  async cerrarCaja(id: number, caja: any) {
+  async cerrarCaja(id: string, caja: any) {
     const resp = await firstValueFrom(this.api.updateData('cajas', { id }, caja));
     if (!resp?.success) throw new Error(resp?.error || 'Error al cerrar caja');
-    return resp.data?.[0] ?? null;
+    return resp.data ?? null;
   }
 
   async getCajaAbierta() {

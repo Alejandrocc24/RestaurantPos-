@@ -13,6 +13,7 @@ import usuarioRoutes from './usuario.routes.js';
 import rolRoutes from './rol.routes.js';
 import printerRoutes from './printer.routes.js';
 import proveedorRoutes from './proveedor.routes.js';
+import cajaRoutes from './caja.routes.js';
 
 const router = Router();
 
@@ -30,6 +31,7 @@ router.use('/usuarios', usuarioRoutes);
 router.use('/roles', rolRoutes);
 router.use('/printer', printerRoutes);
 router.use('/proveedores', proveedorRoutes);
+router.use('/cajas', cajaRoutes);
 
 // Health check
 router.get('/health', (req, res) => {
