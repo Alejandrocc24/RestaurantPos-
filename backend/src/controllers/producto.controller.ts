@@ -14,16 +14,26 @@ export class ProductoController {
         req.prisma.producto.findMany({
           skip,
           take,
-          include: { categoria: true },
+          include: { 
+            categoria: true
+          },
           orderBy: { nombre: 'asc' },
         }),
         req.prisma.producto.count(),
       ]);
 
+      // Parsear comentarios y campos especiales JSON para cada producto
+      const productosConComentarios = productos.map((p: any) => ({
+        ...p,
+        comentarios: p.comentarios ? JSON.parse(p.comentarios) : [],
+        gruposModificadores: p.gruposModificadores ? JSON.parse(p.gruposModificadores) : [],
+        configuracionGrupos: p.configuracionGrupos ? JSON.parse(p.configuracionGrupos) : []
+      }));
+
       res.json({
         success: true,
         message: 'Productos obtenidos',
-        data: productos,
+        data: productosConComentarios,
         pagination: { skip, take, total },
       });
     } catch (error: any) {
@@ -44,7 +54,9 @@ export class ProductoController {
 
       const producto = await req.prisma.producto.findUnique({
         where: { id },
-        include: { categoria: true },
+        include: {
+          categoria: true
+        },
       });
 
       if (!producto) {
@@ -54,10 +66,18 @@ export class ProductoController {
         });
       }
 
+      // Parsear comentarios y campos especiales JSON
+      const productoConComentarios = {
+        ...producto,
+        comentarios: producto.comentarios ? JSON.parse(producto.comentarios) : [],
+        gruposModificadores: producto.gruposModificadores ? JSON.parse(producto.gruposModificadores) : [],
+        configuracionGrupos: producto.configuracionGrupos ? JSON.parse(producto.configuracionGrupos) : []
+      };
+
       res.json({
         success: true,
         message: 'Producto obtenido',
-        data: producto,
+        data: productoConComentarios,
       });
     } catch (error: any) {
       res.status(500).json({
@@ -73,7 +93,7 @@ export class ProductoController {
    */
   static async create(req: Request, res: Response) {
     try {
-      const { nombre, descripcion, precio, categoriaId, imagen } = req.body;
+      const { nombre, descripcion, precio, categoriaId, imagen, especial, gruposModificadores, configuracionGrupos, comentarios } = req.body;
 
       if (!nombre || !precio || !categoriaId) {
         return res.status(400).json({
@@ -89,6 +109,10 @@ export class ProductoController {
           precio: parseFloat(precio),
           categoriaId,
           imagen,
+          especial: especial || false,
+          gruposModificadores: gruposModificadores ? JSON.stringify(gruposModificadores) : '[]',
+          configuracionGrupos: configuracionGrupos ? JSON.stringify(configuracionGrupos) : '[]',
+          comentarios: comentarios ? JSON.stringify(comentarios) : '[]',
         },
         include: { categoria: true },
       });
@@ -96,7 +120,12 @@ export class ProductoController {
       res.status(201).json({
         success: true,
         message: 'Producto creado exitosamente',
-        data: producto,
+        data: {
+          ...producto,
+          comentarios: producto.comentarios ? JSON.parse(producto.comentarios) : [],
+          gruposModificadores: producto.gruposModificadores ? JSON.parse(producto.gruposModificadores) : [],
+          configuracionGrupos: producto.configuracionGrupos ? JSON.parse(producto.configuracionGrupos) : []
+        },
       });
     } catch (error: any) {
       res.status(400).json({
@@ -123,8 +152,16 @@ export class ProductoController {
         subcategoria,
         activo, 
         imagen,
-        gruposModificadores = []
+        especial,
+        gruposModificadores,
+        configuracionGrupos,
+        comentarios
       } = req.body;
+
+      console.log('📦 Valores a guardar:');
+      console.log('   gruposModificadores:', gruposModificadores);
+      console.log('   configuracionGrupos:', configuracionGrupos);
+      console.log('   comentarios:', comentarios);
 
       const producto = await req.prisma.producto.update({
         where: { id },
@@ -137,16 +174,30 @@ export class ProductoController {
           ...(subcategoria && { subcategoria }),
           ...(activo !== undefined && { activo }),
           ...(imagen && { imagen }),
+          ...(especial !== undefined && { especial }),
+          ...(gruposModificadores !== undefined && { gruposModificadores: JSON.stringify(gruposModificadores) }),
+          ...(configuracionGrupos !== undefined && { configuracionGrupos: JSON.stringify(configuracionGrupos) }),
+          ...(comentarios !== undefined && { comentarios: JSON.stringify(comentarios) }),
         },
         include: { 
           categoria: true,
         },
       });
 
+      console.log('✅ Producto guardado:');
+      console.log('   gruposModificadores (raw):', producto.gruposModificadores);
+      console.log('   configuracionGrupos (raw):', producto.configuracionGrupos);
+      console.log('   comentarios (raw):', producto.comentarios);
+
       res.json({
         success: true,
         message: 'Producto actualizado',
-        data: producto,
+        data: {
+          ...producto,
+          comentarios: producto.comentarios ? JSON.parse(producto.comentarios) : [],
+          gruposModificadores: producto.gruposModificadores ? JSON.parse(producto.gruposModificadores) : [],
+          configuracionGrupos: producto.configuracionGrupos ? JSON.parse(producto.configuracionGrupos) : []
+        },
       });
     } catch (error: any) {
       console.error('❌ Error actualizando producto:', error);
@@ -159,12 +210,27 @@ export class ProductoController {
 
   /**
    * DELETE /api/productos/:id
-   * Eliminar un producto (soft delete)
+   * Eliminar un producto (soft delete) y limpiar referencias
    */
   static async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
 
+      // Primero, desconectar el producto de todos los grupos modificadores
+      await req.prisma.grupoModificador.updateMany({
+        where: {
+          productos: {
+            some: { id }
+          }
+        },
+        data: {
+          productos: {
+            disconnect: { id }
+          }
+        }
+      });
+
+      // Luego marcar el producto como inactivo
       await req.prisma.producto.update({
         where: { id },
         data: { activo: false },
@@ -172,9 +238,10 @@ export class ProductoController {
 
       res.json({
         success: true,
-        message: 'Producto eliminado',
+        message: 'Producto eliminado y referencias limpias',
       });
     } catch (error: any) {
+      console.error('Error al eliminar producto:', error);
       res.status(400).json({
         success: false,
         message: error.message,

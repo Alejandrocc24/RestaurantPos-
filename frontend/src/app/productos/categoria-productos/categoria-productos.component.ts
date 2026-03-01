@@ -167,8 +167,9 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
       console.log('[Categoria] Crear payload:', payload);
       const nuevaCategoria = await this.supabaseService.crearCategoria(payload);
       console.log('[Categoria] Crear respuesta:', nuevaCategoria);
-      this.categorias.push(nuevaCategoria);
-      this.filtrarCategorias();
+
+      // Recargar la lista completa desde el servidor
+      await this.cargarCategorias();
 
       this.cerrarModalNuevaCategoria();
       this.mostrarNotificacion('✅ Categoría creada', `Categoría ${nombre} creada exitosamente`, 'success');
@@ -183,9 +184,8 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
     try {
       await this.supabaseService.eliminarCategoria(categoria.id!);
 
-      // Remover de la lista local
-      this.categorias = this.categorias.filter(c => c.id !== categoria.id);
-      this.filtrarCategorias();
+      // Recargar la lista desde el servidor
+      await this.cargarCategorias();
 
       this.mostrarNotificacion('✅ Categoría eliminada', `Categoría ${categoria.nombre} eliminada exitosamente`, 'success');
     } catch (error) {

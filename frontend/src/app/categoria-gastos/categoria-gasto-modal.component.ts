@@ -32,6 +32,8 @@ export class CategoriaGastoModalComponent implements OnInit {
     'Inactivo'
   ];
 
+  errores: Record<string, string> = {};
+
 
 
   ngOnInit() {
@@ -40,7 +42,44 @@ export class CategoriaGastoModalComponent implements OnInit {
     }
   }
 
+  validarNombre(): void {
+    const nombre = this.categoriaForm.nombre?.trim();
+    delete this.errores['nombre'];
+
+    if (!nombre) {
+      return;
+    }
+
+    if (nombre.length < 3) {
+      this.errores['nombre'] = 'El nombre debe tener al menos 3 caracteres';
+      return;
+    }
+
+    if (nombre.length > 100) {
+      this.errores['nombre'] = 'El nombre no puede exceder 100 caracteres';
+      return;
+    }
+  }
+
   onSubmit() {
+    // Limpiar errores previos
+    this.errores = {};
+
+    // Validar nombre
+    const nombre = this.categoriaForm.nombre?.trim();
+    if (!nombre) {
+      this.errores['nombre'] = 'El nombre es obligatorio';
+    } else if (nombre.length < 3) {
+      this.errores['nombre'] = 'El nombre debe tener al menos 3 caracteres';
+    } else if (nombre.length > 100) {
+      this.errores['nombre'] = 'El nombre no puede exceder 100 caracteres';
+    }
+
+    // Si hay errores, no continuar
+    if (Object.keys(this.errores).length > 0) {
+      return;
+    }
+
     if (this.esEdicion && this.categoria?.id) {
       this.categoriaForm.id = this.categoria.id;
     }

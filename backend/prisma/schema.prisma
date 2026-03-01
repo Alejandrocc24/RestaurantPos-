@@ -126,11 +126,16 @@ model Producto {
   subcategoria  String?
   activo        Boolean  @default(true)
   imagen        String?
+  comentarios   String?  @default("[]")  // Array de comentarios preestablecidos como JSON
+  especial      Boolean  @default(false)  // Indica si es un producto especial con modificadores
+  gruposModificadores  String?  @default("[]")  // IDs de grupos modificadores como JSON array
+  configuracionGrupos  String?  @default("[]")  // Configuración de cada grupo {grupoId, minSelecciones, maxSelecciones} como JSON array
   
   // Relaciones
   categoria     Categoria @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
   ordenProductos OrdenProducto[]
   modificadores GrupoModificador[]
+  opcionesModificador OpcionModificador[]  // Relación inversa
   
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -162,14 +167,17 @@ model OpcionModificador {
   nombre          String
   precioAdicional Float    @default(0)
   grupoId         String
+  productoId      String?  // Relación opcional con el producto
   activo          Boolean  @default(true)
   
   grupo           GrupoModificador @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  producto        Producto? @relation(fields: [productoId], references: [id], onDelete: SetNull)
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([grupoId])
+  @@index([productoId])
 }
 
 // ============================================
@@ -211,6 +219,7 @@ model Orden {
   total         Float    @default(0)
   descuento     Float    @default(0)
   propina       Float    @default(0)
+  notas         String?
   
   // Relaciones
   mesa          Mesa?    @relation(fields: [mesaId], references: [id], onDelete: SetNull)

@@ -157,6 +157,24 @@ export class CategoriaGastosComponent implements OnInit, OnDestroy {
   }
 
   guardarCategoria(categoria: CategoriaGasto) {
+    // Validar nombre antes de hacer nada
+    const nombre = categoria?.nombre?.trim();
+    if (!nombre) {
+      this.toast.error('❌ Validación', 'El nombre es obligatorio');
+      return;
+    }
+
+    if (nombre.length < 3) {
+      this.toast.error('❌ Validación', 'El nombre debe tener al menos 3 caracteres');
+      return;
+    }
+
+    if (nombre.length > 100) {
+      this.toast.error('❌ Validación', 'El nombre no puede exceder 100 caracteres');
+      return;
+    }
+
+    // Solo si pasa validación, proceder
     this.cargando = true;
 
     if (this.esEdicionCategoria && categoria.id) {
@@ -167,7 +185,7 @@ export class CategoriaGastosComponent implements OnInit, OnDestroy {
       }).subscribe({
         next: (response) => {
           if (response) {
-            this.toast.success('Categoría actualizada', `"${categoria.nombre}" actualizada correctamente`);
+            this.toast.success('✅ Categoría actualizada', `"${categoria.nombre}" actualizada correctamente`);
             this.cargarCategorias();
           }
           this.cerrarModalCategoria();
@@ -175,7 +193,7 @@ export class CategoriaGastosComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error actualizando categoría:', error);
-          this.toast.error('Error', 'No se pudo actualizar la categoría');
+          this.toast.error('❌ Error', 'No se pudo actualizar la categoría');
           this.cargando = false;
         }
       });
@@ -187,7 +205,7 @@ export class CategoriaGastosComponent implements OnInit, OnDestroy {
       }).subscribe({
         next: (response) => {
           if (response) {
-            this.toast.success('Categoría creada', `"${categoria.nombre}" creada correctamente`);
+            this.toast.success('✅ Categoría creada', `"${categoria.nombre}" creada correctamente`);
             this.cargarCategorias();
             this.cerrarModalCategoria();
           }
@@ -195,7 +213,7 @@ export class CategoriaGastosComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error creando categoría:', error);
-          this.toast.error('Error', 'No se pudo crear la categoría');
+          this.toast.error('❌ Error', 'No se pudo crear la categoría');
           this.cargando = false;
         }
       });

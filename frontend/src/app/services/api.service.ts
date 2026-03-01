@@ -48,6 +48,30 @@ export class ApiService {
     return this.withHandling(this.http.delete<ApiResponse<void>>(`${this.baseUrl}/productos/${id}`));
   }
 
+  // ============ CATEGORIAS DE PRODUCTOS ============
+  getCategorias(skip?: number, take?: number): Observable<ApiResponse<any[]>> {
+    let params = new HttpParams();
+    if (skip !== undefined) params = params.set('skip', skip.toString());
+    if (take !== undefined) params = params.set('take', take.toString());
+    return this.withHandling(this.http.get<ApiResponse<any[]>>(`${this.baseUrl}/categorias`, { params }));
+  }
+
+  getCategoriaById(id: string): Observable<ApiResponse<any>> {
+    return this.withHandling(this.http.get<ApiResponse<any>>(`${this.baseUrl}/categorias/${id}`));
+  }
+
+  createCategoria(data: Partial<any>): Observable<ApiResponse<any>> {
+    return this.withHandling(this.http.post<ApiResponse<any>>(`${this.baseUrl}/categorias`, data));
+  }
+
+  updateCategoria(id: string, data: Partial<any>): Observable<ApiResponse<any>> {
+    return this.withHandling(this.http.patch<ApiResponse<any>>(`${this.baseUrl}/categorias/${id}`, data));
+  }
+
+  deleteCategoria(id: string): Observable<ApiResponse<void>> {
+    return this.withHandling(this.http.delete<ApiResponse<void>>(`${this.baseUrl}/categorias/${id}`));
+  }
+
   // ============ MESAS ============
   getMesas(skip?: number, take?: number): Observable<ApiResponse<Mesa[]>> {
     let params = new HttpParams();
@@ -252,16 +276,20 @@ export class ApiService {
   }
 
   // Métodos específicos para compatibilidad con supabase.service
-  guardarPedidoMesa(mesaId: number | string, payload: any): Observable<any> {
-    return this.withHandling(this.http.post(`${this.baseUrl}/ordenes/mesa/${mesaId}`, payload));
+  guardarPedidoMesa(mesaId: number | string, payload: any): Promise<any> {
+    return this.withHandling(this.http.post(`${this.baseUrl}/ordenes/mesa/${mesaId}`, payload)).toPromise();
   }
 
-  actualizarCantidadesProductos(pedidoId: number | string, productos: any[]): Observable<any> {
-    return this.withHandling(this.http.patch(`${this.baseUrl}/ordenes/${pedidoId}/cantidades`, { productos }));
+  obtenerPedidoActivoMesa(mesaId: number | string): Promise<any> {
+    return this.withHandling(this.http.get(`${this.baseUrl}/ordenes/mesa/${mesaId}/activa`)).toPromise() as Promise<any>;
   }
 
-  transferirProductosMesa(payload: any): Observable<any> {
-    return this.withHandling(this.http.post(`${this.baseUrl}/ordenes/transferir`, payload));
+  actualizarCantidadesProductos(pedidoId: number | string, productos: any[]): Promise<any> {
+    return this.withHandling(this.http.patch(`${this.baseUrl}/ordenes/${pedidoId}/cantidades`, { productos })).toPromise() as Promise<any>;
+  }
+
+  transferirProductosMesa(payload: any): Promise<any> {
+    return this.withHandling(this.http.post(`${this.baseUrl}/ordenes/transferir`, payload)).toPromise() as Promise<any>;
   }
 
   // Método genérico para obtener mesas y productos (usado en dashboard)

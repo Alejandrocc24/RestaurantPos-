@@ -84,11 +84,23 @@ export class CategoriaController {
                 });
             }
 
+            // Verificar si la categoría ya existe
+            const categoriaExistente = await req.prisma.categoria.findUnique({
+                where: { nombre: nombre.trim() }
+            });
+
+            if (categoriaExistente) {
+                return res.status(409).json({
+                    success: false,
+                    message: `La categoría "${nombre}" ya existe`
+                });
+            }
+
             // Crear categoría padre
             const categoria = await req.prisma.categoria.create({
                 data: {
-                    nombre,
-                    descripcion,
+                    nombre: nombre.trim(),
+                    descripcion: descripcion?.trim() || '',
                     activo: true
                 }
             });
@@ -108,7 +120,7 @@ export class CategoriaController {
                             subCategoriasValidas.map(subNombre =>
                                 req.prisma.subcategoria.create({
                                     data: {
-                                        nombre: `${subNombre}`,
+                                        nombre: `${subNombre}`.trim(),
                                         descripcion: `Subcategoría de ${nombre}`,
                                         categoriaId: categoria.id,
                                         activo: true
@@ -140,10 +152,18 @@ export class CategoriaController {
             });
         } catch (error: any) {
             console.error('❌ [Categoria Create] Error completo:', error);
+
+            // Manejar errores de validación de Prisma
+            if (error.code === 'P2002') {
+                return res.status(409).json({
+                    success: false,
+                    message: `La categoría "${error.meta?.target?.[0] || 'nombre'}" ya existe`
+                });
+            }
+
             res.status(400).json({
                 success: false,
-                message: error.message,
-                error: error.toString()
+                message: error.message || 'Error al crear la categoría'
             });
         }
     }
@@ -153,9 +173,31 @@ export class CategoriaController {
             const { id } = req.params;
             const data = req.body;
 
+            // Si se intenta cambiar el nombre, verificar que no exista otro con ese nombre
+            if (data.nombre) {
+                const categoriaExistente = await req.prisma.categoria.findFirst({
+                    where: {
+                        nombre: data.nombre.trim(),
+                        NOT: { id } // Excluir la categoría actual
+                    }
+                });
+
+                if (categoriaExistente) {
+                    return res.status(409).json({
+                        success: false,
+                        message: `La categoría "${data.nombre}" ya existe`
+                    });
+                }
+
+                data.nombre = data.nombre.trim();
+            }
+
             const categoria = await req.prisma.categoria.update({
                 where: { id },
-                data
+                data,
+                include: {
+                    subcategorias: true
+                }
             });
 
             res.json({
@@ -163,9 +205,18 @@ export class CategoriaController {
                 data: categoria
             });
         } catch (error: any) {
+            console.error('❌ [Categoria Update] Error:', error);
+
+            if (error.code === 'P2002') {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Una categoría con ese nombre ya existe'
+                });
+            }
+
             res.status(400).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Error al actualizar la categoría'
             });
         }
     }
@@ -174,20 +225,33 @@ export class CategoriaController {
         try {
             const { id } = req.params;
 
-            // Soft delete
-            await req.prisma.categoria.update({
-                where: { id },
-                data: { activo: false }
+            // Hard delete - eliminar completamente la categoría
+            // Las subcategorías se eliminarán en cascada por la relación
+            // Los productos tendrán su categoriaId seteado a null por la relación
+            const categoria = await req.prisma.categoria.delete({
+                where: { id }
             });
+
+            console.log('✅ [Categoria Delete] Categoría eliminada:', categoria.nombre);
 
             res.json({
                 success: true,
-                message: 'Categoría eliminada correctamente'
+                message: 'Categoría eliminada correctamente',
+                data: categoria
             });
         } catch (error: any) {
+            console.error('❌ [Categoria Delete] Error:', error);
+            
+            if (error.code === 'P2025') {
+                return res.status(404).json({
+                    success: false,
+                    message: 'La categoría no existe'
+                });
+            }
+
             res.status(500).json({
                 success: false,
-                message: error.message
+                message: error.message || 'Error al eliminar la categoría'
             });
         }
     }

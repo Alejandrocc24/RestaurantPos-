@@ -142,7 +142,7 @@
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" (click)="cerrarModalNuevaCategoria()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="!formNueva.form.valid">Guardar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formNueva.form?.valid || !nuevaCategoriaModel.nombre?.trim() || nuevaCategoriaModel.nombre.trim().length < 3">Guardar</button>
         </div>
       </form>
     </div>
@@ -197,7 +197,7 @@
         </div>
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" (click)="cerrarModalEditarCategoria()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="!formEdit.form.valid">Guardar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formEdit.form?.valid || !categoriaSeleccionada?.nombre?.trim() || categoriaSeleccionada.nombre.trim().length < 3">Guardar</button>
         </div>
       </form>
     </div>

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { ComentarioController } from '../controllers/comentario.controller';
-import { authMiddleware } from '../middleware/auth';
+import { ComentarioController } from '../controllers/comentario.controller.js';
+import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 

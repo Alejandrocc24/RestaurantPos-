@@ -10,27 +10,36 @@
     <form (ngSubmit)="onSubmit()" class="modal-form">
       <div class="form-row">
         <div class="form-group">
-          <label for="nombre">Nombre *</label>
+          <label for="nombre" [class.is-invalid]="errores['nombre']">Nombre *</label>
           <input 
             type="text" 
             id="nombre" 
             name="nombre"
             [(ngModel)]="categoriaForm.nombre"
+            (input)="validarNombre()"
             required
-            placeholder="Ingrese el nombre de la categoría">
+            placeholder="Ingrese el nombre de la categoría"
+            [class.is-invalid]="errores['nombre']">
+          <div class="error-message" *ngIf="errores['nombre']">
+            {{ errores['nombre'] }}
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="estado">Estado *</label>
+          <label for="estado" [class.is-invalid]="errores['estado']">Estado *</label>
           <select 
             id="estado" 
             name="estado"
             [(ngModel)]="categoriaForm.estado"
-            required>
+            required
+            [class.is-invalid]="errores['estado']">
             <option *ngFor="let estado of estados" [value]="estado">
               {{ estado }}
             </option>
           </select>
+          <div class="error-message" *ngIf="errores['estado']">
+            {{ errores['estado'] }}
+          </div>
         </div>
       </div>
 
@@ -40,7 +49,7 @@
         <button type="button" class="btn btn-secondary" (click)="onCerrar()">
           Cancelar
         </button>
-        <button type="submit" class="btn btn-primary">
+        <button type="submit" class="btn btn-primary" [disabled]="!categoriaForm.nombre?.trim() || categoriaForm.nombre?.trim().length < 3">
           {{ esEdicion ? 'Actualizar' : 'Crear' }}
         </button>
       </div>

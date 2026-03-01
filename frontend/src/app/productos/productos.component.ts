@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, HostListener, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, Input, Output, EventEmitter, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductoModalComponent, ProductoForm } from './producto-modal.component';
@@ -49,6 +49,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
   mostrarModalProducto = false;
   productoSeleccionado: any = null;
   esEdicionProducto = false;
+
+  @ViewChild(ProductoModalComponent) productoModal!: ProductoModalComponent;
 
   mostrarConfirmacion = false;
   tituloConfirmacion = '';
@@ -282,11 +284,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
         precio: productoForm.precio,
         categoriaId: productoForm.categoria,
         subcategoria: productoForm.subcategoria || null,
-        descripcion: productoForm.descripcion || null
+        descripcion: productoForm.descripcion || null,
+        especial: productoForm.especial || false,
+        gruposModificadores: productoForm.gruposModificadores || [],
+        configuracionGrupos: productoForm.gruposModificadoresConfig || [],
+        comentarios: productoForm.comentarios || []
       };
 
       console.log('💾 Guardando producto:', baseData.nombre);
       console.log('   categoriaId:', baseData.categoriaId, '(tipo:', typeof baseData.categoriaId, ')');
+      console.log('   especial:', baseData.especial);
+      console.log('   gruposModificadores:', baseData.gruposModificadores);
       console.log('   Datos completos:', baseData);
 
       if (this.esEdicionProducto && this.productoSeleccionado?.id) {
@@ -318,6 +326,10 @@ export class ProductosComponent implements OnInit, OnDestroy {
             error: (error) => {
               console.error('❌ Error actualizando producto:', error);
               this.toast.error('❌ Error', 'No se pudo actualizar el producto');
+              // Resetear el estado guardando del modal para permitir reintentar
+              if (this.productoModal) {
+                this.productoModal.resetearGuardando();
+              }
             }
           });
       } else {
@@ -346,12 +358,20 @@ export class ProductosComponent implements OnInit, OnDestroy {
             error: (error) => {
               console.error('❌ Error creando producto:', error);
               this.toast.error('❌ Error', 'No se pudo crear el producto');
+              // Resetear el estado guardando del modal para permitir reintentar
+              if (this.productoModal) {
+                this.productoModal.resetearGuardando();
+              }
             }
           });
       }
     } catch (error) {
       console.error('Error guardando producto:', error);
       this.toast.error('❌ Error', 'Error al guardar el producto');
+      // Resetear el estado guardando del modal para permitir reintentar
+      if (this.productoModal) {
+        this.productoModal.resetearGuardando();
+      }
     }
   }
 
@@ -566,14 +586,34 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   editarProducto(producto: any): void {
     this.esEdicionProducto = true;
-    // Preparar el producto para edición, asegurando que categoria sea el ID
-    const productoParaEditar = { ...producto };
-    if (productoParaEditar.categoriaId) {
-      productoParaEditar.categoria = productoParaEditar.categoriaId;
-    }
-    this.productoSeleccionado = productoParaEditar;
-    this.registerModalOpen('producto', this.mostrarModalProducto);
-    this.mostrarModalProducto = true;
+    this.productoSeleccionado = null; // Limpiar primero
+    
+    // Cargar el producto fresco desde el servidor para asegurar que tiene todos los datos
+    this.productosService.getProductoById(producto.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (productoFresco: any) => {
+          const productoParaEditar = productoFresco;
+          if (productoParaEditar.categoriaId) {
+            productoParaEditar.categoria = productoParaEditar.categoriaId;
+          }
+          this.productoSeleccionado = productoParaEditar;
+          this.registerModalOpen('producto', this.mostrarModalProducto);
+          this.mostrarModalProducto = true;
+          console.log('✅ Producto cargado para edición:', productoParaEditar);
+        },
+        error: (error) => {
+          console.error('❌ Error cargando producto:', error);
+          // Fallback: usar el objeto original si falla la carga
+          const productoParaEditar = { ...producto };
+          if (productoParaEditar.categoriaId) {
+            productoParaEditar.categoria = productoParaEditar.categoriaId;
+          }
+          this.productoSeleccionado = productoParaEditar;
+          this.registerModalOpen('producto', this.mostrarModalProducto);
+          this.mostrarModalProducto = true;
+        }
+      });
   }
 
   cerrarModalProducto(desdeHistorial = false): void {

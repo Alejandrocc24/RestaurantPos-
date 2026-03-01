@@ -78,6 +78,53 @@ export class OrdenController {
   }
 
   /**
+   * GET /api/ordenes/mesa/:mesaId/activa
+   * Obtener la orden activa (PENDIENTE) de una mesa
+   */
+  static async getActiveForMesa(req: Request, res: Response) {
+    try {
+      const { mesaId } = req.params;
+
+      // Buscar la orden activa (que no esté CANCELADA, PAGADA o COMPLETADA)
+      const orden = await req.prisma.orden.findFirst({
+        where: {
+          mesaId,
+          estado: {
+            in: ['PENDIENTE', 'EN_CURSO']
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          mesa: true,
+          usuario: { select: { id: true, nombre: true, email: true } },
+          productos: {
+            include: { producto: true },
+          },
+          pagos: true,
+        },
+      });
+
+      if (!orden) {
+        return res.status(404).json({
+          success: false,
+          message: 'No hay orden activa para esta mesa',
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Orden activa obtenida',
+        data: orden,
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
    * GET /api/ordenes/mesa/:mesaId
    * Obtener órdenes de una mesa específica
    */
@@ -266,6 +313,97 @@ export class OrdenController {
       res.status(400).json({
         success: false,
         message: error.message,
+      });
+    }
+  }
+
+  static async createForMesa(req: Request, res: Response) {
+    try {
+      const { mesaId } = req.params;
+      const { notas, items } = req.body;
+      const usuarioId = req.userId; // Obtener del token autenticado
+
+      // Validaciones básicas
+      if (!usuarioId) {
+        return res.status(400).json({
+          success: false,
+          message: 'usuarioId no encontrado en el token',
+        });
+      }
+
+      if (!mesaId) {
+        return res.status(400).json({
+          success: false,
+          message: 'mesaId es requerido',
+        });
+      }
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'items es requerido y debe ser un array',
+        });
+      }
+
+      // Crear la orden
+      const orden = await req.prisma.orden.create({
+        data: {
+          mesaId,
+          usuarioId: usuarioId as string,
+          estado: 'PENDIENTE',
+          total: 0,
+          notas: notas || null,
+        },
+        include: {
+          mesa: true,
+          usuario: { select: { id: true, nombre: true, email: true } },
+          productos: {
+            include: { producto: true },
+          },
+          pagos: true,
+        },
+      });
+
+      // Agregar productos a la orden
+      let totalOrden = 0;
+      for (const item of items) {
+        const ordenProducto = await req.prisma.ordenProducto.create({
+          data: {
+            ordenId: orden.id,
+            productoId: item.productoId,
+            cantidad: item.cantidad || 1,
+            precioUnitario: item.precioUnitario || 0,
+            subtotal: (item.cantidad || 1) * (item.precioUnitario || 0),
+            notas: item.notas || null,
+          },
+        });
+        totalOrden += ordenProducto.subtotal;
+      }
+
+      // Actualizar total de la orden
+      const ordenActualizada = await req.prisma.orden.update({
+        where: { id: orden.id },
+        data: { total: totalOrden },
+        include: {
+          mesa: true,
+          usuario: { select: { id: true, nombre: true, email: true } },
+          productos: {
+            include: { producto: true },
+          },
+          pagos: true,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Orden creada exitosamente',
+        data: ordenActualizada,
+      });
+    } catch (error: any) {
+      console.error('Error creando orden para mesa:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error al crear la orden',
       });
     }
   }

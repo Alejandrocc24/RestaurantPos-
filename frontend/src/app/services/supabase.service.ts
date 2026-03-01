@@ -87,15 +87,15 @@ export class SupabaseService {
 
   // Métodos para pedidos de mesas
   async obtenerPedidoActivoMesa(mesaId: string | number) {
-    const resp = await firstValueFrom(this.api.getPedidoActivoMesa(mesaId.toString()));
+    const resp = await this.api.obtenerPedidoActivoMesa(mesaId);
     if (!resp?.success) throw new Error(resp?.error || 'Error al obtener pedido activo');
     return resp.data ?? null;
   }
 
   async guardarPedidoMesa(mesaId: string | number, payload: any) {
-    const resp = await firstValueFrom(this.api.guardarPedidoMesa(mesaId, payload));
+    const resp = await this.api.guardarPedidoMesa(mesaId, payload);
     if (!resp?.success) throw new Error(resp?.error || 'Error al guardar pedido');
-    return resp.data ?? null;
+    return resp;  // Retornar la respuesta completa, no solo .data
   }
 
   async cerrarPedido(pedidoId: string | number) {
@@ -105,13 +105,13 @@ export class SupabaseService {
   }
 
   async actualizarCantidadesProductos(pedidoId: string | number, productosActualizados: any[]) {
-    const resp = await firstValueFrom(this.api.actualizarCantidadesProductos(pedidoId, productosActualizados));
+    const resp = await this.api.actualizarCantidadesProductos(pedidoId, productosActualizados);
     if (!resp?.success) throw new Error(resp?.error || 'Error al actualizar cantidades');
     return resp.data ?? null;
   }
 
   async transferirProductosMesa(payload: any) {
-    const resp = await firstValueFrom(this.api.transferirProductosMesa(payload));
+    const resp = await this.api.transferirProductosMesa(payload);
     if (!resp?.success) throw new Error(resp?.error || 'Error al transferir productos de mesa');
     return resp.data ?? null;
   }

@@ -21,7 +21,7 @@ import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
         <div class="modal-body">
           <form (ngSubmit)="guardarCategoria()">
             <div class="form-group">
-              <label for="nombre">Nombre *</label>
+              <label for="nombre" [class.is-invalid]="errores['nombre']">Nombre *</label>
               <input 
                 type="text" 
                 id="nombre"
@@ -206,6 +206,12 @@ import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
       margin-bottom: 8px;
       font-weight: 500;
       color: #333;
+      transition: color 0.2s;
+    }
+
+    .form-group label.is-invalid {
+      color: #dc3545;
+      font-weight: 700;
     }
     
     .form-control {
@@ -224,14 +230,30 @@ import { Subscription, debounceTime, distinctUntilChanged } from 'rxjs';
     }
     
     .form-control.is-invalid {
-      border-color: #dc3545;
-      box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+      border-color: #dc3545 !important;
+      border-width: 2px;
+      background-color: #fff5f5;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+    }
+
+    .form-control.is-invalid:focus {
+      border-color: #dc3545 !important;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
     }
     
     .error-message {
       color: #dc3545;
-      font-size: 12px;
-      margin-top: 5px;
+      font-size: 13px;
+      margin-top: 6px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .error-message::before {
+      content: "⚠️";
+      display: inline-block;
     }
     
     .validating-message {
@@ -703,7 +725,22 @@ export class CategoriaModalComponent implements OnInit, OnDestroy {
   }
 
   guardarCategoria(): void {
-    if (!this.esFormularioValido()) {
+    // Limpiar errores previos para validar desde cero
+    this.errores = {};
+
+    // Validar nombre
+    const nombre = this.categoriaForm.nombre?.trim();
+    if (!nombre) {
+      this.errores['nombre'] = 'El nombre de la categoría es obligatorio';
+    } else if (nombre.length < 3) {
+      this.errores['nombre'] = 'El nombre debe tener al menos 3 caracteres';
+    } else if (nombre.length > 100) {
+      this.errores['nombre'] = 'El nombre no puede exceder 100 caracteres';
+    }
+
+    // Si hay errores, no guardar
+    if (Object.keys(this.errores).length > 0) {
+      console.warn('❌ Formulario inválido:', this.errores);
       return;
     }
 
@@ -712,10 +749,15 @@ export class CategoriaModalComponent implements OnInit, OnDestroy {
       this.categoriaForm.subcategorias = [];
     }
 
+    // Solo aquí, si todo está validado, setear guardando
     this.guardando = true;
     
     // Emitir la categoría para que el componente padre la procese
     this.guardar.emit(this.categoriaForm as CategoriaProducto);
+  }
+
+  resetearGuardando(): void {
+    this.guardando = false;
   }
 
   cerrarModal(): void {

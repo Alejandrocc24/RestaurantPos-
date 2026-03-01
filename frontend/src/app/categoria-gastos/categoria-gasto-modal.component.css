@@ -82,6 +82,12 @@
   color: #2c3e50;
   font-weight: 600;
   font-size: 14px;
+  transition: color 0.2s;
+}
+
+.form-group label.is-invalid {
+  color: #dc3545;
+  font-weight: 700;
 }
 
 .form-group input,
@@ -241,6 +247,43 @@
   background-color: #5a6268;
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(108, 117, 125, 0.3);
+}
+
+.form-group input.is-invalid,
+.form-group select.is-invalid,
+.form-group textarea.is-invalid {
+  border-color: #dc3545 !important;
+  border-width: 2px;
+  background-color: #fff5f5;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+}
+
+.form-group input.is-invalid:focus,
+.form-group select.is-invalid:focus,
+.form-group textarea.is-invalid:focus {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 13px;
+  margin-top: 6px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 0;
+}
+
+.error-message::before {
+  content: "⚠️";
+  display: inline-block;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Animaciones */

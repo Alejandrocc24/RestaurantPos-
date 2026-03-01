@@ -18,7 +18,8 @@ export class GrupoModificadorController {
                 where,
                 include: {
                     opciones: {
-                        where: { activo: true }
+                        where: { activo: true },
+                        include: { producto: true }  // Incluir datos del producto
                     }
                 },
                 skip: skip ? Number(skip) : undefined,
@@ -44,7 +45,9 @@ export class GrupoModificadorController {
             const grupo = await req.prisma.grupoModificador.findUnique({
                 where: { id },
                 include: {
-                    opciones: true
+                    opciones: {
+                        include: { producto: true }  // Incluir datos del producto
+                    }
                 }
             });
 
@@ -84,16 +87,20 @@ export class GrupoModificadorController {
                     nombre,
                     descripcion,
                     requerido: requerido || false,
+                    cobrar_precio: cobrar_precio || false,
                     opciones: opciones && Array.isArray(opciones) ? {
                         create: opciones.map((op: any) => ({
                             nombre: op.nombre,
                             precioAdicional: op.precioAdicional || 0,
+                            productoId: op.productoId || null,  // Ahora soporta relación con producto
                             activo: true
                         }))
                     } : undefined
                 },
                 include: {
-                    opciones: true
+                    opciones: {
+                        include: { producto: true }  // Incluir datos del producto
+                    }
                 }
             });
 
@@ -128,6 +135,7 @@ export class GrupoModificadorController {
                     create: opciones.map((op: any) => ({
                         nombre: op.nombre,
                         precioAdicional: op.precioAdicional || 0,
+                        productoId: op.productoId || null,  // Ahora soporta relación con producto
                         activo: typeof op.activo === 'boolean' ? op.activo : true
                     }))
                 };
@@ -145,7 +153,9 @@ export class GrupoModificadorController {
                     ...(data.cobrar_precio !== undefined && { cobrar_precio: data.cobrar_precio })
                 },
                 include: {
-                    opciones: true
+                    opciones: {
+                        include: { producto: true }  // Incluir datos del producto
+                    }
                 }
             });
 

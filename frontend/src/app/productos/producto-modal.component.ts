@@ -47,7 +47,7 @@ export interface GrupoModificador {
           <form (ngSubmit)="guardarProducto()">
             <!-- Nombre del Producto -->
             <div class="form-group">
-              <label for="nombre">Nombre del Producto *</label>
+              <label for="nombre" [class.is-invalid]="errores['nombre']">Nombre del Producto *</label>
               <input
                 type="text"
                 id="nombre"
@@ -66,7 +66,7 @@ export interface GrupoModificador {
 
             <!-- Categoría -->
             <div class="form-group">
-              <label for="categoria">Categoría *</label>
+              <label for="categoria" [class.is-invalid]="errores['categoria']">Categoría *</label>
               <select
                 id="categoria"
                 name="categoria"
@@ -106,7 +106,7 @@ export interface GrupoModificador {
 
             <!-- Precio -->
             <div class="form-group">
-              <label for="precio">Precio *</label>
+              <label for="precio" [class.is-invalid]="errores['precio']">Precio *</label>
               <div class="input-group">
                 <span class="input-prefix">$</span>
                 <input
@@ -401,6 +401,12 @@ export interface GrupoModificador {
       margin-bottom: 8px;
       font-weight: 500;
       color: #333;
+      transition: color 0.2s;
+    }
+
+    .form-group label.is-invalid {
+      color: #dc3545;
+      font-weight: 700;
     }
 
     .form-control {
@@ -419,14 +425,30 @@ export interface GrupoModificador {
     }
 
     .form-control.is-invalid {
-      border-color: #dc3545;
-      box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+      border-color: #dc3545 !important;
+      border-width: 2px;
+      background-color: #fff5f5;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.15);
+    }
+
+    .form-control.is-invalid:focus {
+      border-color: #dc3545 !important;
+      box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
     }
 
     .error-message {
       color: #dc3545;
-      font-size: 12px;
-      margin-top: 5px;
+      font-size: 13px;
+      margin-top: 6px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .error-message::before {
+      content: "⚠️";
+      display: inline-block;
     }
 
     .modal-footer {
@@ -1072,7 +1094,7 @@ export class ProductoModalComponent implements OnInit, OnDestroy {
       // Asegurar arrays definidos desde posibles campos backend
       // Nota: El backend puede enviar grupos_modificadores o configuracion_grupos
       const gmBackend = (this.producto as any).grupos_modificadores || (this.producto as any).gruposModificadores;
-      const gmcBackend = (this.producto as any).configuracion_grupos || (this.producto as any).grupos_modificadores_config || (this.producto as any).gruposModificadoresConfig;
+      const gmcBackend = (this.producto as any).configuracionGrupos || (this.producto as any).configuracion_grupos || (this.producto as any).grupos_modificadores_config || (this.producto as any).gruposModificadoresConfig;
       const comentariosBackend = (this.producto as any).comentarios;
       const tiempoPreparacionBackend = (this.producto as any).tiempo_preparacion || (this.producto as any).tiempoPreparacion;
 
@@ -1103,8 +1125,18 @@ export class ProductoModalComponent implements OnInit, OnDestroy {
         this.productoForm.gruposModificadoresConfig = [];
         console.log('⚠️ No hay configuración de grupos');
       }
-      if (!this.productoForm.comentarios) {
-        this.productoForm.comentarios = Array.isArray(comentariosBackend) ? comentariosBackend : [];
+      
+      // Cargar comentarios (puede venir como string JSON o como array)
+      if (comentariosBackend) {
+        if (typeof comentariosBackend === 'string') {
+          this.productoForm.comentarios = JSON.parse(comentariosBackend);
+        } else if (Array.isArray(comentariosBackend)) {
+          this.productoForm.comentarios = comentariosBackend;
+        }
+        console.log('✅ Comentarios cargados:', this.productoForm.comentarios);
+      } else {
+        this.productoForm.comentarios = [];
+        console.log('⚠️ No hay comentarios');
       }
 
       // Cargar tiempo de preparación (puede venir como tiempo_preparacion o tiempoPreparacion)
@@ -1298,12 +1330,33 @@ export class ProductoModalComponent implements OnInit, OnDestroy {
   }
 
   confirmarGuardado(): void {
-    // Validar todos los campos antes de mostrar confirmación
-    this.validarNombre();
-    this.validarPrecio();
-    this.validarSubcategoria();
+    // Limpiar errores previos para validar desde cero
+    this.errores = {};
 
-    if (!this.esFormularioValido()) {
+    // Validar nombre
+    const nombre = this.productoForm.nombre?.trim();
+    if (!nombre) {
+      this.errores['nombre'] = 'El nombre es obligatorio';
+    } else if (nombre.length < 3) {
+      this.errores['nombre'] = 'El nombre debe tener al menos 3 caracteres';
+    } else if (nombre.length > 200) {
+      this.errores['nombre'] = 'El nombre no puede exceder 200 caracteres';
+    }
+
+    // Validar categoría - campo OBLIGATORIO
+    if (!this.productoForm.categoria) {
+      this.errores['categoria'] = 'La categoría es obligatoria';
+    }
+
+    // Validar precio
+    const precio = this.getPrecioNumber();
+    if (isNaN(precio) || precio < 0) {
+      this.errores['precio'] = 'Ingresa un precio válido (mayor o igual a 0)';
+    }
+
+    // Si hay errores, no mostrar confirmación
+    if (Object.keys(this.errores).length > 0) {
+      console.warn('❌ Formulario inválido:', this.errores);
       return;
     }
 
@@ -1325,10 +1378,37 @@ export class ProductoModalComponent implements OnInit, OnDestroy {
   }
 
   guardarProducto(): void {
-    if (!this.esFormularioValido()) {
+    // Limpiar errores previos para validar desde cero
+    this.errores = {};
+
+    // Validar nombre
+    const nombre = this.productoForm.nombre?.trim();
+    if (!nombre) {
+      this.errores['nombre'] = 'El nombre es obligatorio';
+    } else if (nombre.length < 3) {
+      this.errores['nombre'] = 'El nombre debe tener al menos 3 caracteres';
+    } else if (nombre.length > 200) {
+      this.errores['nombre'] = 'El nombre no puede exceder 200 caracteres';
+    }
+
+    // Validar categoría
+    if (!this.productoForm.categoria) {
+      this.errores['categoria'] = 'La categoría es obligatoria';
+    }
+
+    // Validar precio
+    const precio = this.getPrecioNumber();
+    if (isNaN(precio) || precio < 0) {
+      this.errores['precio'] = 'Ingresa un precio válido (mayor o igual a 0)';
+    }
+
+    // Si hay errores, no guardar
+    if (Object.keys(this.errores).length > 0) {
+      console.warn('❌ Formulario inválido:', this.errores);
       return;
     }
 
+    // Solo aquí, si todo está validado, setear guardando
     this.guardando = true;
 
     const precioNormalizado = parseFloat(this.getPrecioNumber().toFixed(3));
@@ -1339,6 +1419,10 @@ export class ProductoModalComponent implements OnInit, OnDestroy {
       ...this.productoForm,
       precio: precioNormalizado
     });
+  }
+
+  resetearGuardando(): void {
+    this.guardando = false;
   }
 
   cerrarModal(): void {

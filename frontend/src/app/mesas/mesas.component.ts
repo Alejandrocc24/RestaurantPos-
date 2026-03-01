@@ -178,38 +178,14 @@ export class MesasComponent implements OnInit, OnDestroy {
   mesasDisponiblesParaTransferencia: Mesa[] = [];
   productosSeleccionadosTransferencia: boolean[] = [];
 
-  // Productos disponibles para pedidos
-  categoriasProductos: CategoriaProducto[] = [
-    { id: 'bebidas', nombre: 'Bebidas', icono: '🥤', subcategorias: ['Agua', 'Jugo', 'Cerveza', 'Vino'] },
-    { id: 'platos', nombre: 'Platos Principales', icono: '🍽️', subcategorias: ['Hamburguesa', 'Pizza', 'Pasta', 'Pollo'] },
-    { id: 'postres', nombre: 'Postres', icono: '🍰', subcategorias: ['Tiramisú', 'Helado', 'Flan'] },
-    { id: 'entradas', nombre: 'Entradas', icono: '🥗', subcategorias: ['Papas', 'Nuggets', 'Aros'] },
-    { id: 'especiales', nombre: 'Especiales', icono: '⭐', subcategorias: ['Combo', 'Chef', 'Gourmet'] },
-    { id: 'helados', nombre: 'Helados', icono: '🍨', subcategorias: ['Conos', 'Copas', 'Batidos', 'Especiales'] }
-  ];
+  // Productos disponibles para pedidos (se cargan desde la base de datos)
+  categoriasProductos: CategoriaProducto[] = [];
 
   productos: Producto[] = []; // Productos se cargan desde la base de datos
 
-  // Frutas y helados para productos especiales
-  frutas: Fruta[] = [
-    { nombre: 'Fresa', icono: '🍓' },
-    { nombre: 'Plátano', icono: '🍌' },
-    { nombre: 'Kiwi', icono: '🥝' },
-    { nombre: 'Mango', icono: '🥭' },
-    { nombre: 'Piña', icono: '🍍' },
-    { nombre: 'Uvas', icono: '🍇' },
-    { nombre: 'Manzana', icono: '🍎' },
-    { nombre: 'Naranja', icono: '🍊' }
-  ];
-
-  helados: Helado[] = [
-    { nombre: 'Vainilla', icono: '🍦' },
-    { nombre: 'Chocolate', icono: '🍫' },
-    { nombre: 'Fresa', icono: '🍓' },
-    { nombre: 'Menta', icono: '🌿' },
-    { nombre: 'Cookies & Cream', icono: '🍪' },
-    { nombre: 'Caramelo', icono: '🍯' }
-  ];
+  // Frutas y helados para productos especiales (datos de prueba - pueden eliminarse si no se usan)
+  frutas: Fruta[] = [];
+  helados: Helado[] = [];
 
   // Posiciones preestablecidas para las mesas (8x4 = 32 posiciones)
   posicionesPreestablecidas: PosicionMesa[] = [
@@ -247,63 +223,11 @@ export class MesasComponent implements OnInit, OnDestroy {
     { id: 'pos32', nombre: 'H4', x: 7, y: 3 }
   ];
 
-  // Comentarios preestablecidos por categoría de producto
-  comentariosPreestablecidos: { [key: string]: string[] } = {
-    'helados': [
-      'Sin azúcar',
-      'Extra crema',
-      'Bien frío',
-      'Para llevar',
-      'Empacar bien',
-      'Con extra de todo',
-      'Para niño',
-      'Sin hielo',
-      'Con chispas extra',
-      'Bien caliente'
-    ],
-    'batidos': [
-      'Sin hielo',
-      'Extra espeso',
-      'Bien frío',
-      'Con extra de todo',
-      'Para llevar',
-      'Sin azúcar',
-      'Con crema extra',
-      'Bien batido'
-    ],
-    'postres': [
-      'Para llevar',
-      'Empacar bien',
-      'Con extra de todo',
-      'Bien frío',
-      'Sin azúcar',
-      'Para niño',
-      'Con decoración especial'
-    ],
-    'bebidas': [
-      'Sin hielo',
-      'Bien frío',
-      'Para llevar',
-      'Sin azúcar',
-      'Con extra de todo',
-      'Bien caliente',
-      'Sin gas'
-    ]
-  };
+  // Comentarios preestablecidos por categoría de producto (se cargan desde la base de datos)
+  comentariosPreestablecidos: { [key: string]: string[] } = {};
 
   // Comentarios preestablecidos generales (para cualquier producto)
-  comentariosGenerales: string[] = [
-    'Sin azúcar',
-    'Para llevar',
-    'Empacar bien',
-    'Con extra de todo',
-    'Bien frío',
-    'Bien caliente',
-    'Para niño',
-    'Sin hielo',
-    'Con decoración especial',
-    'Urgente'
-  ];
+  comentariosGenerales: string[] = [];
 
   private modalHistoryStack: string[] = [];
   private ignoreNextPopstate = false;
@@ -378,26 +302,70 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
   }
 
-  cargarMesas(): void {
-    this.cargandoMesas = true;
-    this.mesasService.getMesas(0, 500)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (mesas) => {
-          this.mesas = mesas.map((mesa: any) => this.normalizarMesa(mesa));
-          // Asignar posiciones automáticas si no las tienen
-          this.mesas = this.asignarPosicionesAutomaticas(this.mesas);
-          this.aplicarFiltros();
-          console.log(`✅ ${this.mesas.length} mesas cargadas correctamente`);
-          this.cargandoMesas = false;
-        },
-        error: (error) => {
-          console.error('❌ Error cargando mesas:', error);
-          this.toast.error('Error', 'No se pudieron cargar las mesas');
-          this.mesas = [];
-          this.cargandoMesas = false;
+  private cargarMesas(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.cargandoMesas = true;
+      this.mesasService.getMesas(0, 500)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: async (mesas) => {
+            try {
+              this.mesas = mesas.map((mesa: any) => this.normalizarMesa(mesa));
+              // Asignar posiciones automáticas si no las tienen
+              this.mesas = this.asignarPosicionesAutomaticas(this.mesas);
+              this.aplicarFiltros();
+              console.log(`✅ ${this.mesas.length} mesas cargadas correctamente`);
+              this.cargandoMesas = false;
+              
+              // Cargar pedidos activos después de cargar las mesas
+              await this.cargarPedidosActivosDeMesas();
+              
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          },
+          error: (error) => {
+            console.error('❌ Error cargando mesas:', error);
+            this.toast.error('Error', 'No se pudieron cargar las mesas');
+            this.mesas = [];
+            this.cargandoMesas = false;
+            reject(error);
+          }
+        });
+    });
+  }
+
+  /**
+   * Carga los pedidos activos para todas las mesas
+   * Actualiza el estado de las mesas a "ocupado" si tienen pedido activo
+   */
+  private async cargarPedidosActivosDeMesas(): Promise<void> {
+    console.log(`🔄 Cargando pedidos activos para ${this.mesas.length} mesa(s)...`);
+
+    for (const mesa of this.mesas) {
+      try {
+        const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(mesa.id);
+        
+        if (pedidoActivo) {
+          // Mapear los productos del pedido al formato de mesa
+          const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.productos || []);
+          
+          // Actualizar la mesa con los productos y marcar como ocupado
+          mesa.estado = 'ocupado';
+          mesa.productos = productos;
+          mesa.totalCuenta = pedidoActivo.total || 0;
+          
+          console.log(`✅ Mesa ${mesa.numero} marcada como ocupado: ${productos.length} productos`);
         }
-      });
+      } catch (error: any) {
+        // Mesa sin pedido activo = disponible
+        mesa.estado = 'disponible';
+        console.log(`ℹ️ Mesa ${mesa.numero} sin pedido activo (disponible)`);
+      }
+    }
+
+    console.log(`✅ Carga de pedidos completada`);
   }
 
   ngOnDestroy(): void {
@@ -664,11 +632,23 @@ export class MesasComponent implements OnInit, OnDestroy {
 
         // Parsear comentarios si vienen como string
         let comentarios: string[] = [];
-        if (p.comentarios) {
+        if (p.comentarios && Array.isArray(p.comentarios)) {
           try {
-            comentarios = typeof p.comentarios === 'string'
-              ? JSON.parse(p.comentarios)
-              : p.comentarios;
+            // Los comentarios pueden venir como:
+            // 1. Array de objetos {id, texto, ...} desde el backend
+            // 2. Array de strings (legacy)
+            // 3. String JSON (legacy)
+            
+            if (typeof p.comentarios === 'string') {
+              comentarios = JSON.parse(p.comentarios);
+            } else if (Array.isArray(p.comentarios)) {
+              // Verificar si son objetos con propiedad 'texto'
+              if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'object' && p.comentarios[0].texto) {
+                comentarios = p.comentarios.map((c: any) => c.texto);
+              } else if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'string') {
+                comentarios = p.comentarios;
+              }
+            }
           } catch (e) {
             console.warn(`Error parseando comentarios para producto ${p.id}:`, e);
             comentarios = [];
@@ -1052,8 +1032,8 @@ export class MesasComponent implements OnInit, OnDestroy {
       try {
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id);
 
-        if (pedidoActivo && Array.isArray(pedidoActivo.items)) {
-          const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.items);
+        if (pedidoActivo && (Array.isArray(pedidoActivo.productos) || Array.isArray(pedidoActivo.items))) {
+          const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.productos || pedidoActivo.items || []);
 
           this.mesaSeleccionadaInfo.productos = productos;
           this.mesaSeleccionadaInfo.totalCuenta = pedidoActivo.total ?? this.calcularTotalMesa(this.mesaSeleccionadaInfo);
@@ -1456,10 +1436,10 @@ export class MesasComponent implements OnInit, OnDestroy {
       try {
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id);
 
-        if (pedidoActivo && pedidoActivo.items) {
+        if (pedidoActivo && (pedidoActivo.productos || pedidoActivo.items)) {
           console.log('📦 Pedido activo cargado:', pedidoActivo);
           // Convertir los items del pedido al formato local
-          const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.items);
+          const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.productos || pedidoActivo.items || []);
 
           // Guardar productos existentes en variable separada, pero NO en pedidoActual
           this.productosExistentesMesa = [...productos];
@@ -1617,8 +1597,10 @@ export class MesasComponent implements OnInit, OnDestroy {
       // Enviar pedido al backend
       const pedidoCreado = await this.supabaseService.guardarPedidoMesa(this.mesaSeleccionadaInfo.id, payload);
 
-      if (pedidoCreado) {
+      if (pedidoCreado && pedidoCreado.data) {
         console.log('✅ Pedido guardado:', pedidoCreado);
+
+        const orden = pedidoCreado.data;
 
         // Actualizar la mesa localmente
         this.mesaSeleccionadaInfo.estado = 'ocupado';
@@ -1629,15 +1611,15 @@ export class MesasComponent implements OnInit, OnDestroy {
           this.mesaSeleccionadaInfo.horaApertura = new Date();
         }
 
-        // Obtener todos los productos del pedido (incluyendo los que ya estaban)
-        const productosCompletos = this.mapearProductosPedidoDesdeBackend(pedidoCreado.items || []);
+        // Obtener todos los productos del pedido desde la respuesta del backend
+        const productosCompletos = this.mapearProductosPedidoDesdeBackend(orden.productos || []);
         this.mesaSeleccionadaInfo.productos = productosCompletos;
 
         // Actualizar productos existentes para la próxima comanda
         this.productosExistentesMesa = productosCompletos;
 
         // Calcular el total acumulado de la mesa
-        this.mesaSeleccionadaInfo.totalCuenta = pedidoCreado.total || this.calcularTotalMesa(this.mesaSeleccionadaInfo);
+        this.mesaSeleccionadaInfo.totalCuenta = orden.total || this.calcularTotalMesa(this.mesaSeleccionadaInfo);
 
         // Actualizar la mesa en el array principal
         const index = this.mesas.findIndex(m => m.id === this.mesaSeleccionadaInfo!.id);
@@ -2636,8 +2618,8 @@ export class MesasComponent implements OnInit, OnDestroy {
 
   private mapearProductosPedidoDesdeBackend(items: any[]): ProductoPedido[] {
     return (items || []).map((item: any) => {
-      // Obtener el nombre base del producto
-      const nombreBase = item.nombre ?? item.producto?.nombre ?? 'Producto';
+      // item puede ser un OrdenProducto del backend, que tiene la relación producto
+      const nombreBase = item.producto?.nombre ?? item.nombre ?? 'Producto';
 
       // Parsear modificadores si vienen como string JSON
       let modificadores = item.modificadores ?? [];
@@ -2655,10 +2637,10 @@ export class MesasComponent implements OnInit, OnDestroy {
       const nombreFinal = nombreBase;
 
       return {
-        detalleId: item.detalleId ?? item.detalle_id ?? null,
-        pedidoId: item.pedidoId ?? item.pedido_id ?? null,
-        productoId: item.productoId ?? item.producto_id ?? item.id ?? null,
-        id: item.productoId ?? item.producto_id ?? item.id ?? 0,
+        detalleId: item.detalleId ?? item.detalle_id ?? item.id ?? null,
+        pedidoId: item.pedidoId ?? item.pedido_id ?? item.ordenId ?? null,
+        productoId: item.productoId ?? item.producto_id ?? item.producto?.id ?? null,
+        id: item.productoId ?? item.producto_id ?? item.producto?.id ?? 0,
         nombre: nombreFinal,
         precio: Number(item.precioUnitario ?? item.precio ?? item.precio_unitario ?? 0) || 0,
         cantidad: Number(item.cantidad ?? 0) || 0,

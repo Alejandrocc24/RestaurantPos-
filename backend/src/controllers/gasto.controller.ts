@@ -59,7 +59,7 @@ export class GastoController {
       ]);
 
       // Formatear respuesta para que categoría y proveedor sean strings
-      const gastosFormateados = gastos.map(g => ({
+      const gastosFormateados = gastos.map((g: any) => ({
         ...g,
         categoria: g.categoria?.nombre || '',
         proveedor: g.proveedor?.nombre || g.proveedorPersonalizado || '',

@@ -10,11 +10,11 @@ export class CategoriaService {
   constructor(private apiService: ApiService) {}
 
   /**
-   * Obtener todas las categorías de gastos
+   * Obtener todas las categorías de productos
    */
-  getCategorias(skip: number = 0, take: number = 50): Observable<CategoriaGasto[]> {
-    return this.apiService.getCategoriasGastos(skip, take).pipe(
-      map((response: ApiResponse<CategoriaGasto[]>) => {
+  getCategorias(skip: number = 0, take: number = 50): Observable<any[]> {
+    return this.apiService.getCategorias(skip, take).pipe(
+      map((response: ApiResponse<any[]>) => {
         if (response.success && response.data) {
           return response.data;
         }
@@ -24,11 +24,11 @@ export class CategoriaService {
   }
 
   /**
-   * Crear nueva categoría de gasto
+   * Crear nueva categoría
    */
-  crearCategoria(data: Partial<CategoriaGasto>): Observable<CategoriaGasto | null> {
-    return this.apiService.createCategoriaGasto(data).pipe(
-      map((response: ApiResponse<CategoriaGasto>) => {
+  crearCategoria(data: Partial<any>): Observable<any | null> {
+    return this.apiService.createCategoria(data).pipe(
+      map((response: ApiResponse<any>) => {
         if (response.success && response.data) {
           return response.data;
         }
@@ -38,11 +38,11 @@ export class CategoriaService {
   }
 
   /**
-   * Actualizar categoría de gasto
+   * Actualizar categoría
    */
-  actualizarCategoria(id: string, data: Partial<CategoriaGasto>): Observable<CategoriaGasto | null> {
-    return this.apiService.updateCategoriaGasto(id, data).pipe(
-      map((response: ApiResponse<CategoriaGasto>) => {
+  actualizarCategoria(id: string, data: Partial<any>): Observable<any | null> {
+    return this.apiService.updateCategoria(id, data).pipe(
+      map((response: ApiResponse<any>) => {
         if (response.success && response.data) {
           return response.data;
         }
@@ -54,15 +54,15 @@ export class CategoriaService {
   /**
    * Cambiar estado de categoría (activo/inactivo)
    */
-  cambiarEstado(id: string, activo: boolean): Observable<CategoriaGasto | null> {
+  cambiarEstado(id: string, activo: boolean): Observable<any | null> {
     return this.actualizarCategoria(id, { activo });
   }
 
   /**
-   * Eliminar categoría de gasto
+   * Eliminar categoría
    */
   eliminarCategoria(id: string): Observable<boolean> {
-    return this.apiService.deleteCategoriaGasto(id).pipe(
+    return this.apiService.deleteCategoria(id).pipe(
       map((response: ApiResponse<void>) => response.success)
     );
   }
