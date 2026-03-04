@@ -204,7 +204,23 @@
               <div class="producto-notas" *ngIf="producto.notas">
                 <small>📝 {{ producto.notas }}</small>
               </div>
-              <div class="producto-comentario" *ngIf="producto.comentario">
+              
+              <!-- Comentarios preestablecidos + personalizado (separados) -->
+              <div class="producto-comentarios-seccion" *ngIf="producto.comentariosPreestablecidos?.length || producto.comentarioPersonalizado">
+                <div class="comentarios-preestablecidos-display" *ngIf="producto.comentariosPreestablecidos?.length">
+                  <div *ngFor="let comentario of producto.comentariosPreestablecidos" class="comentario-chip-display">
+                    <span class="chip-label">💡</span>
+                    <span>{{ comentario }}</span>
+                  </div>
+                </div>
+                <div class="comentario-personalizado-display" *ngIf="producto.comentarioPersonalizado">
+                  <span class="comentario-custom-icon">📝</span>
+                  <span>{{ producto.comentarioPersonalizado }}</span>
+                </div>
+              </div>
+              
+              <!-- Fallback: mostrar comentario combinado si existe (legacy) -->
+              <div class="producto-comentario" *ngIf="producto.comentario && !producto.comentariosPreestablecidos?.length && !producto.comentarioPersonalizado">
                 <small>💬 {{ producto.comentario }}</small>
               </div>
             </div>
@@ -432,11 +448,19 @@
                     <span 
                       *ngFor="let comentario of obtenerComentariosPreestablecidos(item)" 
                       class="comentario-chip"
-                      [class.seleccionado]="item.comentario === comentario"
+                      [class.seleccionado]="comentarioPreestablecidoEstaSeleccionado(item, comentario)"
                       (click)="seleccionarComentarioPreestablecido(item, comentario)">
                       {{ comentario }}
                     </span>
                   </div>
+                </div>
+                
+                <!-- Mostrar comentarios preestablecidos seleccionados como tags -->
+                <div class="comentarios-seleccionados" *ngIf="item.comentariosPreestablecidos && item.comentariosPreestablecidos.length > 0">
+                  <span class="badge-comentario" *ngFor="let com of item.comentariosPreestablecidos">
+                    {{ com }}
+                    <button class="badge-close" (click)="seleccionarComentarioPreestablecido(item, com)" title="Remover">×</button>
+                  </span>
                 </div>
                 
                 <!-- Campo de comentario personalizado - Siempre visible -->
@@ -444,7 +468,7 @@
                   <div class="comentario-header">
                     <label>✏️ Comentario personalizado:</label>
                     <button 
-                      *ngIf="item.comentario && (obtenerComentariosPreestablecidos(item).length === 0 || !obtenerComentariosPreestablecidos(item).includes(item.comentario))"
+                      *ngIf="item.comentarioPersonalizado && item.comentarioPersonalizado.trim().length > 0"
                       class="btn-limpiar-comentario"
                       (click)="limpiarComentarioPersonalizado(item)"
                       title="Limpiar comentario">
@@ -453,7 +477,7 @@
                   </div>
                   <input 
                     type="text" 
-                    [(ngModel)]="item.comentario" 
+                    [(ngModel)]="item.comentarioPersonalizado" 
                     placeholder="Escribe tu comentario personalizado..."
                     class="comentario-input"
                     maxlength="100">

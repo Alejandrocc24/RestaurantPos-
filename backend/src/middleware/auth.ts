@@ -42,7 +42,10 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     req.userId = decoded.userId;
 
     // Inyectar cliente Prisma del tenant
-    req.prisma = getPrismaClient(tenantId);
+    const prismaClient = getPrismaClient(tenantId);
+    console.log('✅ [authMiddleware] Prisma client obtenido:', !!prismaClient, typeof prismaClient, prismaClient?.constructor?.name);
+    req.prisma = prismaClient;
+    console.log('✅ [authMiddleware] req.prisma asignado:', !!req.prisma);
 
     next();
   } catch (error: any) {

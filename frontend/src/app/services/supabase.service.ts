@@ -69,7 +69,7 @@ export class SupabaseService {
     const payload = this.sanitizeMesaPayload(mesa);
     const resp = await firstValueFrom(this.api.updateData('mesas', { id }, payload));
     if (!resp?.success) throw new Error(resp?.error || 'Error al actualizar mesa');
-    return resp.data?.[0] ?? null;
+    return resp.data ?? null;
   }
 
   async crearMesa(mesa: any) {
@@ -126,7 +126,26 @@ export class SupabaseService {
 
     for (const key of allowedKeys) {
       if (mesa[key] !== undefined) {
-        payload[key] = mesa[key];
+        // normalize estado values for API compatibility
+        if (key === 'estado' && typeof mesa[key] === 'string') {
+          const s = mesa[key].toLowerCase();
+          switch (s) {
+            case 'ocupado':
+            case 'ocupada':
+              payload[key] = 'OCUPADA';
+              break;
+            case 'reservada':
+              payload[key] = 'RESERVADA';
+              break;
+            case 'fuera_de_servicio':
+              payload[key] = 'FUERA_DE_SERVICIO';
+              break;
+            default:
+              payload[key] = s.toUpperCase();
+          }
+        } else {
+          payload[key] = mesa[key];
+        }
       }
     }
 

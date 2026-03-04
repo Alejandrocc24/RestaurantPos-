@@ -39,7 +39,9 @@ interface ProductoPedido {
   cantidad: number;
   subtotal: number;
   notas?: string;
-  comentario?: string;
+  comentario?: string; // Separado en comentariosPreestablecidos + comentarioPersonalizado
+  comentariosPreestablecidos?: string[]; // Array de comentarios preestablecidos/rápidos
+  comentarioPersonalizado?: string; // Comentario personalizado del usuario
   personalizacion?: string;
   modificadores?: {
     grupoId: number;
@@ -462,16 +464,22 @@ export class MesasComponent implements OnInit, OnDestroy {
     console.log('🔄 Cargando grupos modificadores desde DB...');
     try {
       const grupos = await firstValueFrom(this.grupoModificadorService.getGruposModificadores());
+      if (!grupos || !Array.isArray(grupos) || grupos.length === 0) {
+        console.warn('⚠️ No se obtuvieron grupos del servidor, usando datos de ejemplo');
+        this.cargarGruposModificadoresEjemplo();
+        return;
+      }
+      
       this.gruposModificadores = grupos;
       console.log(`✅ ${grupos.length} grupos modificadores cargados`);
 
       grupos.forEach(grupo => {
-        console.log(`  📦 Grupo ${grupo.id}: ${grupo.nombre} (${grupo.modificadores.length} modificadores, ${grupo.obligatorio ? 'obligatorio' : 'opcional'})`);
+        console.log(`  📦 Grupo ${grupo.id}: ${grupo.nombre} (${grupo.modificadores?.length || 0} modificadores, ${grupo.obligatorio ? 'obligatorio' : 'opcional'})`);
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error al cargar grupos modificadores:', error);
+      console.warn('📌 Usando datos de ejemplo como fallback');
       this.cargarGruposModificadoresEjemplo();
-      throw error;
     }
   }
 
@@ -605,27 +613,33 @@ export class MesasComponent implements OnInit, OnDestroy {
 
       this.productos = productos.map((p: any) => {
         // Parsear grupos modificadores si vienen como string
+        // Buscar en ambos formatos: camelCase (gruposModificadores) y snake_case (grupos_modificadores)
         let gruposModificadores: number[] | undefined;
         let configuracionGrupos: any[] | undefined;
 
-        if (p.grupos_modificadores) {
+        const gmFuente = p.gruposModificadores || p.grupos_modificadores;
+        const cgFuente = p.configuracionGrupos || p.configuracion_grupos;
+
+        if (gmFuente) {
           try {
-            gruposModificadores = typeof p.grupos_modificadores === 'string'
-              ? JSON.parse(p.grupos_modificadores)
-              : p.grupos_modificadores;
+            gruposModificadores = typeof gmFuente === 'string'
+              ? JSON.parse(gmFuente)
+              : gmFuente;
+            console.log(`✅ Producto ${p.id} tiene gruposModificadores:`, gruposModificadores);
           } catch (e) {
-            console.warn(`Error parseando grupos_modificadores para producto ${p.id}:`, e);
+            console.warn(`Error parseando gruposModificadores para producto ${p.id}:`, e);
             gruposModificadores = undefined;
           }
         }
 
-        if (p.configuracion_grupos) {
+        if (cgFuente) {
           try {
-            configuracionGrupos = typeof p.configuracion_grupos === 'string'
-              ? JSON.parse(p.configuracion_grupos)
-              : p.configuracion_grupos;
+            configuracionGrupos = typeof cgFuente === 'string'
+              ? JSON.parse(cgFuente)
+              : cgFuente;
+            console.log(`✅ Producto ${p.id} tiene configuracionGrupos:`, configuracionGrupos);
           } catch (e) {
-            console.warn(`Error parseando configuracion_grupos para producto ${p.id}:`, e);
+            console.warn(`Error parseando configuracionGrupos para producto ${p.id}:`, e);
             configuracionGrupos = undefined;
           }
         }
@@ -810,7 +824,9 @@ export class MesasComponent implements OnInit, OnDestroy {
   }
 
   private normalizarMesa(raw: any): Mesa {
-    const estado = raw?.estado === 'ocupado' ? 'ocupado' : 'disponible';
+    // convert backend enum to frontend-friendly lowercase value
+    const rawEstado = String(raw?.estado ?? '').toLowerCase();
+    const estado = rawEstado === 'ocupado' || rawEstado === 'ocupada' ? 'ocupado' : 'disponible';
     const ubicacion = raw?.ubicacion === 'terraza' ? 'terraza' : 'salon';
 
     const mesa: Mesa = {
@@ -1030,6 +1046,9 @@ export class MesasComponent implements OnInit, OnDestroy {
 
     if (this.mesaSeleccionadaInfo?.estado === 'ocupado') {
       try {
+        console.log('🔄 Recargando datos frescos de mesa:', mesa.id);
+        
+        // Recargar pedido activo para obtener datos frescos
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id);
 
         if (pedidoActivo && (Array.isArray(pedidoActivo.productos) || Array.isArray(pedidoActivo.items))) {
@@ -1037,6 +1056,7 @@ export class MesasComponent implements OnInit, OnDestroy {
 
           this.mesaSeleccionadaInfo.productos = productos;
           this.mesaSeleccionadaInfo.totalCuenta = pedidoActivo.total ?? this.calcularTotalMesa(this.mesaSeleccionadaInfo);
+          console.log('✅ Pedido recargado:', productos.length, 'productos');
 
           const index = this.mesas.findIndex((m) => m.id === this.mesaSeleccionadaInfo!.id);
           if (index !== -1) {
@@ -1507,7 +1527,9 @@ export class MesasComponent implements OnInit, OnDestroy {
         cantidad: 1,
         subtotal: producto.precio,
         notas: '',
-        comentario: ''
+        comentario: '',
+        comentariosPreestablecidos: [],
+        comentarioPersonalizado: ''
       };
       this.pedidoActual.push(nuevoItem);
     }
@@ -1575,16 +1597,29 @@ export class MesasComponent implements OnInit, OnDestroy {
       });
 
       // Preparar los items para enviar al backend
-      const items = itemsParaEnviar.map(item => ({
-        productoId: item.productoId ?? item.id,
-        cantidad: item.cantidad,
-        precioUnitario: item.precio,
-        subtotal: item.subtotal,
-        notas: item.notas || this.notasPedido || null,
-        comentario: item.comentario || null,
-        personalizacion: item.personalizacion || null,
-        modificadores: item.modificadores || []
-      }));
+      const items = itemsParaEnviar.map(item => {
+        // Combinar comentarios preestablecidos y personalizado
+        let comentarioFinal = '';
+        if (item.comentariosPreestablecidos && item.comentariosPreestablecidos.length > 0) {
+          comentarioFinal = item.comentariosPreestablecidos.join(', ');
+        }
+        if (item.comentarioPersonalizado) {
+          comentarioFinal = comentarioFinal 
+            ? `${comentarioFinal} - ${item.comentarioPersonalizado}`
+            : item.comentarioPersonalizado;
+        }
+
+        return {
+          productoId: item.productoId ?? item.id,
+          cantidad: item.cantidad,
+          precioUnitario: item.precio,
+          subtotal: item.subtotal,
+          notas: item.notas || this.notasPedido || null,
+          comentario: comentarioFinal || null,
+          personalizacion: item.personalizacion || null,
+          modificadores: item.modificadores || []
+        };
+      });
 
       const payload = {
         usuarioId: 1, // ID del usuario actual
@@ -1718,24 +1753,26 @@ export class MesasComponent implements OnInit, OnDestroy {
     // Crear pasos basados en los grupos modificadores del producto
     if (producto.gruposModificadores && producto.configuracionGrupos && producto.gruposModificadores.length > 0) {
       console.log('  ✅ Producto tiene grupos modificadores configurados');
+      console.log('    Grupos disponibles en memoria:', this.gruposModificadores.length);
+      console.log('    Grupos del producto:', producto.gruposModificadores);
 
       this.pasosModificadores = producto.configuracionGrupos.map(config => {
         const grupo = this.gruposModificadores.find(g => g.id === config.grupoId);
         if (grupo) {
-          console.log(`    📦 Paso creado: ${grupo.nombre} (min: ${config.minSelecciones}, max: ${config.maxSelecciones}, cobra: ${grupo.cobrarPrecio ? 'SÍ' : 'NO'})`);
+          console.log(`    📦 Paso creado: ${grupo.nombre} (min: ${config.minSelecciones}, max: ${config.maxSelecciones}, cobra: ${grupo.cobrarPrecio ? 'SÍ' : 'NO'}, modificadores: ${grupo.modificadores?.length || 0})`);
           return {
             titulo: grupo.nombre,
             descripcion: grupo.descripcion,
             grupoId: grupo.id,
             grupoNombre: grupo.nombre,
-            modificadores: grupo.modificadores.filter(m => m.estado === 'activo'),
+            modificadores: (grupo.modificadores || []).filter(m => m.estado === 'activo'),
             maxSelecciones: config.maxSelecciones,
             minSelecciones: config.minSelecciones,
             obligatorio: grupo.obligatorio,
             cobrarPrecio: grupo.cobrarPrecio || false
           };
         } else {
-          console.warn(`    ⚠️ Grupo ${config.grupoId} no encontrado en gruposModificadores`);
+          console.warn(`    ⚠️ Grupo ${config.grupoId} no encontrado en gruposModificadores. Grupos disponibles: ${this.gruposModificadores.map(g => g.id).join(', ')}`);
         }
         return null;
       }).filter(paso => paso !== null) as PasoModificador[];
@@ -2337,31 +2374,49 @@ export class MesasComponent implements OnInit, OnDestroy {
       console.log('📤 Actualizando cantidades en pedido:', productosActualizados);
 
       // Actualizar cantidades en el backend
+      console.log('➡️ Enviando request actualizarCantidadesProductos', pedidoActivo.id, productosActualizados);
       const resultado = await this.supabaseService.actualizarCantidadesProductos(
         pedidoActivo.id,
         productosActualizados
       );
-
       console.log('✅ Resultado actualización:', resultado);
 
       // Registrar la venta
       const now = new Date();
       const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
+      
+      // Obtener usuario autenticado
+      const usuarioActual = this.authService.getUser();
+      if (!usuarioActual || !usuarioActual.id) {
+        throw new Error('No hay usuario autenticado');
+      }
 
       const venta = {
         mesa_id: this.mesaSeleccionadaInfo.id,
-        usuario_id: 1, // TODO: Obtener del AuthService
+        usuario_id: usuarioActual.id,
         total: this.subtotalProductos,
         estado: 'completada',
         metodo_pago: this.metodoPago,
         fecha: localISOTime,
-        pedido_id: pedidoActivo.id // ← Enlazar la venta con el pedido cerrado
+        orden_id: pedidoActivo.id // ← Enlazar la venta con el pedido cerrado
       };
-
+      console.log('➡️ Creando venta', venta);
       await this.supabaseService.crearVenta(venta);
 
       // Si el pedido se cerró completamente (no quedan productos)
       if (resultado.pedidoCerrado) {
+        // ✅ Actualizar EN EL BACKEND
+        try {
+          console.log('🔄 Intentando actualizar mesa:', this.mesaSeleccionadaInfo.id);
+          const mesaActualizada = await this.supabaseService.actualizarMesa(this.mesaSeleccionadaInfo.id, {
+            estado: 'disponible'
+          });
+          console.log('✅ Mesa actualizada en backend:', mesaActualizada);
+        } catch (errorMesa) {
+          console.error('❌ Error al actualizar mesa en backend:', errorMesa);
+          throw errorMesa;
+        }
+
         // Actualizar localmente
         const index = this.mesas.findIndex(m => m.id === this.mesaSeleccionadaInfo!.id);
         if (index !== -1) {
@@ -2379,9 +2434,10 @@ export class MesasComponent implements OnInit, OnDestroy {
         this.cerrarModalInfoMesa();
       } else {
         // Si quedan productos, actualizar la mesa con los productos restantes
-        const productosRestantes = this.mapearProductosPedidoDesdeBackend(resultado.pedido.items);
+        console.log('📦 Productos restantes en orden:', resultado.pedido?.productos?.length || 0);
+        const productosRestantes = this.mapearProductosPedidoDesdeBackend(resultado.pedido?.productos || []);
         this.mesaSeleccionadaInfo.productos = productosRestantes;
-        this.mesaSeleccionadaInfo.totalCuenta = resultado.pedido.total;
+        this.mesaSeleccionadaInfo.totalCuenta = resultado.pedido?.total || 0;
 
         const index = this.mesas.findIndex(m => m.id === this.mesaSeleccionadaInfo!.id);
         if (index !== -1) {
@@ -2600,20 +2656,30 @@ export class MesasComponent implements OnInit, OnDestroy {
     ];
   }
 
-  // Método para seleccionar un comentario preestablecido
+  // Método para seleccionar un comentario preestablecido (puede haber múltiples)
   seleccionarComentarioPreestablecido(item: ProductoPedido, comentario: string): void {
-    if (item.comentario === comentario) {
-      // Si ya está seleccionado, lo quitamos
-      item.comentario = '';
-    } else {
-      // Si es diferente, lo reemplazamos
-      item.comentario = comentario;
+    if (!item.comentariosPreestablecidos) {
+      item.comentariosPreestablecidos = [];
     }
+    
+    const index = item.comentariosPreestablecidos.indexOf(comentario);
+    if (index > -1) {
+      // Si ya está seleccionado, lo quitamos
+      item.comentariosPreestablecidos.splice(index, 1);
+    } else {
+      // Si no está, lo agregamos
+      item.comentariosPreestablecidos.push(comentario);
+    }
+  }
+
+  // Revisar si un comentario preestablecido está seleccionado
+  comentarioPreestablecidoEstaSeleccionado(item: ProductoPedido, comentario: string): boolean {
+    return (item.comentariosPreestablecidos || []).includes(comentario);
   }
 
   // Método para limpiar comentario personalizado
   limpiarComentarioPersonalizado(item: ProductoPedido): void {
-    item.comentario = '';
+    item.comentarioPersonalizado = '';
   }
 
   private mapearProductosPedidoDesdeBackend(items: any[]): ProductoPedido[] {
@@ -2632,6 +2698,46 @@ export class MesasComponent implements OnInit, OnDestroy {
         }
       }
 
+      // Parsear comentarios desde el campo comentario del backend
+      // El formato puede ser:
+      // 1. Array JSON: "[\"En vaso\", \"Extra dulce\"]"
+      // 2. Combinado: "En vaso, Extra dulce - Sin azúcar"
+      // 3. Solo personalizado: "Sin azúcar"
+      let comentariosPreestablecidos: string[] = [];
+      let comentarioPersonalizado: string = '';
+      
+      if (item.comentario) {
+        const comentarioStr = String(item.comentario).trim();
+        
+        // Intentar parsear como JSON array
+        if (comentarioStr.startsWith('[')) {
+          try {
+            const parsed = JSON.parse(comentarioStr);
+            if (Array.isArray(parsed)) {
+              comentariosPreestablecidos = parsed;
+            } else {
+              comentarioPersonalizado = comentarioStr;
+            }
+          } catch (e) {
+            // Si no es JSON válido, tratarlo como texto plano
+            comentarioPersonalizado = comentarioStr;
+          }
+        } else {
+          // Formato combinado: "Comentario1, Comentario2 - Personalizado"
+          const partes = comentarioStr.split(' - ');
+          if (partes.length === 2) {
+            // Hay comentario personalizado
+            const preestablecidos = partes[0].split(',').map(c => c.trim()).filter(c => c);
+            comentariosPreestablecidos = preestablecidos;
+            comentarioPersonalizado = partes[1].trim();
+          } else if (partes.length === 1) {
+            // Podría ser solo preestablecido o solo personalizado
+            // Interpretar como personalizado por defecto
+            comentarioPersonalizado = comentarioStr;
+          }
+        }
+      }
+
       // Usar solo el nombre base del producto, sin agregar modificadores en paréntesis
       // Los modificadores se muestran en los detalles abajo
       const nombreFinal = nombreBase;
@@ -2647,6 +2753,8 @@ export class MesasComponent implements OnInit, OnDestroy {
         subtotal: Number(item.subtotal ?? 0) || 0,
         notas: item.notas ?? null,
         comentario: item.comentario ?? null,
+        comentariosPreestablecidos: comentariosPreestablecidos,
+        comentarioPersonalizado: comentarioPersonalizado,
         personalizacion: item.personalizacion ?? null,
         modificadores: Array.isArray(modificadores) ? modificadores : [],
       };

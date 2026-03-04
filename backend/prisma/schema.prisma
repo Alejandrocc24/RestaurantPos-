@@ -26,6 +26,7 @@ model Usuario {
   roles     UsuarioRol[]
   gastos    Gasto[]
   ordenes   Orden[]
+  ventas    Venta[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -192,6 +193,7 @@ model Mesa {
   activo    Boolean  @default(true)
   
   ordenes   Orden[]
+  ventas    Venta[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -255,6 +257,7 @@ model OrdenProducto {
   subtotal     Float
   estado       String   @default("pendiente")
   notas        String?
+  comentario   String?  // Comentarios del producto (preestablecidos + personalizado combinados)
   
   orden        Orden    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
   producto     Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
@@ -295,6 +298,33 @@ enum EstadoPago {
   COMPLETADO
   CANCELADO
   REEMBOLSADO
+}
+
+// ============================================
+// VENTAS (Transacciones completadas)
+// ============================================
+
+model Venta {
+  id            String   @id @default(cuid())
+  mesaId        String?
+  usuarioId     String
+  ordenId       String?
+  total         Float
+  estado        String   @default("completada")
+  metodoPago    String   // EFECTIVO, TARJETA, etc
+  fecha         DateTime @default(now())
+  
+  // Relaciones
+  mesa          Mesa?    @relation(fields: [mesaId], references: [id], onDelete: SetNull)
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([mesaId])
+  @@index([usuarioId])
+  @@index([fecha])
+  @@index([estado])
 }
 
 // ============================================

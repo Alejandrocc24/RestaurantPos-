@@ -345,15 +345,15 @@ export class OrdenController {
         });
       }
 
-      // Crear la orden
-      const orden = await req.prisma.orden.create({
-        data: {
+      // Buscar si ya existe una orden activa para esta mesa
+      let orden = await req.prisma.orden.findFirst({
+        where: {
           mesaId,
-          usuarioId: usuarioId as string,
-          estado: 'PENDIENTE',
-          total: 0,
-          notas: notas || null,
+          estado: {
+            in: ['PENDIENTE', 'EN_CURSO']
+          }
         },
+        orderBy: { createdAt: 'desc' },
         include: {
           mesa: true,
           usuario: { select: { id: true, nombre: true, email: true } },
@@ -364,8 +364,49 @@ export class OrdenController {
         },
       });
 
-      // Agregar productos a la orden
-      let totalOrden = 0;
+      // Si no existe orden activa, crear una nueva
+      if (!orden) {
+        console.log(`📝 Creando nueva orden para mesa ${mesaId}`);
+        orden = await req.prisma.orden.create({
+          data: {
+            mesaId,
+            usuarioId: usuarioId as string,
+            estado: 'PENDIENTE',
+            total: 0,
+            notas: notas || null,
+          },
+          include: {
+            mesa: true,
+            usuario: { select: { id: true, nombre: true, email: true } },
+            productos: {
+              include: { producto: true },
+            },
+            pagos: true,
+          },
+        });
+      } else {
+        console.log(`🔄 Usando orden activa existente para mesa ${mesaId}: ${orden.id}`);
+        // Actualizar notas si se proporcionan
+        if (notas !== null && notas !== undefined) {
+          orden = await req.prisma.orden.update({
+            where: { id: orden.id },
+            data: { notas },
+            include: {
+              mesa: true,
+              usuario: { select: { id: true, nombre: true, email: true } },
+              productos: {
+                include: { producto: true },
+              },
+              pagos: true,
+            },
+          });
+        }
+      }
+
+      // Agregar nuevos productos a la orden (existente o recién creada)
+      console.log(`➕ Agregando ${items.length} producto(s) a orden ${orden.id}`);
+      let totalAdelante = orden.total || 0;
+      
       for (const item of items) {
         const ordenProducto = await req.prisma.ordenProducto.create({
           data: {
@@ -375,14 +416,108 @@ export class OrdenController {
             precioUnitario: item.precioUnitario || 0,
             subtotal: (item.cantidad || 1) * (item.precioUnitario || 0),
             notas: item.notas || null,
+            comentario: item.comentario || null,
           },
         });
-        totalOrden += ordenProducto.subtotal;
+        totalAdelante += ordenProducto.subtotal;
+        console.log(`  ✅ Producto agregado: ${item.productoId} x${item.cantidad}`);
       }
+
+      // Actualizar total de la orden con los nuevos productos
+      const ordenActualizada = await req.prisma.orden.update({
+        where: { id: orden.id },
+        data: { total: totalAdelante },
+        include: {
+          mesa: true,
+          usuario: { select: { id: true, nombre: true, email: true } },
+          productos: {
+            include: { producto: true },
+          },
+          pagos: true,
+        },
+      });
+
+      console.log(`✅ Orden actualizada. Total: ${totalAdelante}, Productos: ${ordenActualizada.productos?.length || 0}`);
+
+      res.json({
+        success: true,
+        message: 'Orden creada/actualizada exitosamente',
+        data: ordenActualizada,
+      });
+    } catch (error: any) {
+      console.error('Error creando orden para mesa:', error);
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Error al crear la orden',
+      });
+    }
+  }
+
+  /**
+   * PATCH /api/ordenes/:ordenId/cantidades
+   * Actualizar cantidades de productos en una orden (para cierre de cuenta)
+   */
+  static async updateCantidades(req: Request, res: Response) {
+    try {
+      const { ordenId } = req.params;
+      const { productos } = req.body; // Array de {productoId, cantidad, ...}
+
+      if (!ordenId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ordenId es requerido',
+        });
+      }
+
+      if (!productos || !Array.isArray(productos) || productos.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'productos es requerido y debe ser un array',
+        });
+      }
+
+      console.log(`📝 Actualizando cantidades para orden ${ordenId}`);
+      console.log(`   Productos: ${productos.length}`);
+
+      // Actualizar cada producto
+      let totalOrden = 0;
+      for (const item of productos) {
+        const { productoId, cantidad, precioUnitario } = item;
+
+        if (!productoId || cantidad === undefined) {
+          console.warn(`⚠️ Producto sin ID o cantidad: ${JSON.stringify(item)}`);
+          continue;
+        }
+
+        const subtotal = cantidad * (precioUnitario || 0);
+
+        // Actualizar cantidad
+        await req.prisma.ordenProducto.updateMany({
+          where: {
+            ordenId,
+            productoId,
+          },
+          data: {
+            cantidad,
+            subtotal,
+          },
+        });
+
+        totalOrden += subtotal;
+        console.log(`  ✅ Actualizado: ${productoId} -> cantidad: ${cantidad}, subtotal: ${subtotal}`);
+      }
+
+      // Eliminar productos con cantidad = 0
+      await req.prisma.ordenProducto.deleteMany({
+        where: {
+          ordenId,
+          cantidad: 0,
+        },
+      });
 
       // Actualizar total de la orden
       const ordenActualizada = await req.prisma.orden.update({
-        where: { id: orden.id },
+        where: { id: ordenId },
         data: { total: totalOrden },
         include: {
           mesa: true,
@@ -394,17 +529,23 @@ export class OrdenController {
         },
       });
 
+      console.log(`✅ Orden ${ordenId} actualizada. Total: ${totalOrden}, Productos restantes: ${ordenActualizada.productos?.length || 0}`);
+
       res.json({
         success: true,
-        message: 'Orden creada exitosamente',
+        message: 'Cantidades actualizadas exitosamente',
         data: ordenActualizada,
+        pedidoCerrado: (ordenActualizada.productos?.length || 0) === 0,
+        productosRestantes: ordenActualizada.productos?.length || 0,
+        pedido: ordenActualizada,
       });
     } catch (error: any) {
-      console.error('Error creando orden para mesa:', error);
+      console.error('Error actualizando cantidades:', error);
       res.status(400).json({
         success: false,
-        message: error.message || 'Error al crear la orden',
+        message: error.message || 'Error al actualizar cantidades',
       });
     }
   }
 }
+
