@@ -318,10 +318,10 @@ export class MesasComponent implements OnInit, OnDestroy {
               this.aplicarFiltros();
               console.log(`✅ ${this.mesas.length} mesas cargadas correctamente`);
               this.cargandoMesas = false;
-              
+
               // Cargar pedidos activos después de cargar las mesas
               await this.cargarPedidosActivosDeMesas();
-              
+
               resolve();
             } catch (error) {
               reject(error);
@@ -348,22 +348,25 @@ export class MesasComponent implements OnInit, OnDestroy {
     for (const mesa of this.mesas) {
       try {
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(mesa.id);
-        
+
         if (pedidoActivo) {
           // Mapear los productos del pedido al formato de mesa
           const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.productos || []);
-          
+
           // Actualizar la mesa con los productos y marcar como ocupado
           mesa.estado = 'ocupado';
           mesa.productos = productos;
           mesa.totalCuenta = pedidoActivo.total || 0;
-          
+
           console.log(`✅ Mesa ${mesa.numero} marcada como ocupado: ${productos.length} productos`);
+        } else {
+          // Mesa sin pedido activo = disponible
+          mesa.estado = 'disponible';
+          console.log(`ℹ️ Mesa ${mesa.numero} sin pedido activo (disponible)`);
         }
       } catch (error: any) {
-        // Mesa sin pedido activo = disponible
+        console.error(`❌ Error al obtener pedido activo para mesa ${mesa.numero}:`, error);
         mesa.estado = 'disponible';
-        console.log(`ℹ️ Mesa ${mesa.numero} sin pedido activo (disponible)`);
       }
     }
 
@@ -469,7 +472,7 @@ export class MesasComponent implements OnInit, OnDestroy {
         this.cargarGruposModificadoresEjemplo();
         return;
       }
-      
+
       this.gruposModificadores = grupos;
       console.log(`✅ ${grupos.length} grupos modificadores cargados`);
 
@@ -652,7 +655,7 @@ export class MesasComponent implements OnInit, OnDestroy {
             // 1. Array de objetos {id, texto, ...} desde el backend
             // 2. Array de strings (legacy)
             // 3. String JSON (legacy)
-            
+
             if (typeof p.comentarios === 'string') {
               comentarios = JSON.parse(p.comentarios);
             } else if (Array.isArray(p.comentarios)) {
@@ -1047,7 +1050,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     if (this.mesaSeleccionadaInfo?.estado === 'ocupado') {
       try {
         console.log('🔄 Recargando datos frescos de mesa:', mesa.id);
-        
+
         // Recargar pedido activo para obtener datos frescos
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id);
 
@@ -1604,7 +1607,7 @@ export class MesasComponent implements OnInit, OnDestroy {
           comentarioFinal = item.comentariosPreestablecidos.join(', ');
         }
         if (item.comentarioPersonalizado) {
-          comentarioFinal = comentarioFinal 
+          comentarioFinal = comentarioFinal
             ? `${comentarioFinal} - ${item.comentarioPersonalizado}`
             : item.comentarioPersonalizado;
         }
@@ -2384,7 +2387,7 @@ export class MesasComponent implements OnInit, OnDestroy {
       // Registrar la venta
       const now = new Date();
       const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
-      
+
       // Obtener usuario autenticado
       const usuarioActual = this.authService.getUser();
       if (!usuarioActual || !usuarioActual.id) {
@@ -2661,7 +2664,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     if (!item.comentariosPreestablecidos) {
       item.comentariosPreestablecidos = [];
     }
-    
+
     const index = item.comentariosPreestablecidos.indexOf(comentario);
     if (index > -1) {
       // Si ya está seleccionado, lo quitamos
@@ -2705,10 +2708,10 @@ export class MesasComponent implements OnInit, OnDestroy {
       // 3. Solo personalizado: "Sin azúcar"
       let comentariosPreestablecidos: string[] = [];
       let comentarioPersonalizado: string = '';
-      
+
       if (item.comentario) {
         const comentarioStr = String(item.comentario).trim();
-        
+
         // Intentar parsear como JSON array
         if (comentarioStr.startsWith('[')) {
           try {

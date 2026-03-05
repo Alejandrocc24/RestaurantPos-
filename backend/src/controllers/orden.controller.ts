@@ -105,9 +105,10 @@ export class OrdenController {
       });
 
       if (!orden) {
-        return res.status(404).json({
-          success: false,
+        return res.status(200).json({
+          success: true,
           message: 'No hay orden activa para esta mesa',
+          data: null
         });
       }
 

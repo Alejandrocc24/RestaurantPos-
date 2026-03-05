@@ -143,8 +143,9 @@ export class CocinaComponent implements OnInit, OnDestroy {
       tiempoCreacion = new Date();
     }
 
-    // Procesar items
-    const itemsRaw = Array.isArray(pedido.items) ? pedido.items : [];
+    // Procesar items (el backend puede enviar 'productos' o 'items')
+    const itemsSource = pedido.productos || pedido.items;
+    const itemsRaw = Array.isArray(itemsSource) ? itemsSource : [];
     const items: ItemOrden[] = itemsRaw.map((item: any) => {
       // Procesar modificadores - estructura: [{grupoId, grupoNombre, modificadores: [{nombre, precio}]}]
       let gruposModificadores: GrupoModificador[] = [];
@@ -184,7 +185,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
       return {
         id: item.id || item.productoId,
-        nombre: item.nombre || 'Producto sin nombre',
+        nombre: item.nombre || item.producto?.nombre || 'Producto sin nombre',
         cantidad: item.cantidad || 0,
         gruposModificadores: gruposModificadores,
         notas: item.notas || '',

@@ -134,6 +134,17 @@ export class MesaController {
           message: 'Estado inválido',
         });
       }
+      if (estadoUpper === 'DISPONIBLE') {
+        // Cancelar cualquier orden activa al liberar la mesa
+        await req.prisma.orden.updateMany({
+          where: {
+            mesaId: id,
+            estado: { in: ['PENDIENTE', 'EN_CURSO'] }
+          },
+          data: { estado: 'CANCELADA' }
+        });
+      }
+
       // store normalized value
       const mesa = await req.prisma.mesa.update({
         where: { id },
@@ -206,6 +217,17 @@ export class MesaController {
 
       if (activo !== undefined) {
         data.activo = activo;
+      }
+
+      if (data.estado === 'DISPONIBLE') {
+        // Cancelar cualquier orden activa al liberar la mesa
+        await req.prisma.orden.updateMany({
+          where: {
+            mesaId: id,
+            estado: { in: ['PENDIENTE', 'EN_CURSO'] }
+          },
+          data: { estado: 'CANCELADA' }
+        });
       }
 
       console.log(`🔄 [MesaController.update] Actualizando BD con payload:`, data);

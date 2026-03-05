@@ -107,7 +107,7 @@ export class SupabaseService {
   async actualizarCantidadesProductos(pedidoId: string | number, productosActualizados: any[]) {
     const resp = await this.api.actualizarCantidadesProductos(pedidoId, productosActualizados);
     if (!resp?.success) throw new Error(resp?.error || 'Error al actualizar cantidades');
-    return resp.data ?? null;
+    return resp; // Se requiere resp completo porque ahí viene pedidoCerrado
   }
 
   async transferirProductosMesa(payload: any) {
@@ -229,14 +229,14 @@ export class SupabaseService {
     try {
       const resp = await firstValueFrom(this.api.getData('comentarios-preestablecidos'));
       if (!resp?.success) throw new Error(resp?.error || 'Error al obtener comentarios preestablecidos');
-      
+
       const comentarios = resp.data || [];
-      
+
       // Si incluirInactivos es false, filtrar solo activos
       if (!options.incluirInactivos) {
         return comentarios.filter((c: any) => c.activo === true);
       }
-      
+
       return comentarios;
     } catch (error) {
       console.error('Error en getComentariosPreestablecidos:', error);
@@ -318,7 +318,7 @@ export class SupabaseService {
       const params = new URLSearchParams();
       if (fechaInicio) params.append('fechaInicio', fechaInicio);
       if (fechaFin) params.append('fechaFin', fechaFin);
-      
+
       const query = params.toString() ? `?${params.toString()}` : '';
       const gastosResp = await firstValueFrom(this.api.getData(`gastos${query}`));
       const gastos = gastosResp.data || [];
