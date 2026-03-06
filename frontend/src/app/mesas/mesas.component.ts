@@ -312,6 +312,7 @@ export class MesasComponent implements OnInit, OnDestroy {
         .subscribe({
           next: async (mesas) => {
             try {
+              // El backend ya calcula el estado real (OCUPADA si tiene orden activa)
               this.mesas = mesas.map((mesa: any) => this.normalizarMesa(mesa));
               // Asignar posiciones automáticas si no las tienen
               this.mesas = this.asignarPosicionesAutomaticas(this.mesas);
@@ -319,8 +320,8 @@ export class MesasComponent implements OnInit, OnDestroy {
               console.log(`✅ ${this.mesas.length} mesas cargadas correctamente`);
               this.cargandoMesas = false;
 
-              // Cargar pedidos activos después de cargar las mesas
-              await this.cargarPedidosActivosDeMesas();
+              // Solo cargar productos para mesas que el backend confirmó como ocupadas
+              await this.cargarProductosMesasOcupadas();
 
               resolve();
             } catch (error) {
@@ -339,38 +340,36 @@ export class MesasComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Carga los pedidos activos para todas las mesas
-   * Actualiza el estado de las mesas a "ocupado" si tienen pedido activo
+   * Carga los productos de la orden activa SOLO para mesas que el backend confirmó como ocupadas.
+   * La determinación de si la mesa está ocupada ya viene del backend (evita llamadas innecesarias).
    */
-  private async cargarPedidosActivosDeMesas(): Promise<void> {
-    console.log(`🔄 Cargando pedidos activos para ${this.mesas.length} mesa(s)...`);
+  private async cargarProductosMesasOcupadas(): Promise<void> {
+    const mesasOcupadas = this.mesas.filter(m => m.estado === 'ocupado');
+    console.log(`🔄 Cargando productos para ${mesasOcupadas.length} mesa(s) ocupada(s)...`);
 
-    for (const mesa of this.mesas) {
+    for (const mesa of mesasOcupadas) {
       try {
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(mesa.id);
 
         if (pedidoActivo) {
-          // Mapear los productos del pedido al formato de mesa
           const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.productos || []);
-
-          // Actualizar la mesa con los productos y marcar como ocupado
-          mesa.estado = 'ocupado';
           mesa.productos = productos;
           mesa.totalCuenta = pedidoActivo.total || 0;
-
-          console.log(`✅ Mesa ${mesa.numero} marcada como ocupado: ${productos.length} productos`);
-        } else {
-          // Mesa sin pedido activo = disponible
-          mesa.estado = 'disponible';
-          console.log(`ℹ️ Mesa ${mesa.numero} sin pedido activo (disponible)`);
+          console.log(`✅ Mesa ${mesa.numero}: ${productos.length} producto(s) cargado(s)`);
         }
       } catch (error: any) {
-        console.error(`❌ Error al obtener pedido activo para mesa ${mesa.numero}:`, error);
-        mesa.estado = 'disponible';
+        console.warn(`⚠️ No se pudieron cargar productos de mesa ${mesa.numero}:`, error.message);
+        // No cambiar el estado — el backend ya lo determinó correctamente
       }
     }
 
-    console.log(`✅ Carga de pedidos completada`);
+    this.aplicarFiltros();
+    console.log(`✅ Carga de productos completada`);
+  }
+
+  /** @deprecated Usar cargarProductosMesasOcupadas en su lugar */
+  private async cargarPedidosActivosDeMesas(): Promise<void> {
+    return this.cargarProductosMesasOcupadas();
   }
 
   ngOnDestroy(): void {
@@ -2380,7 +2379,8 @@ export class MesasComponent implements OnInit, OnDestroy {
       console.log('➡️ Enviando request actualizarCantidadesProductos', pedidoActivo.id, productosActualizados);
       const resultado = await this.supabaseService.actualizarCantidadesProductos(
         pedidoActivo.id,
-        productosActualizados
+        productosActualizados,
+        true // Indicador de que esto es un cobro, para no borrar comandas de cocina
       );
       console.log('✅ Resultado actualización:', resultado);
 
@@ -2394,6 +2394,26 @@ export class MesasComponent implements OnInit, OnDestroy {
         throw new Error('No hay usuario autenticado');
       }
 
+      // Calcular cantidad total de productos cobrados
+      const cantidadProductosCobrados = this.mesaSeleccionadaInfo.productos?.reduce((sum: number, producto: any) => {
+        const cantidadCobrada = this.productosCobro[producto.id] ? (this.cantidadesCobro[producto.id] || producto.cantidad || 1) : 0;
+        return sum + cantidadCobrada;
+      }, 0) || 0;
+
+      // Crear snapshot de los productos cobrados para la factura
+      const productosSnapshot = (this.mesaSeleccionadaInfo.productos || [])
+        .filter((producto: any) => this.productosCobro[producto.id])
+        .map((producto: any) => {
+          const cantidadCobrada = this.cantidadesCobro[producto.id] || producto.cantidad || 1;
+          return {
+            nombre: producto.nombre,
+            cantidad: cantidadCobrada,
+            precio: producto.precio,
+            subtotal: cantidadCobrada * (producto.precio || 0),
+            comentario: producto.comentario || producto.personalizacion || ''
+          };
+        });
+
       const venta = {
         mesa_id: this.mesaSeleccionadaInfo.id,
         usuario_id: usuarioActual.id,
@@ -2401,7 +2421,9 @@ export class MesasComponent implements OnInit, OnDestroy {
         estado: 'completada',
         metodo_pago: this.metodoPago,
         fecha: localISOTime,
-        orden_id: pedidoActivo.id // ← Enlazar la venta con el pedido cerrado
+        orden_id: pedidoActivo.id, // ← Enlazar la venta con el pedido cerrado
+        cantidad_productos: cantidadProductosCobrados,
+        productos_json: productosSnapshot
       };
       console.log('➡️ Creando venta', venta);
       await this.supabaseService.crearVenta(venta);

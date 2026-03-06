@@ -17,28 +17,16 @@
     <!-- Tabs de navegación -->
     <div class="tabs-container">
       <div class="tab-header">
-        <button 
-          class="tab-button" 
-          [class.active]="currentTab === 'mesas'"
-          (click)="cambiarTab('mesas')">
+        <button class="tab-button" [class.active]="currentTab === 'mesas'" (click)="cambiarTab('mesas')">
           🪑 Mesas Cerradas
         </button>
-        <button 
-          class="tab-button" 
-          [class.active]="currentTab === 'gastos'"
-          (click)="cambiarTab('gastos')">
+        <button class="tab-button" [class.active]="currentTab === 'gastos'" (click)="cambiarTab('gastos')">
           💸 Reporte de Gastos
         </button>
-        <button 
-          class="tab-button" 
-          [class.active]="currentTab === 'productos'"
-          (click)="cambiarTab('productos')">
+        <button class="tab-button" [class.active]="currentTab === 'productos'" (click)="cambiarTab('productos')">
           🍦 Estadísticas de Productos
         </button>
-        <button 
-          class="tab-button" 
-          [class.active]="currentTab === 'caja'"
-          (click)="cambiarTab('caja')">
+        <button class="tab-button" [class.active]="currentTab === 'caja'" (click)="cambiarTab('caja')">
           💰 Gestión de Caja
         </button>
       </div>
@@ -51,11 +39,13 @@
         <div class="filtros-content">
           <div class="filtro-item">
             <label for="fechaInicio">Fecha Inicio:</label>
-            <input type="date" id="fechaInicio" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosGastos()" class="form-control">>
+            <input type="date" id="fechaInicio" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosGastos()"
+              class="form-control">>
           </div>
           <div class="filtro-item">
             <label for="fechaFin">Fecha Fin:</label>
-            <input type="date" id="fechaFin" [(ngModel)]="fechaFin" (change)="aplicarFiltrosGastos()" class="form-control">
+            <input type="date" id="fechaFin" [(ngModel)]="fechaFin" (change)="aplicarFiltrosGastos()"
+              class="form-control">
           </div>
           <div class="filtro-item">
             <label for="filtroMesa">Filtrar por Mesa:</label>
@@ -135,7 +125,8 @@
                 <span class="estado-badge cerrada">Cerrada</span>
               </td>
               <td class="mesa-acciones">
-                <button class="btn-accion-mesa" (click)="seleccionarMesa(mesa); $event.stopPropagation()" title="Ver factura e imprimir">
+                <button class="btn-accion-mesa" (click)="seleccionarMesa(mesa); $event.stopPropagation()"
+                  title="Ver factura e imprimir">
                   🖨️ Factura
                 </button>
               </td>
@@ -168,15 +159,18 @@
         <div class="filtros-content">
           <div class="filtro-item">
             <label for="fechaInicioGastos">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioGastos" [(ngModel)]="fechaInicio" (change)="onFechagastoChange()" class="form-control">
+            <input type="date" id="fechaInicioGastos" [(ngModel)]="fechaInicio" (change)="onFechagastoChange()"
+              class="form-control">
           </div>
           <div class="filtro-item">
             <label for="fechaFinGastos">Fecha Fin:</label>
-            <input type="date" id="fechaFinGastos" [(ngModel)]="fechaFin" (change)="onFechagastoChange()" class="form-control">
+            <input type="date" id="fechaFinGastos" [(ngModel)]="fechaFin" (change)="onFechagastoChange()"
+              class="form-control">
           </div>
           <div class="filtro-item">
             <label for="filtroGasto">Filtrar Gasto:</label>
-            <input type="text" id="filtroGasto" [(ngModel)]="filtroGasto" placeholder="Descripción o categoría" class="form-control" (input)="onFiltroGastoChange()">
+            <input type="text" id="filtroGasto" [(ngModel)]="filtroGasto" placeholder="Descripción o categoría"
+              class="form-control" (input)="onFiltroGastoChange()">
           </div>
           <div class="filtro-actions">
             <button class="btn btn-primary" (click)="aplicarFiltrosGastos()">🔍 Aplicar Filtros</button>
@@ -220,7 +214,8 @@
               <td class="gasto-descripcion">{{ gasto.descripcion }}</td>
               <td class="gasto-categoria">{{ gasto.categoria }}</td>
               <td class="gasto-monto">{{ formatearMoneda(gasto.monto) }}</td>
-              <td class="gasto-proveedor">{{ (gasto.proveedor === 'personalizado' ? gasto.proveedor_personalizado : gasto.proveedor) || 'N/A' }}</td>
+              <td class="gasto-proveedor">{{ (gasto.proveedor === 'personalizado' ? gasto.proveedor_personalizado :
+                gasto.proveedor) || 'N/A' }}</td>
             </tr>
             <tr *ngIf="gastosFiltrados.length === 0">
               <td colspan="5" style="text-align: center; color: #999;">
@@ -244,15 +239,18 @@
         <div class="filtros-content">
           <div class="filtro-item">
             <label for="fechaInicioProductos">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioProductos" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosProductos()" class="form-control">
+            <input type="date" id="fechaInicioProductos" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosProductos()"
+              class="form-control">
           </div>
           <div class="filtro-item">
             <label for="fechaFinProductos">Fecha Fin:</label>
-            <input type="date" id="fechaFinProductos" [(ngModel)]="fechaFin" (change)="aplicarFiltrosProductos()" class="form-control">
+            <input type="date" id="fechaFinProductos" [(ngModel)]="fechaFin" (change)="aplicarFiltrosProductos()"
+              class="form-control">
           </div>
           <div class="filtro-item">
             <label for="filtroCategoria">Filtrar Categoría:</label>
-            <select id="filtroCategoria" [(ngModel)]="filtroCategoria" class="form-control" (change)="onFiltroCategoriaChange()">
+            <select id="filtroCategoria" [(ngModel)]="filtroCategoria" class="form-control"
+              (change)="onFiltroCategoriaChange()">
               <option value="todas">Todas las categorías</option>
               <option *ngFor="let categoria of categoriasDisponibles" [value]="categoria">
                 {{ categoria }}
@@ -261,7 +259,8 @@
           </div>
           <div class="filtro-item">
             <label for="filtroProducto">Filtrar Producto:</label>
-            <input type="text" id="filtroProducto" [(ngModel)]="filtroProducto" placeholder="Nombre del producto" class="form-control" (input)="onFiltroProductoChange()">
+            <input type="text" id="filtroProducto" [(ngModel)]="filtroProducto" placeholder="Nombre del producto"
+              class="form-control" (input)="onFiltroProductoChange()">
           </div>
           <div class="filtro-actions">
             <button class="btn btn-primary" (click)="aplicarFiltrosProductos()">🔍 Aplicar Filtros</button>
@@ -275,7 +274,9 @@
         <div class="tab-summary">
           <span class="summary-item">
             <strong>Total Productos:</strong> {{ productosFiltrados.length }}
-            <span *ngIf="(filtroProducto && filtroProducto.trim() !== '') || (filtroCategoria && filtroCategoria !== 'todas')" class="filtro-info">
+            <span
+              *ngIf="(filtroProducto && filtroProducto.trim() !== '') || (filtroCategoria && filtroCategoria !== 'todas')"
+              class="filtro-info">
               (Filtrado: {{ productosFiltrados.length }} de {{ productosVendidos.length }})
             </span>
           </span>
@@ -288,9 +289,9 @@
       <div class="stats-container" *ngIf="!isLoadingProductos">
         <!-- Top 10 Productos -->
         <div class="top-productos-section">
-          <h4>🏆 Top 10 Productos Más Vendidos</h4>
+          <h4>🏆 Productos Vendidos</h4>
           <div class="productos-grid">
-            <div class="producto-card" *ngFor="let producto of productosFiltrados.slice(0, 10); let i = index">
+            <div class="producto-card" *ngFor="let producto of productosFiltrados; let i = index">
               <div class="producto-ranking">#{{ i + 1 }}</div>
               <div class="producto-info">
                 <div class="producto-nombre">{{ producto.nombre }}</div>
@@ -308,7 +309,7 @@
         <div class="chart-section">
           <h4>📊 Distribución de Ventas</h4>
           <div class="chart-container">
-            <div class="chart-bar" *ngFor="let producto of productosFiltrados.slice(0, 5)">
+            <div class="chart-bar" *ngFor="let producto of productosFiltrados">
               <div class="bar-label">{{ producto.nombre }}</div>
               <div class="bar-container">
                 <div class="bar-fill" [style.width.%]="getBarPercentage(producto.cantidad)"></div>
@@ -357,7 +358,7 @@
         <h3>💰 Gestión de Caja</h3>
         <div class="tab-summary">
           <span class="summary-item">
-            <strong>Estado:</strong> 
+            <strong>Estado:</strong>
             <span *ngIf="cajaAbierta" class="estado-badge abierta">Caja Abierta</span>
             <span *ngIf="!cajaAbierta" class="estado-badge cerrada">Caja Cerrada</span>
           </span>
@@ -381,18 +382,11 @@
         </div>
 
         <div class="caja-actions">
-          <button 
-            *ngIf="!cajaAbierta"
-            class="btn btn-success btn-lg" 
-            (click)="mostrarModalAbrirCaja()"
+          <button *ngIf="!cajaAbierta" class="btn btn-success btn-lg" (click)="mostrarModalAbrirCaja()"
             [disabled]="isLoadingCaja">
             🚀 Abrir Caja
           </button>
-          <button 
-            *ngIf="cajaAbierta"
-            class="btn btn-danger btn-lg" 
-            (click)="cerrarCaja()"
-            [disabled]="isLoadingCaja">
+          <button *ngIf="cajaAbierta" class="btn btn-danger btn-lg" (click)="cerrarCaja()" [disabled]="isLoadingCaja">
             🔒 Cerrar Caja
           </button>
         </div>
@@ -425,7 +419,8 @@
                 <td>{{ formatearMoneda(caja.monto_inicial || caja.montoInicial || 0) }}</td>
                 <td>{{ formatearMoneda(caja.monto_final || caja.montoFinal || 0) }}</td>
                 <td>{{ formatearMoneda(caja.total_gastos || 0) }}</td>
-                <td [class.positivo]="calcularDiferenciaCajaCerrada(caja) >= 0" [class.negativo]="calcularDiferenciaCajaCerrada(caja) < 0">
+                <td [class.positivo]="calcularDiferenciaCajaCerrada(caja) >= 0"
+                  [class.negativo]="calcularDiferenciaCajaCerrada(caja) < 0">
                   {{ formatearMoneda(calcularDiferenciaCajaCerrada(caja)) }}
                 </td>
                 <td>
@@ -460,24 +455,26 @@
         <h3>🔒 Cerrar Caja - Resumen del Día</h3>
         <button class="btn-cerrar-modal" (click)="cerrarModalCierreCaja()">✕</button>
       </div>
-      
+
       <div class="modal-body">
         <!-- Información de la caja -->
         <div class="caja-info">
           <div class="info-item">
             <span class="info-label">Monto Inicial:</span>
-            <span class="info-value">{{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0) }}</span>
+            <span class="info-value">{{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0)
+              }}</span>
           </div>
           <div class="info-item">
             <span class="info-label">Fecha de Apertura:</span>
-            <span class="info-value">{{ (cajaActual?.fecha_apertura || cajaActual?.fechaApertura) | date:'dd/MM/yyyy HH:mm' }}</span>
+            <span class="info-value">{{ (cajaActual?.fecha_apertura || cajaActual?.fechaApertura) | date:'dd/MM/yyyy
+              HH:mm' }}</span>
           </div>
         </div>
 
         <!-- Resumen financiero del día -->
         <div class="resumen-financiero">
           <h4>💰 Resumen Financiero del Día</h4>
-          
+
           <div class="resumen-grid">
             <div class="resumen-item positivo">
               <div class="resumen-icono">📈</div>
@@ -486,7 +483,7 @@
                 <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.recaudoTotal) }}</div>
               </div>
             </div>
-            
+
             <div class="resumen-item negativo">
               <div class="resumen-icono">💸</div>
               <div class="resumen-content">
@@ -494,7 +491,7 @@
                 <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.gastosTotal) }}</div>
               </div>
             </div>
-            
+
             <div class="resumen-item efectivo">
               <div class="resumen-icono">💵</div>
               <div class="resumen-content">
@@ -502,7 +499,7 @@
                 <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.pagosEfectivo) }}</div>
               </div>
             </div>
-            
+
             <div class="resumen-item transferencia">
               <div class="resumen-icono">🏦</div>
               <div class="resumen-content">
@@ -516,11 +513,12 @@
         <!-- Cálculo del efectivo esperado -->
         <div class="efectivo-esperado">
           <h4>🧮 Cálculo del Efectivo en Caja</h4>
-          
+
           <div class="calculo-formula">
             <div class="formula-linea">
               <span class="formula-label">Monto Inicial:</span>
-              <span class="formula-valor">{{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0) }}</span>
+              <span class="formula-valor">{{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0)
+                }}</span>
             </div>
             <div class="formula-linea">
               <span class="formula-label">+ Pagos en Efectivo:</span>
@@ -541,369 +539,349 @@
         <!-- Campo para ingresar efectivo real -->
         <div class="efectivo-real">
           <h4>💵 Conteo de Efectivo</h4>
-          
+
           <div class="form-group">
             <label for="efectivoReal">Efectivo Real en Caja ($):</label>
-            <input 
-              type="number" 
-              id="efectivoReal" 
-              [(ngModel)]="efectivoReal" 
-              (ngModelChange)="calcularDiferenciaCaja()"
-              class="form-control" 
-              placeholder="Ingrese el efectivo contado"
-              min="0">
+            <input type="number" id="efectivoReal" [(ngModel)]="efectivoReal" (ngModelChange)="calcularDiferenciaCaja()"
+              class="form-control" placeholder="Ingrese el efectivo contado" min="0">
           </div>
-          
-          <div *ngIf="efectivoReal > 0" class="diferencia-caja" [class.sobrante]="diferenciaCaja > 0" [class.faltante]="diferenciaCaja < 0" [class.exacto]="diferenciaCaja === 0">
+
+          <div *ngIf="efectivoReal > 0" class="diferencia-caja" [class.sobrante]="diferenciaCaja > 0"
+            [class.faltante]="diferenciaCaja < 0" [class.exacto]="diferenciaCaja === 0">
             <div class="diferencia-icono">{{ diferenciaCaja > 0 ? '📈' : diferenciaCaja < 0 ? '📉' : '✅' }}</div>
-            <div class="diferencia-content">
-              <div class="diferencia-label">
-                {{ diferenciaCaja > 0 ? 'Sobrante' : diferenciaCaja < 0 ? 'Faltante' : 'Exacto' }}
-              </div>
-              <div class="diferencia-valor">
-                {{ diferenciaCaja === 0 ? 'Cuadra perfecto' : formatearMoneda(obtenerValorAbsoluto(diferenciaCaja)) }}
-              </div>
+                <div class="diferencia-content">
+                  <div class="diferencia-label">
+                    {{ diferenciaCaja > 0 ? 'Sobrante' : diferenciaCaja < 0 ? 'Faltante' : 'Exacto' }} </div>
+                      <div class="diferencia-valor">
+                        {{ diferenciaCaja === 0 ? 'Cuadra perfecto' :
+                        formatearMoneda(obtenerValorAbsoluto(diferenciaCaja)) }}
+                      </div>
+                  </div>
+                </div>
             </div>
-          </div>
-        </div>
 
-        <!-- Advertencia importante -->
-        <div class="advertencia-cierre">
-          <div class="advertencia-icono">⚠️</div>
-          <div class="advertencia-texto">
-            <strong>Importante:</strong> Verifique que el efectivo físico en caja coincida con el monto calculado antes de confirmar el cierre.
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="cerrarModalCierreCaja()">
-          Cancelar
-        </button>
-        <button 
-          class="btn btn-info" 
-          (click)="imprimirCierreCaja()" 
-          [disabled]="isLoadingCaja">
-          🖨️ Imprimir
-        </button>
-        <button 
-          class="btn btn-danger" 
-          (click)="confirmarCierreCaja()" 
-          [disabled]="isLoadingCaja">
-          <span *ngIf="isLoadingCaja">🔄</span>
-          <span *ngIf="!isLoadingCaja">🔒</span>
-          Confirmar Cierre de Caja
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal para Abrir Caja -->
-  <div *ngIf="mostrarModalCaja" class="modal-overlay" (click)="cerrarModalCaja()">
-    <div class="modal-caja" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>🚀 Abrir Nueva Caja</h3>
-        <button class="btn-cerrar-modal" (click)="cerrarModalCaja()">✕</button>
-      </div>
-      
-      <div class="modal-body">
-        <!-- Sugerencias rápidas -->
-        <div class="sugerencias-monto-apertura">
-          <label>Sugerencias rápidas:</label>
-          <div class="sugerencias-grid">
-            <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(10000)">$10,000</button>
-            <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(20000)">$20,000</button>
-            <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(30000)">$30,000</button>
-            <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(40000)">$40,000</button>
-            <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(50000)">$50,000</button>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label for="montoInicial">Monto Inicial de Caja:</label>
-          <div class="input-group">
-            <span class="input-prefix">$</span>
-            <input 
-              type="number" 
-              id="montoInicial" 
-              [(ngModel)]="montoInicial" 
-              class="form-control" 
-              placeholder="0.00"
-              min="0"
-              step="0.01"
-              autofocus>
-          </div>
-          
-          <small class="form-text">Ingrese el monto inicial para abrir la caja</small>
-        </div>
-
-      </div>
-      
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="cerrarModalCaja()">
-          ❌ Cancelar
-        </button>
-        <button 
-          class="btn btn-success" 
-          (click)="abrirCaja()"
-          [disabled]="montoInicial <= 0 || isLoadingCaja">
-          <span *ngIf="isLoadingCaja">🔄</span>
-          <span *ngIf="!isLoadingCaja">🚀</span>
-          {{ isLoadingCaja ? 'Abriendo Caja...' : 'Abrir Caja' }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de Factura -->
-  <div *ngIf="mostrarModalFactura" class="modal-overlay" (click)="cerrarModalFactura()">
-    <div class="modal-factura" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>🖨️ Factura - {{ mesaSeleccionada?.numeroMesa }}</h3>
-        <button class="btn-cerrar-modal" (click)="cerrarModalFactura()">✕</button>
-      </div>
-      
-      <div class="modal-body" *ngIf="mesaSeleccionada">
-        <div class="factura-preview" [style.font-size.px]="generarFactura(mesaSeleccionada).config.tamanoFuente">
-          <!-- Logo (si está configurado) -->
-          <div class="logo-factura" *ngIf="generarFactura(mesaSeleccionada).config.mostrarLogo && generarFactura(mesaSeleccionada).config.logoUrl">
-            <img [src]="generarFactura(mesaSeleccionada).config.logoUrl" alt="Logo" style="max-width: 100px; height: auto;">
-          </div>
-          
-          <!-- Encabezado de la factura -->
-          <div class="factura-header">
-            <div class="logo-factura">
-              <h2>{{ generarFactura(mesaSeleccionada).config.nombreNegocio }}</h2>
-              <p>{{ generarFactura(mesaSeleccionada).config.direccion }}</p>
-              <p>Tel: {{ generarFactura(mesaSeleccionada).config.telefono }}</p>
-              <p>NIT: {{ generarFactura(mesaSeleccionada).config.nit }}</p>
-              <p>{{ generarFactura(mesaSeleccionada).config.email }}</p>
-            </div>
-            <div class="info-factura">
-              <div class="numero-factura">{{ generarFactura(mesaSeleccionada).numeroFactura }}</div>
-              <div class="fecha-factura">{{ generarFactura(mesaSeleccionada).fecha }}</div>
-              <div class="hora-factura">{{ generarFactura(mesaSeleccionada).hora }}</div>
-            </div>
-          </div>
-          
-          <!-- Información de la mesa -->
-          <div class="mesa-info">
-            <div class="mesa-numero-factura">Mesa: {{ mesaSeleccionada.numeroMesa }}</div>
-            <div class="mesa-fecha-factura">Fecha: {{ formatearFecha(mesaSeleccionada.fecha) }}</div>
-          </div>
-          
-          <!-- Tabla de productos -->
-          <div class="productos-factura">
-            <div *ngIf="mesaSeleccionada.cargandoProductos" class="loading-productos">
-              <p>🔄 Cargando productos...</p>
-            </div>
-            <table class="factura-table" *ngIf="!mesaSeleccionada.cargandoProductos">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Cant.</th>
-                  <th>Precio</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let item of generarFactura(mesaSeleccionada).items">
-                  <td>{{ item.descripcion }}</td>
-                  <td>{{ item.cantidad }}</td>
-                  <td>{{ formatearMoneda(item.precioUnitario) }}</td>
-                  <td>{{ formatearMoneda(item.total) }}</td>
-                </tr>
-                <tr *ngIf="generarFactura(mesaSeleccionada).items.length === 0">
-                  <td colspan="4" style="text-align: center; color: #999;">
-                    Sin productos registrados
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          
-          <!-- Totales -->
-          <div class="totales-factura">
-            <div class="total-linea">
-              <span>Subtotal:</span>
-              <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).subtotal) }}</span>
-            </div>
-            <div class="total-linea" *ngIf="generarFactura(mesaSeleccionada).config.mostrarIVA">
-              <span>IVA ({{ generarFactura(mesaSeleccionada).config.porcentajeIVA }}%):</span>
-              <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).iva) }}</span>
-            </div>
-            <div class="total-linea total-final">
-              <span>Total:</span>
-              <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).total) }}</span>
-            </div>
-          </div>
-          
-          <!-- Pie de factura -->
-          <div class="factura-footer">
-            <p>{{ generarFactura(mesaSeleccionada).config.mensajePie }}</p>
-          </div>
-          
-          <!-- Código QR (si está configurado) -->
-          <div class="factura-qr" *ngIf="generarFactura(mesaSeleccionada).config.mostrarQR">
-            <div class="qr-placeholder">📱 Código QR</div>
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal-footer">
-        <button class="btn btn-secondary" (click)="cerrarModalFactura()">
-          ❌ Cancelar
-        </button>
-        <button 
-          class="btn btn-success" 
-          (click)="exportarFacturaPDF()"
-          [disabled]="isImprimiendo || mesaSeleccionada?.cargandoProductos">
-          📄 Exportar PDF
-        </button>
-        <button 
-          class="btn btn-primary" 
-          (click)="imprimirFactura()"
-          [disabled]="isImprimiendo || mesaSeleccionada?.cargandoProductos">
-          <span *ngIf="isImprimiendo">🔄</span>
-          <span *ngIf="!isImprimiendo">🖨️</span>
-          {{ isImprimiendo ? 'Imprimiendo...' : 'Imprimir' }}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal para Exportar Reportes -->
-<div *ngIf="mostrarModalExportar" class="modal-overlay" (click)="cerrarModalExportar()">
-  <div class="modal-exportar" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h3>📄 Exportar Reporte</h3>
-      <button class="btn-cerrar-modal" (click)="cerrarModalExportar()">✕</button>
-    </div>
-
-    <div class="modal-body">
-      <!-- Información del reporte -->
-      <div class="reporte-info">
-        <div class="reporte-tipo">
-          <span class="tipo-icono">{{ getIconoTipoReporte(tipoReporteActual) }}</span>
-          <span class="tipo-nombre">{{ getNombreTab(tipoReporteActual) }}</span>
-        </div>
-        <div class="reporte-detalles">
-          <p><strong>Período:</strong> {{ fechaInicio }} - {{ fechaFin }}</p>
-          <p><strong>Generado:</strong> {{ getFechaActual() }}</p>
-          <p><strong>Registros:</strong> {{ getCantidadRegistros(tipoReporteActual) }}</p>
-        </div>
-      </div>
-
-      <!-- Opciones de exportación -->
-      <div class="opciones-exportacion">
-        <h4>🎯 Seleccione el formato de exportación:</h4>
-        
-        <div class="formato-grid">
-          <!-- Opción Excel -->
-          <div class="formato-option" [class.selected]="formatoSeleccionado === 'excel'" (click)="seleccionarFormato('excel')">
-            <div class="formato-icono">📊</div>
-            <div class="formato-contenido">
-              <div class="formato-titulo">Excel (.csv)</div>
-              <div class="formato-descripcion">Ideal para análisis de datos y cálculos</div>
-              <div class="formato-beneficios">
-                <span class="beneficio">✓ Fácil edición</span>
-                <span class="beneficio">✓ Compatibilidad universal</span>
+            <!-- Advertencia importante -->
+            <div class="advertencia-cierre">
+              <div class="advertencia-icono">⚠️</div>
+              <div class="advertencia-texto">
+                <strong>Importante:</strong> Verifique que el efectivo físico en caja coincida con el monto calculado
+                antes de confirmar el cierre.
               </div>
             </div>
           </div>
 
-          <!-- Opción PDF -->
-          <div class="formato-option" [class.selected]="formatoSeleccionado === 'pdf'" (click)="seleccionarFormato('pdf')">
-            <div class="formato-icono">📄</div>
-            <div class="formato-contenido">
-              <div class="formato-titulo">PDF</div>
-              <div class="formato-descripcion">Perfecto para presentaciones e informes</div>
-              <div class="formato-beneficios">
-                <span class="beneficio">✓ Formato profesional</span>
-                <span class="beneficio">✓ Fácil impresión</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Opción Portapapeles -->
-          <div class="formato-option" [class.selected]="formatoSeleccionado === 'clipboard'" (click)="seleccionarFormato('clipboard')">
-            <div class="formato-icono">📋</div>
-            <div class="formato-contenido">
-              <div class="formato-titulo">Portapapeles</div>
-              <div class="formato-descripcion">Copia rápida para pegar en otros programas</div>
-              <div class="formato-beneficios">
-                <span class="beneficio">✓ Acceso inmediato</span>
-                <span class="beneficio">✓ Flexibilidad total</span>
-              </div>
-            </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="cerrarModalCierreCaja()">
+              Cancelar
+            </button>
+            <button class="btn btn-info" (click)="imprimirCierreCaja()" [disabled]="isLoadingCaja">
+              🖨️ Imprimir
+            </button>
+            <button class="btn btn-danger" (click)="confirmarCierreCaja()" [disabled]="isLoadingCaja">
+              <span *ngIf="isLoadingCaja">🔄</span>
+              <span *ngIf="!isLoadingCaja">🔒</span>
+              Confirmar Cierre de Caja
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Configuraciones adicionales -->
-      <div class="configuraciones-extra" *ngIf="formatoSeleccionado">
-        <h4>⚙️ Configuraciones adicionales:</h4>
-        
-        <div class="config-opciones">
-          <label class="config-item">
-            <input type="checkbox" [(ngModel)]="incluirResumen" checked>
-            <span class="checkmark"></span>
-            <span class="config-label">Incluir resumen ejecutivo</span>
-          </label>
-          
-          <label class="config-item">
-            <input type="checkbox" [(ngModel)]="incluirGraficos" [disabled]="formatoSeleccionado === 'clipboard'">
-            <span class="checkmark"></span>
-            <span class="config-label">Incluir elementos visuales {{ formatoSeleccionado === 'clipboard' ? '(No disponible para portapapeles)' : '' }}</span>
-          </label>
+      <!-- Modal para Abrir Caja -->
+      <div *ngIf="mostrarModalCaja" class="modal-overlay" (click)="cerrarModalCaja()">
+        <div class="modal-caja" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>🚀 Abrir Nueva Caja</h3>
+            <button class="btn-cerrar-modal" (click)="cerrarModalCaja()">✕</button>
+          </div>
 
-          <label class="config-item" *ngIf="formatoSeleccionado === 'excel'">
-            <input type="checkbox" [(ngModel)]="incluirFormulas">
-            <span class="checkmark"></span>
-            <span class="config-label">Incluir fórmulas automáticas</span>
-          </label>
+          <div class="modal-body">
+            <!-- Sugerencias rápidas -->
+            <div class="sugerencias-monto-apertura">
+              <label>Sugerencias rápidas:</label>
+              <div class="sugerencias-grid">
+                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(10000)">$10,000</button>
+                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(20000)">$20,000</button>
+                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(30000)">$30,000</button>
+                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(40000)">$40,000</button>
+                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(50000)">$50,000</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="montoInicial">Monto Inicial de Caja:</label>
+              <div class="input-group">
+                <span class="input-prefix">$</span>
+                <input type="number" id="montoInicial" [(ngModel)]="montoInicial" class="form-control"
+                  placeholder="0.00" min="0" step="0.01" autofocus>
+              </div>
+
+              <small class="form-text">Ingrese el monto inicial para abrir la caja</small>
+            </div>
+
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="cerrarModalCaja()">
+              ❌ Cancelar
+            </button>
+            <button class="btn btn-success" (click)="abrirCaja()" [disabled]="montoInicial <= 0 || isLoadingCaja">
+              <span *ngIf="isLoadingCaja">🔄</span>
+              <span *ngIf="!isLoadingCaja">🚀</span>
+              {{ isLoadingCaja ? 'Abriendo Caja...' : 'Abrir Caja' }}
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Preview del contenido -->
-      <div class="preview-contenido" *ngIf="formatoSeleccionado">
-        <h4>👀 Vista previa del contenido:</h4>
-        <div class="preview-box">
-          <div class="preview-header">
-            <span class="preview-titulo">{{ getNombreTab(tipoReporteActual) }}</span>
-            <span class="preview-fecha">{{ getFechaActual() }}</span>
+      <!-- Modal de Factura -->
+      <div *ngIf="mostrarModalFactura" class="modal-overlay" (click)="cerrarModalFactura()">
+        <div class="modal-factura" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>🖨️ Factura - {{ mesaSeleccionada?.numeroMesa }}</h3>
+            <button class="btn-cerrar-modal" (click)="cerrarModalFactura()">✕</button>
           </div>
-          <div class="preview-estadisticas">
-            <div class="stat-item">
-              <span class="stat-label">Registros:</span>
-              <span class="stat-valor">{{ getCantidadRegistros(tipoReporteActual) }}</span>
+
+          <div class="modal-body" *ngIf="mesaSeleccionada">
+            <div class="factura-preview" [style.font-size.px]="generarFactura(mesaSeleccionada).config.tamanoFuente">
+              <!-- Logo (si está configurado) -->
+              <div class="logo-factura"
+                *ngIf="generarFactura(mesaSeleccionada).config.mostrarLogo && generarFactura(mesaSeleccionada).config.logoUrl">
+                <img [src]="generarFactura(mesaSeleccionada).config.logoUrl" alt="Logo"
+                  style="max-width: 100px; height: auto;">
+              </div>
+
+              <!-- Encabezado de la factura -->
+              <div class="factura-header">
+                <div class="logo-factura">
+                  <h2>{{ generarFactura(mesaSeleccionada).config.nombreNegocio }}</h2>
+                  <p>{{ generarFactura(mesaSeleccionada).config.direccion }}</p>
+                  <p>Tel: {{ generarFactura(mesaSeleccionada).config.telefono }}</p>
+                  <p>NIT: {{ generarFactura(mesaSeleccionada).config.nit }}</p>
+                  <p>{{ generarFactura(mesaSeleccionada).config.email }}</p>
+                </div>
+                <div class="info-factura">
+                  <div class="numero-factura">{{ generarFactura(mesaSeleccionada).numeroFactura }}</div>
+                  <div class="fecha-factura">{{ generarFactura(mesaSeleccionada).fecha }}</div>
+                  <div class="hora-factura">{{ generarFactura(mesaSeleccionada).hora }}</div>
+                </div>
+              </div>
+
+              <!-- Información de la mesa -->
+              <div class="mesa-info">
+                <div class="mesa-numero-factura">Mesa: {{ mesaSeleccionada.numeroMesa }}</div>
+                <div class="mesa-fecha-factura">Fecha: {{ formatearFecha(mesaSeleccionada.fecha) }}</div>
+              </div>
+
+              <!-- Tabla de productos -->
+              <div class="productos-factura">
+                <div *ngIf="mesaSeleccionada.cargandoProductos" class="loading-productos">
+                  <p>🔄 Cargando productos...</p>
+                </div>
+                <table class="factura-table" *ngIf="!mesaSeleccionada.cargandoProductos">
+                  <thead>
+                    <tr>
+                      <th>Producto</th>
+                      <th>Cant.</th>
+                      <th>Precio</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let item of generarFactura(mesaSeleccionada).items">
+                      <td>{{ item.descripcion }}</td>
+                      <td>{{ item.cantidad }}</td>
+                      <td>{{ formatearMoneda(item.precioUnitario) }}</td>
+                      <td>{{ formatearMoneda(item.total) }}</td>
+                    </tr>
+                    <tr *ngIf="generarFactura(mesaSeleccionada).items.length === 0">
+                      <td colspan="4" style="text-align: center; color: #999;">
+                        Sin productos registrados
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Totales -->
+              <div class="totales-factura">
+                <div class="total-linea">
+                  <span>Subtotal:</span>
+                  <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).subtotal) }}</span>
+                </div>
+                <div class="total-linea" *ngIf="generarFactura(mesaSeleccionada).config.mostrarIVA">
+                  <span>IVA ({{ generarFactura(mesaSeleccionada).config.porcentajeIVA }}%):</span>
+                  <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).iva) }}</span>
+                </div>
+                <div class="total-linea total-final">
+                  <span>Total:</span>
+                  <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).total) }}</span>
+                </div>
+              </div>
+
+              <!-- Pie de factura -->
+              <div class="factura-footer">
+                <p>{{ generarFactura(mesaSeleccionada).config.mensajePie }}</p>
+              </div>
+
+              <!-- Código QR (si está configurado) -->
+              <div class="factura-qr" *ngIf="generarFactura(mesaSeleccionada).config.mostrarQR">
+                <div class="qr-placeholder">📱 Código QR</div>
+              </div>
             </div>
-            <div class="stat-item" *ngIf="tipoReporteActual === 'mesas'">
-              <span class="stat-label">Total:</span>
-              <span class="stat-valor">{{ formatearMoneda(getTotalMesas()) }}</span>
-            </div>
-            <div class="stat-item" *ngIf="tipoReporteActual === 'gastos'">
-              <span class="stat-label">Total:</span>
-              <span class="stat-valor">{{ formatearMoneda(gastosTotalFiltrados) }}</span>
-            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-secondary" (click)="cerrarModalFactura()">
+              ❌ Cancelar
+            </button>
+            <button class="btn btn-success" (click)="exportarFacturaPDF()"
+              [disabled]="isImprimiendo || mesaSeleccionada?.cargandoProductos">
+              📄 Exportar PDF
+            </button>
+            <button class="btn btn-primary" (click)="imprimirFactura()"
+              [disabled]="isImprimiendo || mesaSeleccionada?.cargandoProductos">
+              <span *ngIf="isImprimiendo">🔄</span>
+              <span *ngIf="!isImprimiendo">🖨️</span>
+              {{ isImprimiendo ? 'Imprimiendo...' : 'Imprimir' }}
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="modal-footer">
-      <button class="btn btn-secondary" (click)="cerrarModalExportar()">
-        ❌ Cancelar
-      </button>
-      <button 
-        class="btn btn-success" 
-        (click)="confirmarExportacion()"
-        [disabled]="!formatoSeleccionado || isExportando">
-        <span *ngIf="isExportando">🔄</span>
-        <span *ngIf="!isExportando">🚀</span>
-        {{ isExportando ? 'Exportando...' : 'Exportar Reporte' }}
-      </button>
+    <!-- Modal para Exportar Reportes -->
+    <div *ngIf="mostrarModalExportar" class="modal-overlay" (click)="cerrarModalExportar()">
+      <div class="modal-exportar" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>📄 Exportar Reporte</h3>
+          <button class="btn-cerrar-modal" (click)="cerrarModalExportar()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Información del reporte -->
+          <div class="reporte-info">
+            <div class="reporte-tipo">
+              <span class="tipo-icono">{{ getIconoTipoReporte(tipoReporteActual) }}</span>
+              <span class="tipo-nombre">{{ getNombreTab(tipoReporteActual) }}</span>
+            </div>
+            <div class="reporte-detalles">
+              <p><strong>Período:</strong> {{ fechaInicio }} - {{ fechaFin }}</p>
+              <p><strong>Generado:</strong> {{ getFechaActual() }}</p>
+              <p><strong>Registros:</strong> {{ getCantidadRegistros(tipoReporteActual) }}</p>
+            </div>
+          </div>
+
+          <!-- Opciones de exportación -->
+          <div class="opciones-exportacion">
+            <h4>🎯 Seleccione el formato de exportación:</h4>
+
+            <div class="formato-grid">
+              <!-- Opción Excel -->
+              <div class="formato-option" [class.selected]="formatoSeleccionado === 'excel'"
+                (click)="seleccionarFormato('excel')">
+                <div class="formato-icono">📊</div>
+                <div class="formato-contenido">
+                  <div class="formato-titulo">Excel (.csv)</div>
+                  <div class="formato-descripcion">Ideal para análisis de datos y cálculos</div>
+                  <div class="formato-beneficios">
+                    <span class="beneficio">✓ Fácil edición</span>
+                    <span class="beneficio">✓ Compatibilidad universal</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Opción PDF -->
+              <div class="formato-option" [class.selected]="formatoSeleccionado === 'pdf'"
+                (click)="seleccionarFormato('pdf')">
+                <div class="formato-icono">📄</div>
+                <div class="formato-contenido">
+                  <div class="formato-titulo">PDF</div>
+                  <div class="formato-descripcion">Perfecto para presentaciones e informes</div>
+                  <div class="formato-beneficios">
+                    <span class="beneficio">✓ Formato profesional</span>
+                    <span class="beneficio">✓ Fácil impresión</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Opción Portapapeles -->
+              <div class="formato-option" [class.selected]="formatoSeleccionado === 'clipboard'"
+                (click)="seleccionarFormato('clipboard')">
+                <div class="formato-icono">📋</div>
+                <div class="formato-contenido">
+                  <div class="formato-titulo">Portapapeles</div>
+                  <div class="formato-descripcion">Copia rápida para pegar en otros programas</div>
+                  <div class="formato-beneficios">
+                    <span class="beneficio">✓ Acceso inmediato</span>
+                    <span class="beneficio">✓ Flexibilidad total</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuraciones adicionales -->
+          <div class="configuraciones-extra" *ngIf="formatoSeleccionado">
+            <h4>⚙️ Configuraciones adicionales:</h4>
+
+            <div class="config-opciones">
+              <label class="config-item">
+                <input type="checkbox" [(ngModel)]="incluirResumen" checked>
+                <span class="checkmark"></span>
+                <span class="config-label">Incluir resumen ejecutivo</span>
+              </label>
+
+              <label class="config-item">
+                <input type="checkbox" [(ngModel)]="incluirGraficos" [disabled]="formatoSeleccionado === 'clipboard'">
+                <span class="checkmark"></span>
+                <span class="config-label">Incluir elementos visuales {{ formatoSeleccionado === 'clipboard' ? '(No
+                  disponible para portapapeles)' : '' }}</span>
+              </label>
+
+              <label class="config-item" *ngIf="formatoSeleccionado === 'excel'">
+                <input type="checkbox" [(ngModel)]="incluirFormulas">
+                <span class="checkmark"></span>
+                <span class="config-label">Incluir fórmulas automáticas</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Preview del contenido -->
+          <div class="preview-contenido" *ngIf="formatoSeleccionado">
+            <h4>👀 Vista previa del contenido:</h4>
+            <div class="preview-box">
+              <div class="preview-header">
+                <span class="preview-titulo">{{ getNombreTab(tipoReporteActual) }}</span>
+                <span class="preview-fecha">{{ getFechaActual() }}</span>
+              </div>
+              <div class="preview-estadisticas">
+                <div class="stat-item">
+                  <span class="stat-label">Registros:</span>
+                  <span class="stat-valor">{{ getCantidadRegistros(tipoReporteActual) }}</span>
+                </div>
+                <div class="stat-item" *ngIf="tipoReporteActual === 'mesas'">
+                  <span class="stat-label">Total:</span>
+                  <span class="stat-valor">{{ formatearMoneda(getTotalMesas()) }}</span>
+                </div>
+                <div class="stat-item" *ngIf="tipoReporteActual === 'gastos'">
+                  <span class="stat-label">Total:</span>
+                  <span class="stat-valor">{{ formatearMoneda(gastosTotalFiltrados) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="cerrarModalExportar()">
+            ❌ Cancelar
+          </button>
+          <button class="btn btn-success" (click)="confirmarExportacion()"
+            [disabled]="!formatoSeleccionado || isExportando">
+            <span *ngIf="isExportando">🔄</span>
+            <span *ngIf="!isExportando">🚀</span>
+            {{ isExportando ? 'Exportando...' : 'Exportar Reporte' }}
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-</div>

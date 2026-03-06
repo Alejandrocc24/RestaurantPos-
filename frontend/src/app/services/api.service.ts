@@ -97,10 +97,11 @@ export class ApiService {
   }
 
   // ============ ORDENES (VENTAS) ============
-  getOrdenes(skip?: number, take?: number): Observable<ApiResponse<Orden[]>> {
+  getOrdenes(skip?: number, take?: number, soloActivos?: boolean): Observable<ApiResponse<Orden[]>> {
     let params = new HttpParams();
     if (skip !== undefined) params = params.set('skip', skip.toString());
     if (take !== undefined) params = params.set('take', take.toString());
+    if (soloActivos) params = params.set('soloActivos', 'true');
     return this.withHandling(this.http.get<ApiResponse<Orden[]>>(`${this.baseUrl}/ordenes`, { params }));
   }
 
@@ -125,7 +126,11 @@ export class ApiService {
   }
 
   actualizarEstadoPedido(id: number | string, estado: string): Observable<ApiResponse<Orden>> {
-    return this.updateOrden(id.toString(), { estado: estado as any });
+    let backendEstado = estado.toUpperCase();
+    if (backendEstado === 'EN_PROGRESO') backendEstado = 'EN_CURSO';
+    if (backendEstado === 'COMPLETADO') backendEstado = 'COMPLETADA';
+
+    return this.updateOrden(id.toString(), { estado: backendEstado as any });
   }
 
   ocultarPedidosCocina(ids: number[]): Observable<ApiResponse<any>> {
@@ -284,8 +289,8 @@ export class ApiService {
     return this.withHandling(this.http.get(`${this.baseUrl}/ordenes/mesa/${mesaId}/activa`)).toPromise() as Promise<any>;
   }
 
-  actualizarCantidadesProductos(pedidoId: number | string, productos: any[]): Promise<any> {
-    return this.withHandling(this.http.patch(`${this.baseUrl}/ordenes/${pedidoId}/cantidades`, { productos })).toPromise() as Promise<any>;
+  actualizarCantidadesProductos(pedidoId: number | string, productos: any[], esCobro: boolean = false): Promise<any> {
+    return this.withHandling(this.http.patch(`${this.baseUrl}/ordenes/${pedidoId}/cantidades?esCobro=${esCobro}`, { productos })).toPromise() as Promise<any>;
   }
 
   transferirProductosMesa(payload: any): Promise<any> {

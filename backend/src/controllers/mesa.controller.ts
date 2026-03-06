@@ -10,16 +10,36 @@ export class MesaController {
       const mesas = await req.prisma.mesa.findMany({
         orderBy: { numero: 'asc' },
         include: {
+          // Solo incluimos órdenes OCUPADAS para saber si hay productos (no para calcular estado)
+          // El estado oficial de la mesa viene del campo `estado` de la BD
           ordenes: {
-            where: { estado: { in: ['PENDIENTE', 'EN_CURSO'] } },
+            where: { estado: { in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA'] } },
+            take: 1, // solo necesitamos saber si hay alguna
           },
         },
+      });
+
+      // Usar el estado real de la BD — no recalcular desde órdenes.
+      // Una mesa puede estar DISPONIBLE aunque tenga órdenes PENDIENTE/EN_CURSO en cocina
+      // (el mesero cerró la mesa pero la cocina aún prepara el pedido).
+      const mesasConEstado = mesas.map((mesa: any) => {
+        // Normalizar: la BD puede tener OCUPADA/DISPONIBLE en mayúsculas
+        const estadoNormalizado = String(mesa.estado ?? 'DISPONIBLE').toLowerCase();
+        const estadoFrontend = (estadoNormalizado === 'ocupada' || estadoNormalizado === 'ocupado')
+          ? 'OCUPADA'
+          : 'DISPONIBLE';
+
+        return {
+          ...mesa,
+          estado: estadoFrontend,
+          tieneOrdenActiva: mesa.ordenes?.length > 0,
+        };
       });
 
       res.json({
         success: true,
         message: 'Mesas obtenidas',
-        data: mesas,
+        data: mesasConEstado,
       });
     } catch (error: any) {
       res.status(500).json({
@@ -134,16 +154,9 @@ export class MesaController {
           message: 'Estado inválido',
         });
       }
-      if (estadoUpper === 'DISPONIBLE') {
-        // Cancelar cualquier orden activa al liberar la mesa
-        await req.prisma.orden.updateMany({
-          where: {
-            mesaId: id,
-            estado: { in: ['PENDIENTE', 'EN_CURSO'] }
-          },
-          data: { estado: 'CANCELADA' }
-        });
-      }
+      // Al liberar la mesa solo se actualiza su estado — las órdenes mantienen el suyo.
+      // La cocina sigue viendo y procesando las comandas independientemente del estado de la mesa.
+
 
       // store normalized value
       const mesa = await req.prisma.mesa.update({
@@ -219,16 +232,8 @@ export class MesaController {
         data.activo = activo;
       }
 
-      if (data.estado === 'DISPONIBLE') {
-        // Cancelar cualquier orden activa al liberar la mesa
-        await req.prisma.orden.updateMany({
-          where: {
-            mesaId: id,
-            estado: { in: ['PENDIENTE', 'EN_CURSO'] }
-          },
-          data: { estado: 'CANCELADA' }
-        });
-      }
+      // Al liberar la mesa solo se actualiza su estado — las órdenes mantienen el suyo.
+
 
       console.log(`🔄 [MesaController.update] Actualizando BD con payload:`, data);
       const mesa = await req.prisma.mesa.update({

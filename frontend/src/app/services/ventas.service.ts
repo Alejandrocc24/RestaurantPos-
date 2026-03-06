@@ -38,13 +38,13 @@ export interface Caja {
   providedIn: 'root'
 })
 export class VentasService {
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService) { }
 
   /**
    * Obtener todas las órdenes (ventas) con paginación
    */
-  getOrdenes(skip: number = 0, take: number = 50): Observable<Orden[]> {
-    return this.apiService.getOrdenes(skip, take).pipe(
+  getOrdenes(skip: number = 0, take: number = 50, soloActivos?: boolean): Observable<Orden[]> {
+    return this.apiService.getOrdenes(skip, take, soloActivos).pipe(
       map((response: ApiResponse<Orden[]>) => {
         if (response.success && response.data) {
           return response.data;
@@ -201,7 +201,7 @@ export class VentasService {
     return this.getOrdenesCerradas().pipe(
       map(ordenes => {
         const totalRecaudado = ordenes.reduce((sum, orden) => sum + (orden.total || 0), 0);
-        const productosVendidos = ordenes.reduce((sum, orden) => 
+        const productosVendidos = ordenes.reduce((sum, orden) =>
           sum + (orden.productos?.reduce((s, p) => s + p.cantidad, 0) || 0), 0
         );
         const promedioTicket = ordenes.length > 0 ? totalRecaudado / ordenes.length : 0;

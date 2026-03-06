@@ -8,14 +8,31 @@ export class VentaController {
   static async getAll(req: Request, res: Response) {
     try {
       const skip = parseInt(req.query.skip as string) || 0;
-      const take = parseInt(req.query.take as string) || 50;
+      let take: number | undefined = parseInt(req.query.take as string) || 50;
+      const fechaInicio = req.query.fechaInicio as string;
+      const fechaFin = req.query.fechaFin as string;
+
+      const where: any = {};
+
+      if (fechaInicio || fechaFin) {
+        where.fecha = {};
+        if (fechaInicio) {
+          where.fecha.gte = new Date(fechaInicio + 'T00:00:00.000Z');
+        }
+        if (fechaFin) {
+          where.fecha.lte = new Date(fechaFin + 'T23:59:59.999Z');
+        }
+        // Si hay un rango de fechas explícito, removemos el límite implícito
+        take = parseInt(req.query.take as string) || undefined;
+      }
 
       const ventas = await req.prisma.venta.findMany({
         skip,
-        take,
+        ...(take !== undefined ? { take } : {}),
+        where,
         orderBy: { createdAt: 'desc' },
         include: {
-          mesa: true,
+          mesa: { select: { id: true, numero: true } },
           usuario: { select: { id: true, nombre: true, email: true } },
         },
       });
@@ -44,7 +61,7 @@ export class VentaController {
       const venta = await req.prisma.venta.findUnique({
         where: { id },
         include: {
-          mesa: true,
+          mesa: { select: { id: true, numero: true } },
           usuario: { select: { id: true, nombre: true, email: true } },
         },
       });
@@ -83,16 +100,12 @@ export class VentaController {
         estado = 'completada',
         metodo_pago,
         fecha,
+        cantidad_productos,
+        productos_json,
       } = req.body;
 
       console.log('📥 [VentaController.create] Payload recibido:', {
-        mesa_id,
-        usuario_id,
-        orden_id,
-        total,
-        estado,
-        metodo_pago,
-        fecha
+        mesa_id, usuario_id, orden_id, total, estado, metodo_pago, fecha, cantidad_productos
       });
 
       // Validar campos requeridos
@@ -124,10 +137,12 @@ export class VentaController {
           total: parseFloat(total),
           estado,
           metodoPago: metodo_pago,
+          cantidadProductos: parseInt(cantidad_productos) || 0,
+          productosJson: productos_json ? JSON.stringify(productos_json) : null,
           fecha: fecha ? new Date(fecha) : new Date(),
         },
         include: {
-          mesa: true,
+          mesa: { select: { id: true, numero: true } },
           usuario: { select: { id: true, nombre: true, email: true } },
         },
       });
@@ -258,7 +273,7 @@ export class VentaController {
         },
         orderBy: { createdAt: 'desc' },
         include: {
-          mesa: true,
+          mesa: { select: { id: true, numero: true } },
           usuario: { select: { id: true, nombre: true, email: true } },
         },
       });

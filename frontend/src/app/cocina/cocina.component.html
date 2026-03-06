@@ -1,17 +1,17 @@
-<div class="cocina-container">
+<div class="cocina-container" (scroll)="onScroll($event)">
   <!-- Header de la pantalla de cocina -->
   <div class="cocina-header">
     <div class="header-left">
       <h1>👨‍🍳 Pantalla de Cocina</h1>
     </div>
-    
+
     <div class="header-center">
       <div class="tiempo-actual">
         <span class="tiempo-label">Hora actual:</span>
         <span class="tiempo-valor">{{ tiempoActual | date:'HH:mm:ss' }}</span>
       </div>
     </div>
-    
+
     <div class="header-right">
       <div class="contadores">
         <div class="contador">
@@ -36,49 +36,30 @@
       <label class="filtro-label">Filtrar por estado:</label>
       <div class="filtros-checkboxes">
         <label class="filtro-checkbox">
-          <input 
-            type="checkbox" 
-            value="todos" 
-            [checked]="filtrosEstado.includes('todos')"
-            (change)="cambiarFiltro($event)"
-            class="filtro-input">
+          <input type="checkbox" value="todos" [checked]="filtrosEstado.includes('todos')"
+            (change)="cambiarFiltro($event)" class="filtro-input">
           <span class="filtro-text filtro-text-full">Todos</span>
           <span class="filtro-text filtro-text-short">✓</span>
         </label>
         <label class="filtro-checkbox">
-          <input 
-            type="checkbox" 
-            value="pendiente" 
-            [checked]="filtrosEstado.includes('pendiente')"
-            (change)="cambiarFiltro($event)"
-            class="filtro-input">
+          <input type="checkbox" value="pendiente" [checked]="filtrosEstado.includes('pendiente')"
+            (change)="cambiarFiltro($event)" class="filtro-input">
           <span class="filtro-text filtro-text-full">Pendientes</span>
           <span class="filtro-text filtro-text-short">⏳</span>
         </label>
         <label class="filtro-checkbox">
-          <input 
-            type="checkbox" 
-            value="en_progreso" 
-            [checked]="filtrosEstado.includes('en_progreso')"
-            (change)="cambiarFiltro($event)"
-            class="filtro-input">
+          <input type="checkbox" value="en_progreso" [checked]="filtrosEstado.includes('en_progreso')"
+            (change)="cambiarFiltro($event)" class="filtro-input">
           <span class="filtro-text filtro-text-full">En Preparación</span>
           <span class="filtro-text filtro-text-short">🔥</span>
         </label>
         <label class="filtro-checkbox">
-          <input 
-            type="checkbox" 
-            value="completado" 
-            [checked]="filtrosEstado.includes('completado')"
-            (change)="cambiarFiltro($event)"
-            class="filtro-input">
+          <input type="checkbox" value="completado" [checked]="filtrosEstado.includes('completado')"
+            (change)="cambiarFiltro($event)" class="filtro-input">
           <span class="filtro-text filtro-text-full">Completadas</span>
           <span class="filtro-text filtro-text-short">✅</span>
         </label>
-        <button 
-          class="btn-limpiar-filtros" 
-          (click)="limpiarFiltros()"
-          title="Limpiar filtros">
+        <button class="btn-limpiar-filtros" (click)="limpiarFiltros()" title="Limpiar filtros">
           🗑️
         </button>
       </div>
@@ -102,7 +83,8 @@
       <p>Selecciona otro filtro o espera nuevas órdenes</p>
     </div>
 
-    <div *ngFor="let orden of ordenesFiltradas" class="orden-card" [ngClass]="'estado-' + orden.estado">
+    <div *ngFor="let orden of ordenesFiltradas; trackBy: trackByOrden" class="orden-card"
+      [ngClass]="'estado-' + orden.estado">
       <!-- Header de la orden -->
       <div class="orden-header">
         <div class="orden-info-principal">
@@ -110,17 +92,17 @@
             <span class="mesa-icon">🪑</span>
             <span class="mesa-numero">Mesa {{ orden.numeroMesa }}</span>
           </div>
-          <div class="orden-id">#{{ orden.id }}</div>
+          <div class="orden-id">#{{ orden.id | slice:-4 | uppercase }}</div>
         </div>
-        
+
         <div class="orden-header-right">
           <div class="orden-usuario" *ngIf="orden.usuarioNombre">
             <span class="usuario-icon">👤</span>
             <span class="usuario-nombre">{{ orden.usuarioNombre }}</span>
           </div>
           <div class="estado-badge" [style.background-color]="obtenerColorEstado(orden.estado)">
-            {{ orden.estado === 'pendiente' ? '⏳ Pendiente' : 
-               orden.estado === 'en_progreso' ? '🔥 En Preparación' : '✅ Completada' }}
+            {{ orden.estado === 'pendiente' ? '⏳ Pendiente' :
+            orden.estado === 'en_progreso' ? '🔥 En Preparación' : '✅ Completada' }}
           </div>
         </div>
       </div>
@@ -152,7 +134,7 @@
               {{ item.nombre }}
               <span *ngIf="item.esReciente" class="nuevo-badge">¡NUEVO!</span>
             </div>
-            
+
             <!-- Grupos de Modificadores -->
             <div class="grupos-modificadores" *ngIf="item.gruposModificadores.length > 0">
               <div class="grupo-modificador" *ngFor="let grupo of item.gruposModificadores">
@@ -165,7 +147,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="item-notas" *ngIf="item.notas">
               <span class="notas-icon">📝</span>
               <span class="notas-texto">{{ item.notas }}</span>
@@ -189,19 +171,15 @@
 
       <!-- Controles de la orden al final -->
       <div class="controles-orden-final" *ngIf="orden.estado !== 'completado'">
-        <button 
-          *ngIf="orden.estado === 'pendiente' && puedePreparar()"
-          class="btn-estado btn-iniciar" 
+        <button *ngIf="orden.estado === 'pendiente' && puedePreparar()" class="btn-estado btn-iniciar"
           (click)="cambiarEstado(orden, 'en_progreso')">
           🚀 Iniciar Preparación
         </button>
-        <button 
-          *ngIf="orden.estado === 'en_progreso' && puedeCompletar()"
-          class="btn-estado btn-completar" 
+        <button *ngIf="orden.estado === 'en_progreso' && puedeCompletar()" class="btn-estado btn-completar"
           (click)="cambiarEstado(orden, 'completado')">
           ✅ Marcar Completada
         </button>
-        
+
         <!-- Mensaje si no tiene permisos -->
         <div *ngIf="orden.estado === 'pendiente' && !puedePreparar()" class="sin-permiso-msg">
           🔒 Solo lectura - No tienes permiso para iniciar preparación
@@ -212,12 +190,9 @@
       </div>
     </div>
   </div>
-  
+
   <!-- Botón de volver arriba -->
-  <button 
-    class="scroll-indicator" 
-    (click)="scrollToTop()"
-    title="Volver arriba">
+  <button class="scroll-indicator" [class.show]="mostrarScrollTop" (click)="scrollToTop()" title="Volver arriba">
     ⬆️ Arriba
   </button>
 </div>

@@ -104,8 +104,8 @@ export class SupabaseService {
     return true;
   }
 
-  async actualizarCantidadesProductos(pedidoId: string | number, productosActualizados: any[]) {
-    const resp = await this.api.actualizarCantidadesProductos(pedidoId, productosActualizados);
+  async actualizarCantidadesProductos(pedidoId: string | number, productosActualizados: any[], esCobro: boolean = false) {
+    const resp = await this.api.actualizarCantidadesProductos(pedidoId, productosActualizados, esCobro);
     if (!resp?.success) throw new Error(resp?.error || 'Error al actualizar cantidades');
     return resp; // Se requiere resp completo porque ahí viene pedidoCerrado
   }
@@ -286,19 +286,18 @@ export class SupabaseService {
 
   async getVentas(fechaInicio?: string, fechaFin?: string) {
     try {
-      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService
-      const ventasResp = await firstValueFrom(this.api.getData('ventas'));
-      const ventas = ventasResp.data || [];
-
-      if (!fechaInicio || !fechaFin) {
-        return ventas;
+      let url = 'ventas';
+      if (fechaInicio || fechaFin) {
+        url = `ventas?take=10000`;
+        if (fechaInicio) url += `&fechaInicio=${fechaInicio}`;
+        if (fechaFin) url += `&fechaFin=${fechaFin}`;
+      } else {
+        url = 'ventas?take=10000';
       }
 
-      // Filtrar ventas en el rango de fechas
-      return ventas.filter((venta: any) => {
-        const fechaVenta = venta.fecha?.split('T')[0] || venta.fecha;
-        return fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
-      });
+      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService pasándole el querystring y que lo retorne el backend
+      const ventasResp = await firstValueFrom(this.api.getData(url));
+      return ventasResp.data || [];
     } catch (error) {
       console.error('Error al obtener ventas:', error);
       return [];
@@ -382,8 +381,7 @@ export class SupabaseService {
       console.log('🔍 Obteniendo recaudo para fecha:', fechaLocal);
 
       // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService
-      const ventasResp = await firstValueFrom(this.api.getData('ventas'));
-      const ventas = ventasResp.data || [];
+      const ventas = await this.getVentas(fechaLocal, fechaLocal);
 
       console.log('📊 Total de ventas obtenidas:', ventas.length);
 
@@ -435,7 +433,7 @@ export class SupabaseService {
         total += ventaTotal;
 
         // Clasificar por método de pago
-        const metodoPago = (v.metodo_pago || 'efectivo').toLowerCase();
+        const metodoPago = (v.metodoPago || v.metodo_pago || 'efectivo').toLowerCase();
         if (metodoPago === 'efectivo') {
           pagosEfectivo += ventaTotal;
         } else if (metodoPago === 'transferencia') {
@@ -461,9 +459,8 @@ export class SupabaseService {
     try {
       console.log('🔍 Obteniendo mesas cerradas para período:', fechaInicio, 'a', fechaFin);
 
-      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService
-      const ventasResp = await firstValueFrom(this.api.getData('ventas'));
-      const ventas = ventasResp.data || [];
+      // ✅ SOLUCIÓN DIRECTA: Solo necesitamos las ventas, el backend ya incluye la mesa
+      const ventas = await this.getVentas(fechaInicio, fechaFin);
 
       console.log('📊 Total de ventas obtenidas:', ventas.length);
 
@@ -508,157 +505,104 @@ export class SupabaseService {
       }
 
       // Mapear cada venta a una mesa cerrada individual
-      return ventasFiltradas.map((venta: any) => ({
-        id: venta.id,
-        numeroMesa: venta.mesa_id,
-        total: venta.total || 0,
-        fecha: venta.fecha,
-        metodoPago: venta.metodo_pago,
-        estado: venta.estado,
-        cantidadProductos: 0 // Se puede calcular si es necesario
-      }));
+      return ventasFiltradas.map((venta: any) => {
+        // La mesa viene included directamente por el backend
+        const mesaVenta = venta.mesa;
+        const mesaIdVenta = venta.mesaId || venta.mesa_id;
+        // cantidadProductos viene directamente del campo de la venta (guardado al cobrar)
+        const cantidadProductos = venta.cantidadProductos || 0;
+
+        return {
+          id: venta.id,
+          numeroMesa: mesaVenta ? mesaVenta.numero : mesaIdVenta,
+          total: venta.total || 0,
+          fecha: venta.fecha || venta.createdAt,
+          metodoPago: venta.metodoPago || venta.metodo_pago,
+          estado: venta.estado,
+          cantidadProductos: cantidadProductos
+        };
+      });
     } catch (error) {
       console.error('Error obteniendo mesas cerradas:', error);
       return [];
     }
   }
 
-  async obtenerProductosVenta(ventaId: number): Promise<any[]> {
+  async obtenerProductosVenta(ventaId: string): Promise<any[]> {
     try {
       console.log('🔍 Buscando productos para venta ID:', ventaId);
 
-      // ✅ SOLUCIÓN ROBUSTA: Usar el método estándar del ApiService
-      // que maneja correctamente los filtros internos
-      const ventaResp = await firstValueFrom(this.api.getData('ventas'));
-      const ventas = ventaResp.data || [];
+      // Fetch the specific venta by ID directly
+      const ventaResp = await firstValueFrom(this.api.getData('ventas/' + ventaId)).catch(() => null);
+      let venta = ventaResp?.data;
 
-      // Filtrar la venta específica usando el ID
-      const venta = ventas.find((v: any) => v.id === ventaId);
-
-      console.log('📦 Venta encontrada:', venta);
+      // If the endpoint doesn't support by id, fall back to listing and finding
+      if (!venta) {
+        const ventasResp = await firstValueFrom(this.api.getData('ventas'));
+        const ventas = ventasResp.data || [];
+        venta = ventas.find((v: any) => v.id === ventaId);
+      }
 
       if (!venta) {
         console.warn('⚠️ No se encontró la venta con ID:', ventaId);
         return [];
       }
 
-      // Si la venta tiene pedido_id, obtener productos del pedido
-      if (venta.pedido_id) {
-        console.log('🛒 Obteniendo productos del pedido:', venta.pedido_id);
+      // ✅ PRIMERO: Intentar usar el snapshot guardado en productosJson
+      if (venta.productosJson) {
+        try {
+          const productosGuardados = typeof venta.productosJson === 'string'
+            ? JSON.parse(venta.productosJson)
+            : venta.productosJson;
 
-        const detallesResp = await firstValueFrom(this.api.getData('detalles_pedido'));
-        const detalles = detallesResp.data || [];
-        const detallesPedido = detalles.filter((d: any) => d.pedido_id === venta.pedido_id);
-
-        console.log('📋 Detalles del pedido:', detallesPedido);
-
-        if (detallesPedido.length === 0) {
-          console.warn('⚠️ No se encontraron productos en el pedido, intentando fallback por mesa_id...');
-
-          // Fallback: si tenemos mesa_id, buscar el pedido cerrado de esa mesa y reconstruir
-          if (venta.mesa_id) {
-            const pedidosResp = await firstValueFrom(this.api.getData('pedidos'));
-            const pedidos = pedidosResp.data || [];
-            const pedidoCerrado = pedidos
-              .filter((p: any) => p.mesa_id === venta.mesa_id && p.estado === 'cerrado')
-              .sort((a: any, b: any) => new Date(b.fecha || b.created_at || 0).getTime() - new Date(a.fecha || a.created_at || 0).getTime())[0];
-
-            console.log('🛒 Pedido cerrado (fallback) encontrado:', pedidoCerrado);
-
-            if (pedidoCerrado) {
-              const detallesResp2 = await firstValueFrom(this.api.getData('detalles_pedido'));
-              const detalles2 = detallesResp2.data || [];
-              const detallesPedido2 = detalles2.filter((d: any) => d.pedido_id === pedidoCerrado.id);
-
-              const productosResp2 = await firstValueFrom(this.api.getData('productos'));
-              const productos2 = productosResp2.data || [];
-
-              const productosVenta2 = detallesPedido2.map((detalle: any) => {
-                const producto = productos2.find((p: any) => p.id === detalle.producto_id);
-                return {
-                  id: detalle.id,
-                  nombre: producto?.nombre || 'Producto',
-                  descripcion: producto?.descripcion || '',
-                  cantidad: detalle.cantidad || 0,
-                  precio: detalle.precio_unitario || 0,
-                  subtotal: detalle.subtotal || 0,
-                  personalizacion: detalle.personalizacion || '',
-                  notas: detalle.notas || ''
-                };
-              });
-
-              console.log('✅ Productos mapeados (fallback):', productosVenta2);
-              return productosVenta2;
-            }
+          if (Array.isArray(productosGuardados) && productosGuardados.length > 0) {
+            console.log('✅ Usando productos del snapshot:', productosGuardados.length);
+            return productosGuardados.map((p: any) => ({
+              id: p.id || '0',
+              nombre: p.nombre || 'Producto',
+              descripcion: p.descripcion || '',
+              cantidad: p.cantidad || 0,
+              precio: p.precio || 0,
+              subtotal: p.subtotal || (p.cantidad * p.precio) || 0,
+              personalizacion: p.comentario || p.personalizacion || '',
+              notas: p.notas || ''
+            }));
           }
-
-          return [];
+        } catch (e) {
+          console.warn('⚠️ Error parseando productosJson, intentando con orden...');
         }
-
-        // Obtener información de productos
-        const productosResp = await firstValueFrom(this.api.getData('productos'));
-        const productos = productosResp.data || [];
-
-        // Mapear detalles con información de productos
-        const productosVenta = detallesPedido.map((detalle: any) => {
-          const producto = productos.find((p: any) => p.id === detalle.producto_id);
-          return {
-            id: detalle.id,
-            nombre: producto?.nombre || 'Producto',
-            descripcion: producto?.descripcion || '',
-            cantidad: detalle.cantidad || 0,
-            precio: detalle.precio_unitario || 0,
-            subtotal: detalle.subtotal || 0,
-            personalizacion: detalle.personalizacion || '',
-            notas: detalle.notas || ''
-          };
-        });
-
-        console.log('✅ Productos mapeados:', productosVenta);
-        return productosVenta;
       }
 
-      // Si no tiene pedido_id, buscar por mesa_id
-      if (venta.mesa_id) {
-        console.log('🍽️ Buscando pedido por mesa_id:', venta.mesa_id);
-
-        const pedidosResp = await firstValueFrom(this.api.getData('pedidos'));
-        const pedidos = pedidosResp.data || [];
-        const pedido = pedidos.find((p: any) => p.mesa_id === venta.mesa_id && p.estado === 'cerrado');
-
-        console.log('🛒 Pedido encontrado:', pedido);
-
-        if (!pedido) {
-          console.warn('⚠️ No se encontró pedido cerrado para la mesa');
-          return [];
-        }
-
-        const detallesResp = await firstValueFrom(this.api.getData('detalles_pedido'));
-        const detalles = detallesResp.data || [];
-        const detallesPedido = detalles.filter((d: any) => d.pedido_id === pedido.id);
-
-        // Obtener información de productos
-        const productosResp = await firstValueFrom(this.api.getData('productos'));
-        const productos = productosResp.data || [];
-
-        // Mapear detalles con información de productos
-        return detallesPedido.map((detalle: any) => {
-          const producto = productos.find((p: any) => p.id === detalle.producto_id);
-          return {
-            id: detalle.id,
-            nombre: producto?.nombre || 'Producto',
-            descripcion: producto?.descripcion || '',
-            cantidad: detalle.cantidad || 0,
-            precio: detalle.precio_unitario || 0,
-            subtotal: detalle.subtotal || 0,
-            personalizacion: detalle.personalizacion || '',
-            notas: detalle.notas || ''
-          };
-        });
+      // FALLBACK: Intentar buscar la orden vinculada (para ventas antiguas sin snapshot)
+      const ordenId = venta.ordenId || venta.orden_id;
+      if (!ordenId) {
+        console.warn('⚠️ La venta no tiene orden vinculada ni snapshot de productos');
+        return [];
       }
 
-      console.warn('⚠️ Venta sin pedido_id ni mesa_id');
-      return [];
+      const ordenResp = await firstValueFrom(this.api.getData('ordenes/' + ordenId)).catch(() => null);
+      const orden = ordenResp?.data;
+
+      if (!orden || !orden.productos || orden.productos.length === 0) {
+        console.warn('⚠️ La orden no tiene productos (posiblemente ya cobrada):', ordenId);
+        return [];
+      }
+
+      console.log('✅ Productos de la orden (fallback):', orden.productos.length);
+
+      return orden.productos.map((item: any) => {
+        const producto = item.producto || {};
+        return {
+          id: item.id,
+          nombre: producto.nombre || 'Producto',
+          descripcion: producto.descripcion || '',
+          cantidad: item.cantidad || 0,
+          precio: item.precioUnitario || producto.precio || 0,
+          subtotal: item.subtotal || 0,
+          personalizacion: item.comentario || item.personalizacion || '',
+          notas: item.notas || ''
+        };
+      });
 
     } catch (error) {
       console.error('❌ Error obteniendo productos de venta:', error);
@@ -668,77 +612,57 @@ export class SupabaseService {
 
   async obtenerEstadisticasProductos(fechaInicio: string, fechaFin: string): Promise<any[]> {
     try {
-      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService
-      const ventasResp = await firstValueFrom(this.api.getData('ventas'));
+      let url = 'ventas';
+      if (fechaInicio && fechaFin) {
+        url = `ventas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&take=10000`;
+      } else {
+        url = `ventas?take=10000`;
+      }
+
+      const ventasResp = await firstValueFrom(this.api.getData(url));
       const ventasAll = ventasResp.data || [];
 
-      // Parse dates and set to start/end of day in local timezone
-      let inicio: Date;
-      let fin: Date;
-
-      if (fechaInicio) {
-        inicio = new Date(fechaInicio + 'T00:00:00');
-      } else {
-        const now = new Date();
-        inicio = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      }
-
-      if (fechaFin) {
-        fin = new Date(fechaFin + 'T23:59:59.999');
-      } else {
-        const now = new Date();
-        fin = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      }
-
-      const ventas = ventasAll.filter((v: any) => {
-        if (!v.fecha) return false;
-        // Parse fecha from DB (may be UTC string without Z)
-        const f = new Date(v.fecha);
-        if (isNaN(f.getTime())) return false;
-
-        // Compare using local date parts to avoid timezone issues
-        const fechaLocal = new Date(f.getFullYear(), f.getMonth(), f.getDate());
-        const inicioLocal = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
-        const finLocal = new Date(fin.getFullYear(), fin.getMonth(), fin.getDate());
-
-        return fechaLocal >= inicioLocal && fechaLocal <= finLocal;
+      // Mapear catálogo de productos para obtener categoría (ya que el JSON guardado antes podía no tenerla)
+      const { data: productosCatalog } = await firstValueFrom(this.api.getData('productos')).catch(() => ({ data: [] }));
+      const categoriasPorDefecto: Record<string, string> = {};
+      (productosCatalog || []).forEach((p: any) => {
+        if (p.nombre) {
+          categoriasPorDefecto[p.nombre] = p.categoria?.nombre || p.categoria || 'Sin categoría';
+        }
       });
-
-      if (ventas.length === 0) {
-        return [];
-      }
-
-      const pedidosResp = await firstValueFrom(this.api.getData('pedidos'));
-      const pedidoIdsConVenta = new Set(
-        ventas.map((v: any) => v.pedido_id).filter((x: any) => x !== null && x !== undefined)
-      );
-
-      const detallesResp = await firstValueFrom(this.api.getData('detalles_pedido'));
-      const detallesAll = detallesResp.data || [];
-      const detalles = detallesAll.filter((d: any) => pedidoIdsConVenta.has(d.pedido_id));
-
-      const productosResp = await firstValueFrom(this.api.getData('productos'));
-      const productos = productosResp.data || [];
 
       const estadisticas: { [key: string]: { cantidad: number; total: number; precio: number; categoria: string } } = {};
 
-      detalles.forEach((detalle: any) => {
-        const producto = productos.find((p: any) => p.id === detalle.producto_id);
-        if (!producto) return;
-        const nombreProducto = producto.nombre;
-        if (!estadisticas[nombreProducto]) {
-          estadisticas[nombreProducto] = {
-            cantidad: 0,
-            total: 0,
-            precio: detalle.precio_unitario || producto.precio || 0,
-            categoria: producto.categoria || 'Sin categoría'
-          };
+      ventasAll.forEach((venta: any) => {
+        if (venta.productosJson) {
+          let productos = [];
+          try {
+            productos = typeof venta.productosJson === 'string' ? JSON.parse(venta.productosJson) : venta.productosJson;
+          } catch (e) { }
+
+          if (Array.isArray(productos)) {
+            productos.forEach((item: any) => {
+              const nombreProducto = item.nombre || item.producto?.nombre;
+              if (!nombreProducto) return;
+
+              if (!estadisticas[nombreProducto]) {
+                estadisticas[nombreProducto] = {
+                  cantidad: 0,
+                  total: 0,
+                  precio: Number(item.precio || item.precioUnitario || item.producto?.precio || 0),
+                  categoria: item.categoria || item.producto?.categoria || categoriasPorDefecto[nombreProducto] || 'Sin categoría'
+                };
+              }
+
+              const cant = Number(item.cantidad) || 0;
+              const precio = Number(item.precio || item.precioUnitario || item.producto?.precio || 0);
+              const subtotal = Number(item.subtotal || (cant * precio)) || 0;
+
+              estadisticas[nombreProducto].cantidad += cant;
+              estadisticas[nombreProducto].total += subtotal;
+            });
+          }
         }
-        const cant = Number(detalle.cantidad) || 0;
-        const precioU = Number(detalle.precio_unitario) || (producto.precio || 0);
-        const subtotal = Number(detalle.subtotal);
-        estadisticas[nombreProducto].cantidad += cant;
-        estadisticas[nombreProducto].total += Number.isFinite(subtotal) ? subtotal : (cant * precioU);
       });
 
       return Object.entries(estadisticas).map(([nombre, stats]) => ({
@@ -747,7 +671,7 @@ export class SupabaseService {
         total: stats.total,
         precio: stats.precio,
         categoria: stats.categoria
-      }));
+      })).sort((a, b) => b.cantidad - a.cantidad);
     } catch (error) {
       console.error('Error obteniendo estadísticas de productos:', error);
       return [];

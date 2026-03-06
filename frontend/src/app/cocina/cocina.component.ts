@@ -16,6 +16,8 @@ interface Orden {
   tiempoEstimado?: number; // en minutos (opcional, solo si algún producto tiene tiempo definido)
   notas: string;
   usuarioNombre?: string; // Nombre del usuario que hizo el pedido
+  enTransicion?: boolean; // Para actualizaciones optimistas
+  visibleCocina?: boolean; // Para ocultar de la cocina
 }
 
 interface GrupoModificador {
@@ -47,11 +49,21 @@ export class CocinaComponent implements OnInit, OnDestroy {
   ordenes: Orden[] = [];
   ordenesFiltradas: Orden[] = [];
   filtrosEstado: string[] = ['todos'];
+  private readonly FILTROS_STORAGE_KEY = 'cocina_filtros_estado';
 
   private timerSubscription?: Subscription;
   private destroy$ = new Subject<void>();
   tiempoActual = new Date();
   private tickCount = 0;
+
+  /** IDs de órdenes ya conocidas para detectar las verdaderamente nuevas */
+  private ordenesConocidas = new Set<any>();
+  /** true tras la primera carga (evita sonar al entrar a la vista) */
+  private primeraCargatermined = false;
+  /** Contexto de audio para el beep de notificación */
+  private audioCtx: AudioContext | null = null;
+  /** Controla visibilidad del botón "Volver arriba" */
+  mostrarScrollTop = false;
 
   constructor(
     private permissions: PermissionsService,
@@ -61,6 +73,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
+    this.cargarFiltrosGuardados();
     this.cargarPedidos();
     this.aplicarFiltros();
 
@@ -81,10 +94,59 @@ export class CocinaComponent implements OnInit, OnDestroy {
     }
     this.destroy$.next();
     this.destroy$.complete();
+    if (this.audioCtx) {
+      this.audioCtx.close();
+    }
+  }
+
+  /** Reproduce un doble beep de notificación usando Web Audio API (sin archivos externos) */
+  private reproducirSonidoNuevaOrden(): void {
+    try {
+      if (!this.audioCtx) {
+        this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = this.audioCtx;
+
+      const tocarBeep = (inicioSegundos: number, frecuencia: number, duracion: number) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frecuencia, ctx.currentTime + inicioSegundos);
+
+        gainNode.gain.setValueAtTime(0, ctx.currentTime + inicioSegundos);
+        gainNode.gain.linearRampToValueAtTime(0.4, ctx.currentTime + inicioSegundos + 0.02);
+        gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + inicioSegundos + duracion);
+
+        oscillator.start(ctx.currentTime + inicioSegundos);
+        oscillator.stop(ctx.currentTime + inicioSegundos + duracion + 0.05);
+      };
+
+      // Doble beep: tono alto (880Hz) + tono medio (660Hz)
+      tocarBeep(0, 880, 0.15);  // primer beep
+      tocarBeep(0.22, 660, 0.25);  // segundo beep más largo
+    } catch (err) {
+      // Si el navegador bloquea el audio, ignorar silenciosamente
+      console.warn('No se pudo reproducir sonido de notificación:', err);
+    }
+  }
+
+  /** Muestra u oculta el botón de volver arriba según la posición del scroll */
+  onScroll(event: Event): void {
+    const el = event.target as HTMLElement;
+    this.mostrarScrollTop = el.scrollTop > 200;
+  }
+
+  scrollToTop(): void {
+    const container = document.querySelector('.cocina-container') as HTMLElement;
+    if (container) container.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   cargarPedidos() {
-    this.ventasService.getOrdenes(0, 100)
+    this.ventasService.getOrdenes(0, 100, true)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (ordenes: any) => {
@@ -102,6 +164,11 @@ export class CocinaComponent implements OnInit, OnDestroy {
               const ordenExistente = ordenesExistentesMap.get(ordenMapeada.id);
               if (ordenExistente && ordenExistente.tiempoCreacion instanceof Date) {
                 ordenMapeada.tiempoCreacion = ordenExistente.tiempoCreacion;
+                // Preservar estado optimista si está en transición
+                if ((ordenExistente as any).enTransicion) {
+                  ordenMapeada.estado = ordenExistente.estado;
+                  (ordenMapeada as any).enTransicion = true;
+                }
                 // Preservar estado de productos recientes y detectar nuevos
                 this.preservarYDetectarProductosNuevos(ordenExistente, ordenMapeada);
               } else {
@@ -110,6 +177,18 @@ export class CocinaComponent implements OnInit, OnDestroy {
               }
               return ordenMapeada;
             });
+
+            // Detectar órdenes NUEVAS (no conocidas antes) para reproducir sonido
+            if (this.primeraCargatermined) {
+              const tieneNueva = nuevasOrdenes.some((o: Orden) => !this.ordenesConocidas.has(o.id));
+              if (tieneNueva) {
+                this.reproducirSonidoNuevaOrden();
+              }
+            }
+
+            // Actualizar conjunto de IDs conocidos
+            nuevasOrdenes.forEach((o: Orden) => this.ordenesConocidas.add(o.id));
+            this.primeraCargatermined = true;
 
             this.ordenes = nuevasOrdenes;
             this.aplicarFiltros();
@@ -122,21 +201,21 @@ export class CocinaComponent implements OnInit, OnDestroy {
   }
 
   mapearPedidoAOrden(pedido: any): Orden {
-    // ✅ El backend envía 'fecha', no 'tiempoCreacion'
+    // ✅ El backend Prisma envía 'createdAt' (no 'fecha')
     let tiempoCreacion: Date;
-    if (pedido.fecha) {
-      if (typeof pedido.fecha === 'string') {
-        // Siempre interpretar como ISO string (UTC)
-        tiempoCreacion = new Date(pedido.fecha);
-      } else if (pedido.fecha instanceof Date) {
-        tiempoCreacion = pedido.fecha;
+    const fechaRaw = pedido.createdAt || pedido.fecha;
+    if (fechaRaw) {
+      if (typeof fechaRaw === 'string') {
+        tiempoCreacion = new Date(fechaRaw);
+      } else if (fechaRaw instanceof Date) {
+        tiempoCreacion = fechaRaw;
       } else {
-        tiempoCreacion = new Date(pedido.fecha);
+        tiempoCreacion = new Date(fechaRaw);
       }
 
       // Validar fecha
       if (isNaN(tiempoCreacion.getTime())) {
-        console.warn('Fecha inválida recibida:', pedido.fecha, 'usando fecha actual');
+        console.warn('Fecha inválida recibida:', fechaRaw, 'usando fecha actual');
         tiempoCreacion = new Date();
       }
     } else {
@@ -185,14 +264,14 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
       return {
         id: item.id || item.productoId,
-        nombre: item.nombre || item.producto?.nombre || 'Producto sin nombre',
+        nombre: item.producto?.nombre || item.nombre || 'Producto sin nombre',
         cantidad: item.cantidad || 0,
         gruposModificadores: gruposModificadores,
         notas: item.notas || '',
         comentario: item.comentario || '',
         esReciente: false, // Inicializar como false, se marcará después
         tiempoMarcadoReciente: undefined,
-        tiempoPreparacion: item.tiempoPreparacion || item.producto?.tiempo_preparacion || item.producto?.tiempoPreparacion || undefined,
+        tiempoPreparacion: item.producto?.tiempoPreparacion || item.producto?.tiempo_preparacion || item.tiempoPreparacion || undefined,
         tiempoCreacionItem: item.tiempoCreacion ? new Date(item.tiempoCreacion) : tiempoCreacion
       };
     });
@@ -216,42 +295,57 @@ export class CocinaComponent implements OnInit, OnDestroy {
     // Limpiar el nombre de usuario (remover @dulcemomento o cualquier @dominio)
     let nombreUsuario = pedido.usuario?.nombre || pedido.usuarioNombre || 'Usuario desconocido';
 
-    // Si el nombre contiene @ seguido de texto, extraer solo la parte antes del @
     if (nombreUsuario && nombreUsuario.includes('@')) {
       const partes = nombreUsuario.split('@');
       nombreUsuario = partes[0].trim();
     }
 
-    // Si después de limpiar está vacío, usar fallback
     if (!nombreUsuario || nombreUsuario === '') {
       nombreUsuario = 'Usuario desconocido';
+    }
+
+    // Extraer número de mesa (si fue desvinculada por cobro y guardada en notas)
+    let numeroMesa = pedido.mesa?.numero || pedido.numeroMesa || pedido.mesa_id || '?';
+    let notas = pedido.notas || '';
+
+    const mesaMatch = notas.match(/^\[Mesa\s+([^\]]+)\]\s*(.*)$/i);
+    if (mesaMatch) {
+      numeroMesa = mesaMatch[1];
+      notas = mesaMatch[2].trim();
     }
 
     // Retornar objeto sin referencias compartidas
     return {
       id: pedido.id,
-      numeroMesa: pedido.numeroMesa || pedido.mesa_id,
+      numeroMesa: numeroMesa,
       items: [...items], // Copia del array
       estado: this.mapearEstado(pedido.estado),
       tiempoCreacion,
       tiempoEstimado,
-      notas: pedido.notas || '',
-      usuarioNombre: nombreUsuario
+      notas: notas,
+      usuarioNombre: nombreUsuario,
+      visibleCocina: pedido.visibleCocina !== false
     };
   }
 
   mapearEstado(estado: string): 'pendiente' | 'en_progreso' | 'completado' {
-    if (estado === 'pendiente') return 'pendiente';
-    if (estado === 'en_progreso') return 'en_progreso';
-    // 'cerrado' NO debe mapearse a 'completado' - el estado del pedido es independiente del estado de la mesa
-    if (estado === 'completado' || estado === 'entregado') return 'completado';
-    // Si el estado es 'cerrado' o cualquier otro, mantener el estado original si es válido, sino 'pendiente'
-    if (estado === 'cerrado') return 'pendiente'; // Mantener como pendiente si está cerrado (no completado)
+    if (!estado) return 'pendiente';
+    const normalized = estado.toLowerCase();
+
+    if (normalized === 'pendiente') return 'pendiente';
+    if (normalized === 'en_progreso' || normalized === 'en_curso') return 'en_progreso';
+    if (normalized === 'completado' || normalized === 'completada' || normalized === 'entregado') return 'completado';
+
     return 'pendiente';
   }
 
   aplicarFiltros() {
     this.ordenesFiltradas = this.ordenes.filter(orden => {
+      // Si fue ocultada explicitly de la cocina, no mostrarla
+      if (orden.visibleCocina === false) {
+        return false;
+      }
+
       if (this.filtrosEstado.includes('todos')) {
         return true;
       }
@@ -273,34 +367,50 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
     if (!value) { return; }
 
-    // Si seleccionan 'todos', ignorar los otros y poner solo 'todos'
-    if (value === 'todos') {
-      if (input.checked) {
-        this.filtrosEstado = ['todos'];
-      } else {
-        // desmarcar 'todos' => mostrar todos por defecto
-        this.filtrosEstado = ['todos'];
-      }
-      this.aplicarFiltros();
-      return;
-    }
+    // Utilizar toggleFiltro para guardar en localStorage y actualizar estado correctamente
+    this.toggleFiltro(value);
+  }
 
-    // Si 'todos' está activo, removerlo antes de trabajar con individuales
-    if (this.filtrosEstado.includes('todos')) {
-      this.filtrosEstado = [];
-    }
-
-    if (input.checked) {
-      if (!this.filtrosEstado.includes(value)) {
-        this.filtrosEstado.push(value);
+  cargarFiltrosGuardados() {
+    try {
+      const guardados = localStorage.getItem(this.FILTROS_STORAGE_KEY);
+      if (guardados) {
+        this.filtrosEstado = JSON.parse(guardados);
       }
+    } catch (e) {
+      console.error('Error cargando filtros guardados:', e);
+    }
+  }
+
+  guardarFiltros() {
+    try {
+      localStorage.setItem(this.FILTROS_STORAGE_KEY, JSON.stringify(this.filtrosEstado));
+    } catch (e) {
+      console.error('Error guardando filtros:', e);
+    }
+  }
+
+  toggleFiltro(estado: string) {
+    if (estado === 'todos') {
+      this.filtrosEstado = ['todos'];
     } else {
-      this.filtrosEstado = this.filtrosEstado.filter(f => f !== value);
+      // Si estaba en 'todos', lo quitamos
+      this.filtrosEstado = this.filtrosEstado.filter(f => f !== 'todos');
+
+      const index = this.filtrosEstado.indexOf(estado);
+      if (index === -1) {
+        this.filtrosEstado.push(estado);
+      } else {
+        this.filtrosEstado.splice(index, 1);
+      }
+
+      // Si no queda ningún filtro, volvemos a 'todos'
       if (this.filtrosEstado.length === 0) {
         this.filtrosEstado = ['todos'];
       }
     }
 
+    this.guardarFiltros();
     this.aplicarFiltros();
   }
 
@@ -315,17 +425,25 @@ export class CocinaComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const estadoAnterior = orden.estado;
+    // Actualización optimista inmediata
+    orden.estado = nuevoEstado;
+    orden.enTransicion = true;
+    this.aplicarFiltros();
+
     this.apiService.actualizarEstadoPedido(orden.id, nuevoEstado).subscribe({
       next: (response: any) => {
-        if (response.success) {
-          // Actualizar estado localmente
-          orden.estado = nuevoEstado;
-          // No limpiar productos recientes al completar, se limpiarán por tiempo
+        orden.enTransicion = false;
+        if (!response.success) {
+          orden.estado = estadoAnterior;
           this.aplicarFiltros();
         }
       },
       error: (error: any) => {
         console.error('Error actualizando estado:', error);
+        orden.enTransicion = false;
+        orden.estado = estadoAnterior;
+        this.aplicarFiltros();
       }
     });
   }
@@ -513,10 +631,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
     });
   }
 
-  limpiarFiltros() {
-    this.filtrosEstado = ['todos'];
-    this.aplicarFiltros();
-  }
+  /* limpiarFiltros original eliminado por el nuevo comportamiento con localStorage */
 
   getOrdenesPendientes(): number {
     return this.ordenes.filter(orden => orden.estado === 'pendiente').length;
@@ -530,13 +645,13 @@ export class CocinaComponent implements OnInit, OnDestroy {
     return this.ordenes.filter(orden => orden.estado === 'completado').length;
   }
 
-  scrollToTop(): void {
-    const container = document.querySelector('.cocina-container');
-    if (container) {
-      container.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    }
+  limpiarFiltros() {
+    this.filtrosEstado = ['todos'];
+    this.guardarFiltros();
+    this.aplicarFiltros();
+  }
+
+  trackByOrden(index: number, orden: Orden): number {
+    return orden.id;
   }
 }

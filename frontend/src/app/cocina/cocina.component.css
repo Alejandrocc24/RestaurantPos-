@@ -1,11 +1,13 @@
 .cocina-container {
   padding: 0;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  min-height: calc(100vh - 120px);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 100%;
+  min-height: 100%;
   overflow-y: auto;
-  position: relative;
-  height: auto;
+  overflow-x: hidden;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Header de la pantalla de cocina */
@@ -92,7 +94,8 @@
   gap: 20px;
 }
 
-.filtros, .acciones {
+.filtros,
+.acciones {
   display: flex;
   align-items: center;
   gap: 15px;
@@ -279,12 +282,6 @@
   width: 8px;
   height: 100%;
   background: #e1e5e9;
-  transition: all 0.3s ease;
-}
-
-.orden-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
 }
 
 /* Estado Pendiente - Rojo */
@@ -298,11 +295,6 @@
   box-shadow: 0 0 20px rgba(255, 68, 68, 0.4);
 }
 
-.orden-card.estado-pendiente:hover {
-  border-color: #ff2222;
-  box-shadow: 0 8px 30px rgba(255, 68, 68, 0.3);
-}
-
 /* Estado En Preparación - Naranja */
 .orden-card.estado-en_progreso {
   border-color: #ff9800;
@@ -312,11 +304,6 @@
 .orden-card.estado-en_progreso::before {
   background: linear-gradient(180deg, #ff9800 0%, #f57c00 100%);
   box-shadow: 0 0 20px rgba(255, 152, 0, 0.4);
-}
-
-.orden-card.estado-en_progreso:hover {
-  border-color: #fb8c00;
-  box-shadow: 0 8px 30px rgba(255, 152, 0, 0.3);
 }
 
 /* Estado Completado - Verde */
@@ -329,12 +316,6 @@
 .orden-card.estado-completado::before {
   background: linear-gradient(180deg, #4caf50 0%, #388e3c 100%);
   box-shadow: 0 0 20px rgba(76, 175, 80, 0.4);
-}
-
-.orden-card.estado-completado:hover {
-  border-color: #43a047;
-  box-shadow: 0 8px 30px rgba(76, 175, 80, 0.3);
-  opacity: 1;
 }
 
 /* Header de la orden */
@@ -464,7 +445,8 @@
   flex-wrap: wrap;
 }
 
-.tiempo-transcurrido, .tiempo-estimado {
+.tiempo-transcurrido,
+.tiempo-estimado {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -483,8 +465,15 @@
 
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .controles-orden {
@@ -512,7 +501,6 @@
 
 .btn-iniciar:hover {
   background: #45a049;
-  transform: translateY(-1px);
 }
 
 .btn-completar {
@@ -522,7 +510,6 @@
 
 .btn-completar:hover {
   background: #1976d2;
-  transform: translateY(-1px);
 }
 
 /* Mensaje de sin permisos */
@@ -730,31 +717,36 @@
   background: rgba(102, 126, 234, 0.8);
 }
 
-/* Indicador de scroll para móviles */
+/* Indicador de scroll / botón volver arriba */
 .scroll-indicator {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: rgba(102, 126, 234, 0.9);
+  bottom: 24px;
+  right: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 10px 15px;
-  border-radius: 25px;
-  font-size: 0.8rem;
+  padding: 12px 18px;
+  border-radius: 50px;
+  font-size: 0.85rem;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
   z-index: 1000;
   cursor: pointer;
-  transition: all 0.3s ease;
-  display: none;
-}
-
-.scroll-indicator:hover {
-  background: rgba(102, 126, 234, 1);
-  transform: translateY(-2px);
+  border: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .scroll-indicator.show {
-  display: block;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.scroll-indicator:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(102, 126, 234, 0.55);
 }
 
 /* Mejoras para dispositivos táctiles */
@@ -763,7 +755,7 @@
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
-  
+
   .scroll-indicator {
     display: block;
     background: rgba(102, 126, 234, 0.8);
@@ -777,32 +769,32 @@
   .cocina-container {
     padding: 0;
   }
-  
+
   .cocina-header {
     padding: 15px 20px;
   }
-  
+
   .header-left h1 {
     font-size: 2rem;
   }
-  
+
   .contadores {
     gap: 15px;
   }
-  
+
   .contador {
     padding: 12px 15px;
   }
-  
+
   .contador-numero {
     font-size: 1.6rem;
   }
-  
+
   .ordenes-container {
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 15px;
   }
-  
+
   .controles-panel {
     padding: 15px;
     gap: 15px;
@@ -816,9 +808,9 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* REDISEÑO COMPLETO PARA MÓVIL - VERSIÓN COMPACTA */
-  
+
   /* Panel de controles con diseño horizontal compacto */
   .controles-panel {
     padding: 6px 8px;
@@ -828,7 +820,7 @@
     justify-content: space-between;
     align-items: center;
   }
-  
+
   .filtros {
     flex: 1;
     flex-direction: row;
@@ -838,12 +830,12 @@
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   /* Ocultar label en móvil para ahorrar espacio */
   .filtro-label {
     display: none;
   }
-  
+
   .filtros-checkboxes {
     display: flex;
     gap: 4px;
@@ -852,7 +844,7 @@
     flex-wrap: nowrap;
     white-space: nowrap;
   }
-  
+
   /* Filtros con SOLO iconos en móvil */
   .filtro-checkbox {
     display: flex;
@@ -866,28 +858,29 @@
     border-radius: 8px;
     gap: 4px;
   }
-  
+
   .filtro-input {
-    display: none; /* Ocultar checkbox en móvil */
+    display: none;
+    /* Ocultar checkbox en móvil */
   }
-  
+
   /* Ocultar texto completo, mostrar solo icono */
   .filtro-text-full {
     display: none;
   }
-  
+
   .filtro-text-short {
     display: inline;
     font-size: 1.1rem;
   }
-  
+
   /* Cambiar apariencia cuando está seleccionado */
   .filtro-checkbox:has(input:checked) {
     background: #667eea;
     color: white;
     border-color: #667eea;
   }
-  
+
   /* Botón limpiar solo icono */
   .btn-limpiar-filtros {
     padding: 6px 10px;
@@ -897,17 +890,17 @@
     border-radius: 8px;
     white-space: nowrap;
   }
-  
+
   .acciones {
     flex-shrink: 0;
   }
-  
+
   .btn-limpiar {
     padding: 6px 8px;
     font-size: 0.7rem;
     white-space: nowrap;
   }
-  
+
   /* Header compacto para móvil */
   .cocina-header {
     flex-direction: column;
@@ -915,60 +908,61 @@
     padding: 10px 12px;
     margin-bottom: 10px;
   }
-  
+
   .header-left {
     width: 100%;
   }
-  
+
   .header-left h1 {
     font-size: 1.2rem;
     margin: 0;
     text-align: center;
   }
-  
+
   .header-center {
-    display: none; /* Ocultar hora en móvil */
+    display: none;
+    /* Ocultar hora en móvil */
   }
-  
+
   .header-right {
     width: 100%;
   }
-  
+
   .header-right .contadores {
     display: flex;
     justify-content: space-around;
     gap: 6px;
     width: 100%;
   }
-  
+
   .contador {
     flex: 1;
     padding: 6px 8px;
     min-width: 0;
     border-radius: 8px;
   }
-  
+
   .contador-numero {
     font-size: 1.3rem;
     margin-bottom: 2px;
   }
-  
+
   .contador-label {
     font-size: 0.6rem;
     letter-spacing: 0;
   }
-  
+
   .ordenes-container {
     grid-template-columns: 1fr;
     gap: 15px;
   }
-  
+
   .orden-card {
     padding: 20px;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
-  
+
   .orden-header {
     display: flex;
     justify-content: space-between;
@@ -978,7 +972,7 @@
     gap: 12px;
     min-height: 40px;
   }
-  
+
   .orden-info-principal {
     display: flex;
     align-items: center;
@@ -996,7 +990,7 @@
     flex-shrink: 0;
     height: 100%;
   }
-  
+
   .orden-tiempo-controls {
     display: flex;
     justify-content: flex-start;
@@ -1016,14 +1010,14 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  
+
   .controles-orden {
     display: flex;
     flex-direction: column;
     gap: 10px;
     align-items: flex-end;
   }
-  
+
   .btn-estado {
     padding: 8px 16px;
     border: none;
@@ -1034,13 +1028,13 @@
     font-weight: 500;
     min-width: 140px;
   }
-  
 
-  
+
+
   .orden-items {
     margin-bottom: 15px;
   }
-  
+
   .item-orden {
     display: flex;
     align-items: flex-start;
@@ -1049,7 +1043,7 @@
     border-bottom: 1px solid #f0f0f0;
     flex-wrap: wrap;
   }
-  
+
   .item-cantidad {
     background: #667eea;
     color: white;
@@ -1060,7 +1054,7 @@
     min-width: 40px;
     text-align: center;
   }
-  
+
   .item-nombre {
     flex: 1;
     font-weight: 600;
@@ -1069,11 +1063,11 @@
     line-height: 1.5;
     margin-bottom: 10px;
   }
-  
+
   .item-modificadores {
     margin-top: 8px;
   }
-  
+
   .orden-notas {
     background: #fff3e0;
     border-left: 4px solid #ff9800;
@@ -1081,19 +1075,19 @@
     border-radius: 8px;
     margin-top: 15px;
   }
-  
+
   .notas-label {
     font-weight: 600;
     color: #e65100;
     font-size: 1.2rem;
   }
-  
+
   .notas-texto {
     color: #bf360c;
     font-size: 1.2rem;
     line-height: 1.5;
   }
-  
+
   .item-notas {
     display: flex;
     align-items: center;
@@ -1102,28 +1096,28 @@
     color: #666;
     font-size: 1.2rem;
   }
-  
+
   .grupos-modificadores {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .grupo-modificador {
     padding: 10px 12px;
     background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 100%);
     border-left: 3px solid #2196f3;
     border-radius: 6px;
   }
-  
+
   .grupo-header {
     display: flex;
     align-items: center;
     gap: 4px;
     margin-bottom: 6px;
   }
-  
+
   .grupo-label {
     font-size: 1.3rem;
     font-weight: 700;
@@ -1131,14 +1125,14 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-  
+
   .grupo-items {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-left: 18px;
   }
-  
+
   .modificador {
     background: #ffffff;
     color: #1976d2;
@@ -1163,106 +1157,106 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .filtros-checkboxes {
     gap: 6px;
     flex-wrap: wrap;
     justify-content: center;
   }
-  
+
   .filtro-checkbox {
     padding: 6px 8px;
     font-size: 0.75rem;
     min-width: auto;
     flex-shrink: 0;
   }
-  
+
   .filtro-text {
     font-size: 0.75rem;
   }
-  
+
   .filtro-text {
     font-size: 0.8rem;
   }
-  
+
   .cocina-header {
     padding: 15px;
     gap: 15px;
   }
-  
+
   .header-left h1 {
     font-size: 1.5rem;
   }
-  
+
   .tiempo-actual {
     flex-direction: column;
     gap: 5px;
   }
-  
+
   .tiempo-valor {
     font-size: 1rem;
     padding: 4px 10px;
   }
-  
+
   .header-right .contadores {
     gap: 10px;
   }
-  
+
   .contador {
     padding: 8px 12px;
     min-width: 70px;
   }
-  
+
   .contador-numero {
     font-size: 1.2rem;
   }
-  
+
   .contador-label {
     font-size: 0.65rem;
   }
-  
+
   .controles-panel {
     padding: 15px;
     gap: 15px;
   }
-  
+
   .filtro-label {
     font-size: 0.8rem;
   }
-  
+
   .filtros {
     gap: 12px;
   }
-  
+
   .filtros-checkboxes {
     gap: 6px;
     justify-content: center;
   }
-  
+
   .acciones {
     gap: 8px;
   }
-  
+
   .filtro-select {
     padding: 6px 10px;
     font-size: 0.8rem;
   }
-  
 
-  
+
+
   .btn-limpiar {
     padding: 8px 12px;
     font-size: 0.8rem;
     min-width: auto;
     flex: 1;
   }
-  
+
   .orden-card {
     padding: 20px;
     border-radius: 15px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   }
-  
+
   .orden-header {
     display: flex;
     justify-content: space-between;
@@ -1272,7 +1266,7 @@
     gap: 12px;
     min-height: 40px;
   }
-  
+
   .mesa-numero {
     font-size: 1.1rem;
     font-weight: 600;
@@ -1282,7 +1276,7 @@
     display: flex;
     align-items: center;
   }
-  
+
   .orden-id {
     font-size: 0.8rem;
     color: #666;
@@ -1293,7 +1287,7 @@
     white-space: nowrap;
     flex-shrink: 0;
   }
-  
+
   .estado-badge {
     padding: 6px 14px;
     border-radius: 20px;
@@ -1333,7 +1327,7 @@
     height: fit-content;
     line-height: 1.2;
   }
-  
+
   .orden-tiempo-controls {
     display: flex;
     justify-content: flex-start;
@@ -1345,26 +1339,26 @@
     flex-direction: row;
     gap: 15px;
   }
-  
+
   .tiempo-label {
     font-size: 0.8rem;
     color: #666;
     font-weight: 500;
   }
-  
+
   .tiempo-valor {
     font-weight: 600;
     color: #333;
     font-size: 1rem;
   }
-  
+
   .controles-orden {
     display: flex;
     flex-direction: column;
     gap: 10px;
     align-items: flex-end;
   }
-  
+
   .btn-estado {
     padding: 8px 16px;
     border: none;
@@ -1375,9 +1369,9 @@
     font-weight: 500;
     min-width: 140px;
   }
-  
 
-  
+
+
   .item-orden {
     display: flex;
     align-items: flex-start;
@@ -1386,7 +1380,7 @@
     border-bottom: 1px solid #f0f0f0;
     flex-wrap: wrap;
   }
-  
+
   .item-cantidad {
     background: #667eea;
     color: white;
@@ -1397,7 +1391,7 @@
     min-width: 40px;
     text-align: center;
   }
-  
+
   .item-nombre {
     flex: 1;
     font-weight: 600;
@@ -1406,7 +1400,7 @@
     line-height: 1.5;
     margin-bottom: 10px;
   }
-  
+
   .modificador {
     background: #ffffff;
     color: #1976d2;
@@ -1422,7 +1416,7 @@
     align-items: center;
     justify-content: center;
   }
-  
+
   .item-notas {
     display: flex;
     align-items: center;
@@ -1431,7 +1425,7 @@
     color: #666;
     font-size: 1.2rem;
   }
-  
+
   .orden-notas {
     background: #fff3e0;
     border-left: 4px solid #ff9800;
@@ -1439,40 +1433,40 @@
     border-radius: 8px;
     margin-top: 15px;
   }
-  
+
   .notas-label {
     font-weight: 600;
     color: #e65100;
     font-size: 1.2rem;
   }
-  
+
   .notas-texto {
     color: #bf360c;
     font-size: 1.2rem;
     line-height: 1.5;
   }
-  
+
   .grupos-modificadores {
     margin-top: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .grupo-modificador {
     padding: 10px 12px;
     background: linear-gradient(135deg, #e3f2fd 0%, #f5f9ff 100%);
     border-left: 3px solid #2196f3;
     border-radius: 6px;
   }
-  
+
   .grupo-header {
     display: flex;
     align-items: center;
     gap: 4px;
     margin-bottom: 6px;
   }
-  
+
   .grupo-label {
     font-size: 1.3rem;
     font-weight: 700;
@@ -1480,14 +1474,14 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
-  
+
   .grupo-items {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
     margin-left: 18px;
   }
-  
+
   .modificador {
     background: #ffffff;
     color: #1976d2;
@@ -1512,61 +1506,61 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
-  
+
   .cocina-header {
     padding: 12px;
   }
-  
+
   .header-left h1 {
     font-size: 1.3rem;
   }
-  
+
   .contador {
     padding: 6px 10px;
     min-width: 60px;
   }
-  
+
   .contador-numero {
     font-size: 1.1rem;
   }
-  
+
   .contador-label {
     font-size: 0.6rem;
   }
-  
+
   .controles-panel {
     padding: 12px;
   }
-  
+
   .filtros-checkboxes {
     gap: 4px;
     justify-content: center;
   }
-  
+
   .filtro-checkbox {
     padding: 5px 6px;
     font-size: 0.7rem;
   }
-  
+
   .filtro-text {
     font-size: 0.7rem;
   }
-  
+
   .acciones {
     gap: 6px;
   }
-  
 
-  
+
+
   .btn-estado {
     min-width: 100px;
     font-size: 0.7rem;
   }
-  
+
   .orden-card {
     padding: 10px;
   }
-  
+
   .estado-badge {
     min-width: 90px;
     font-size: 0.75rem;
@@ -1588,7 +1582,7 @@
   .orden-usuario {
     width: auto;
   }
-  
+
   .controles-orden-final {
     margin-top: 20px;
     padding-top: 15px;
@@ -1614,16 +1608,16 @@
     text-align: left;
     gap: 15px;
   }
-  
+
   .header-right .contadores {
     justify-content: flex-end;
   }
-  
+
   .controles-panel {
     flex-direction: row;
     align-items: center;
   }
-  
+
   .ordenes-container {
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
@@ -1636,28 +1630,28 @@
     max-width: none;
     margin: 0;
   }
-  
+
   .cocina-header {
     padding: 25px 40px;
   }
-  
+
   .header-left h1 {
     font-size: 2.5rem;
   }
-  
+
   .contador {
     padding: 20px 25px;
   }
-  
+
   .contador-numero {
     font-size: 2.5rem;
   }
-  
+
   .ordenes-container {
     grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
     gap: 25px;
   }
-  
+
   .orden-card {
     padding: 25px;
   }
@@ -1665,57 +1659,59 @@
 
 /* Soporte para pantallas táctiles */
 @media (hover: none) and (pointer: coarse) {
+
   .btn-estado:hover,
   .btn-limpiar:hover {
     transform: none;
   }
-  
+
   .btn-estado:active,
   .btn-limpiar:active {
     transform: scale(0.98);
   }
-  
+
   .orden-card:hover {
     transform: none;
   }
-  
+
   .orden-card:active {
     transform: scale(0.99);
   }
-  
+
   /* Aumentar tamaño de elementos táctiles */
   .btn-estado,
   .btn-limpiar,
   .btn-limpiar-filtros {
     min-height: 44px;
   }
-  
+
   .filtro-select {
     min-height: 44px;
   }
-  
+
   .contador {
     min-height: 60px;
   }
-  
+
   /* Mejorar scroll en dispositivos táctiles */
   .cocina-container {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
     overscroll-behavior: contain;
   }
-  
+
   .ordenes-container {
     overscroll-behavior: contain;
   }
 }
 
 /* Mejoras adicionales para diferentes densidades de pantalla */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+@media (-webkit-min-device-pixel-ratio: 2),
+(min-resolution: 192dpi) {
   .estado-badge {
     border: 1px solid rgba(255, 255, 255, 0.3);
   }
-  
+
   .btn-estado,
   .btn-limpiar {
     border-width: 1.5px;
@@ -1727,38 +1723,38 @@
   .cocina-container {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   }
-  
+
   .orden-card {
     background: #2a2a3e;
     color: #ffffff;
   }
-  
+
   .controles-panel {
     background: #2a2a3e;
     color: #ffffff;
   }
-  
+
   .filtro-select {
     background: #3a3a4e;
     color: #ffffff;
     border-color: #4a4a5e;
   }
-  
 
-  
+
+
   .orden-tiempo-controls {
     background: #3a3a4e;
   }
-  
+
   .item-orden {
     border-bottom-color: #4a4a5e;
   }
-  
+
   .modificador {
     background: #4a4a5e;
     color: #a0a0ff;
   }
-  
+
   .orden-notas {
     background: #3a3a4e;
     border-left-color: #ff9800;
@@ -1771,24 +1767,24 @@
     max-width: none;
     margin: 0;
   }
-  
+
   .ordenes-container {
     grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
     gap: 30px;
   }
-  
+
   .cocina-header {
     padding: 30px 50px;
   }
-  
+
   .header-left h1 {
     font-size: 3rem;
   }
-  
+
   .contador {
     padding: 25px 30px;
   }
-  
+
   .contador-numero {
     font-size: 3rem;
   }

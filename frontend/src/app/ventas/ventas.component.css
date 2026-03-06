@@ -370,6 +370,9 @@
 .productos-grid {
   display: grid;
   gap: 15px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 5px;
 }
 
 .producto-card {
@@ -423,6 +426,9 @@
 .chart-container {
   display: grid;
   gap: 15px;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 5px;
 }
 
 .chart-bar {
@@ -476,8 +482,13 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Responsive */
@@ -485,45 +496,45 @@
   .ventas-container {
     padding: 15px;
   }
-  
+
   .ventas-header {
     flex-direction: column;
     gap: 20px;
     text-align: center;
   }
-  
+
   .header-actions {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .filtros-content {
     grid-template-columns: 1fr;
   }
-  
+
   .resumen-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .tab-header {
     flex-direction: column;
   }
-  
+
   .tab-button {
     text-align: left;
   }
-  
+
   .tab-header-section {
     flex-direction: column;
     gap: 15px;
     align-items: flex-start;
   }
-  
+
   .chart-bar {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
+
   .bar-label,
   .bar-value {
     text-align: center;
@@ -534,11 +545,11 @@
   .ventas-header h2 {
     font-size: 24px;
   }
-  
+
   .card-value {
     font-size: 24px;
   }
-  
+
   .tab-content {
     padding: 20px;
   }
@@ -801,6 +812,7 @@
     opacity: 0;
     transform: translateY(-50px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -813,31 +825,31 @@
     width: 95%;
     margin: 20px;
   }
-  
+
   .modal-footer {
     flex-direction: column;
   }
-  
+
   .factura-header {
     flex-direction: column;
     gap: 15px;
     text-align: center;
   }
-  
+
   .info-factura {
     text-align: center;
   }
-  
+
   .mesa-info {
     flex-direction: column;
     gap: 10px;
     text-align: center;
   }
-  
+
   .factura-table {
     font-size: 12px;
   }
-  
+
   .factura-table th,
   .factura-table td {
     padding: 8px 4px;
@@ -1182,17 +1194,17 @@
     max-width: none;
     margin: 10px;
   }
-  
+
   .modal-caja .modal-header,
   .modal-caja .modal-body,
   .modal-caja .modal-footer {
     padding: 20px;
   }
-  
+
   .botones-sugerencia {
     justify-content: center;
   }
-  
+
   .btn-sugerencia {
     min-width: 70px;
     padding: 6px 12px;
@@ -1547,6 +1559,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1668,26 +1681,26 @@
     max-width: none;
     margin: 10px;
   }
-  
+
   .modal-cierre-caja .modal-header,
   .modal-cierre-caja .modal-body,
   .modal-cierre-caja .modal-footer {
     padding: 20px;
   }
-  
+
   .resumen-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .resumen-item {
     padding: 15px;
   }
-  
+
   .formula-linea {
     font-size: 14px;
     padding: 10px 0;
   }
-  
+
   .formula-valor.total {
     font-size: 18px;
   }
@@ -1739,13 +1752,13 @@
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 15px;
   }
-  
+
   .tab-summary .btn-sm,
   .section-header .btn-sm {
     width: 100%;
@@ -1962,12 +1975,12 @@
   transition: all 0.3s ease;
 }
 
-.config-item input[type="checkbox"]:checked + .checkmark {
+.config-item input[type="checkbox"]:checked+.checkmark {
   background: #28a745;
   border-color: #28a745;
 }
 
-.config-item input[type="checkbox"]:checked + .checkmark::after {
+.config-item input[type="checkbox"]:checked+.checkmark::after {
   content: '✓';
   position: absolute;
   color: white;
@@ -1978,7 +1991,7 @@
   transform: translate(-50%, -50%);
 }
 
-.config-item input[type="checkbox"]:disabled + .checkmark {
+.config-item input[type="checkbox"]:disabled+.checkmark {
   background: #f8f9fa;
   border-color: #dee2e6;
   opacity: 0.6;
@@ -1990,7 +2003,7 @@
   user-select: none;
 }
 
-.config-item input[type="checkbox"]:disabled ~ .config-label {
+.config-item input[type="checkbox"]:disabled~.config-label {
   color: #6c757d;
   opacity: 0.7;
 }

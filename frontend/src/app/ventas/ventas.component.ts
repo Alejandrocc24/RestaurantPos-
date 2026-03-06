@@ -23,20 +23,20 @@ export class VentasComponent implements OnInit, OnDestroy {
   pagosEfectivo: number = 0;
   pagosTransferencia: number = 0;
   pagosTarjeta: number = 0;
-  
+
   // Datos de mesas cerradas
   mesasCerradas: any[] = [];
   totalMesasCerradas: number = 0;
-  
+
   // Datos de gastos
   gastosHoy: any[] = [];
   totalGastosHoy: number = 0;
   gastosTotal: number = 0;
-  
+
   // Estadísticas de productos
   productosVendidos: any[] = [];
   topProductos: any[] = [];
-  
+
   // Filtros
   fechaInicio: string = '';
   fechaFin: string = '';
@@ -45,34 +45,34 @@ export class VentasComponent implements OnInit, OnDestroy {
   filtroProducto: string = '';
   filtroCategoria: string = 'todas'; // Nuevo filtro por categoría
   filtroEstadoCaja: string = '';
-  
+
   // Lista de mesas disponibles para el filtro
   mesasDisponibles: number[] = [];
-  
+
   // Lista de categorías disponibles para el filtro
   categoriasDisponibles: string[] = [];
-  
+
   // Configuración de factura
   configFactura: any = null;
-  
+
   // Estados de carga
   isLoading: boolean = false;
   isLoadingMesas: boolean = false;
   isLoadingGastos: boolean = false;
   isLoadingProductos: boolean = false;
-  
+
   // Estado de impresión
   mesaSeleccionada: any = null;
   mostrarModalFactura: boolean = false;
   isImprimiendo: boolean = false;
-  
+
   // Paginación
   currentPage: number = 1;
   itemsPerPage: number = 10;
-  
+
   // Tabs
   currentTab: string = 'mesas';
-  
+
   // Estado de caja
   cajaAbierta: boolean = false;
   cajaActual: any = null;
@@ -83,7 +83,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   montoInicial: number = 0;
   efectivoReal: number = 0;
   diferenciaCaja: number = 0;
-  
+
   // Resumen financiero para cierre de caja
   resumenCierreCaja: any = {
     recaudoTotal: 0,
@@ -102,7 +102,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   incluirResumen: boolean = true;
   incluirGraficos: boolean = true;
   incluirFormulas: boolean = false;
-  
+
   private subscriptions: any[] = [];
   private destroy$ = new Subject<void>();
   private modalHistoryManager: ModalHistoryManager;
@@ -132,7 +132,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
   }
-  
+
   cargarConfiguracionFactura(): void {
     const configGuardada = localStorage.getItem('configFactura');
     if (configGuardada) {
@@ -146,7 +146,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.configFactura = this.getConfiguracionPorDefecto();
     }
   }
-  
+
   getConfiguracionPorDefecto(): any {
     return {
       nombreNegocio: 'Heladería Artesanal',
@@ -174,62 +174,56 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.cargarCajasCerradas();
   }
 
-  cargarRecaudo(): void {
-    this.ventasService.getOrdenes(0, 100)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (ordenes) => {
-          console.log('Órdenes recibidas:', ordenes);
-          const total = ordenes.reduce((sum: number, o: any) => sum + (o.total || 0), 0);
-          this.recaudoActual = total;
-          this.totalVentasHoy = ordenes.length;
-          this.promedioVenta = this.totalVentasHoy > 0 ? Math.round(this.recaudoActual / this.totalVentasHoy) : 0;
-          console.log('Valores asignados - Recaudo:', this.recaudoActual, 'Ventas:', this.totalVentasHoy, 'Promedio:', this.promedioVenta);
-        },
-        error: (error) => {
-          console.error('Error cargando recaudo:', error);
-          this.toast.error('Error', 'No se pudo cargar el recaudo');
-        }
-      });
+  async cargarRecaudo(): Promise<void> {
+    try {
+      const recaudo = await this.supabaseService.obtenerRecaudoActual();
+      this.recaudoActual = recaudo.total || 0;
+      this.totalVentasHoy = recaudo.cantidadVentas || 0;
+      this.promedioVenta = this.totalVentasHoy > 0 ? Math.round(this.recaudoActual / this.totalVentasHoy) : 0;
+      console.log('Valores asignados - Recaudo:', this.recaudoActual, 'Ventas:', this.totalVentasHoy, 'Promedio:', this.promedioVenta);
+    } catch (error) {
+      console.error('Error cargando recaudo:', error);
+      this.toast.error('Error', 'No se pudo cargar el recaudo');
+    }
   }
 
-  cargarMesasCerradas(): void {
+  async cargarMesasCerradas(): Promise<void> {
     this.isLoadingMesas = true;
-    this.ventasService.getOrdenes(0, 500)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (ordenes) => {
-          this.mesasCerradas = ordenes || [];
-          this.totalMesasCerradas = this.mesasCerradas.length;
-          
-          // Extraer números de mesa únicos para el filtro
-          const mesasUnicas = new Set(this.mesasCerradas.map((m: any) => m.mesaId));
-          this.mesasDisponibles = Array.from(mesasUnicas).sort((a: any, b: any) => a - b);
-          this.isLoadingMesas = false;
-        },
-        error: (error) => {
-          console.error('Error cargando mesas cerradas:', error);
-          this.isLoadingMesas = false;
-        }
-      });
+    const inicio = this.fechaInicio || this.formatearFechaLocal();
+    const fin = this.fechaFin || this.formatearFechaLocal();
+
+    try {
+      this.mesasCerradas = await this.supabaseService.obtenerMesasCerradas(inicio, fin) || [];
+      this.totalMesasCerradas = this.mesasCerradas.length;
+
+      // Extraer números de mesa únicos para el filtro
+      const mesasUnicas = new Set(this.mesasCerradas.map((m: any) => m.numeroMesa || m.mesa_id || m.mesaId));
+      this.mesasDisponibles = Array.from(mesasUnicas)
+        .filter(m => m !== undefined && m !== null)
+        .sort((a: any, b: any) => a - b);
+    } catch (error) {
+      console.error('Error cargando mesas cerradas:', error);
+    } finally {
+      this.isLoadingMesas = false;
+    }
   }
 
   cargarGastos(): void {
     this.isLoadingGastos = true;
-    
+
     // Usar fechaInicio y fechaFin del componente, o la fecha de hoy si no están seteadas
     const inicio = this.fechaInicio || this.formatearFechaLocal();
     const fin = this.fechaFin || this.formatearFechaLocal();
-    
+
     console.log(`📊 Cargando gastos desde ${inicio} hasta ${fin}`);
-    
+
     // Usar el servicio de Supabase para obtener gastos del rango de fechas
     this.supabaseService.obtenerGastos(inicio, fin)
       .then((gastos: any[]) => {
         this.gastosHoy = gastos || [];
         this.totalGastosHoy = this.gastosHoy.length;
         this.gastosTotal = this.gastosHoy.reduce((sum: number, gasto: any) => sum + (gasto.monto || 0), 0);
-        
+
         console.log('✅ Gastos cargados:', this.gastosHoy.length, 'Total:', this.gastosTotal);
         this.isLoadingGastos = false;
       })
@@ -242,44 +236,71 @@ export class VentasComponent implements OnInit, OnDestroy {
       });
   }
 
-  cargarEstadisticasProductos(): void {
+  async cargarEstadisticasProductos(): Promise<void> {
     this.isLoadingProductos = true;
-    this.ventasService.getOrdenes(0, 500)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (ordenes) => {
-          this.productosVendidos = ordenes || [];
-          this.isLoadingProductos = false;
-        },
-        error: (error) => {
-          console.error('Error cargando estadísticas de productos:', error);
-          this.isLoadingProductos = false;
-        }
-      });
+    const inicio = this.fechaInicio || this.formatearFechaLocal();
+    const fin = this.fechaFin || this.formatearFechaLocal();
+
+    try {
+      this.productosVendidos = await this.supabaseService.obtenerEstadisticasProductos(inicio, fin) || [];
+
+      // Extraer categorías únicas para el filtro
+      const categorias = new Set(this.productosVendidos.map(p => p.categoria).filter(c => c && c.trim() !== ''));
+      this.categoriasDisponibles = Array.from(categorias).sort();
+
+    } catch (error) {
+      console.error('Error cargando estadísticas de productos:', error);
+      this.productosVendidos = [];
+      this.categoriasDisponibles = [];
+    } finally {
+      this.isLoadingProductos = false;
+    }
   }
 
-  verificarCajaAbierta(): void {
-    // Por ahora, marcar como cerrada
-    this.cajaAbierta = false;
-    this.cajaActual = null;
+  async verificarCajaAbierta(): Promise<void> {
+    try {
+      const caja = await this.supabaseService.obtenerCajaAbierta();
+      if (caja) {
+        this.cajaAbierta = true;
+        this.cajaActual = caja;
+      } else {
+        this.cajaAbierta = false;
+        this.cajaActual = null;
+      }
+    } catch (error) {
+      console.error('Error verificando caja abierta:', error);
+      this.cajaAbierta = false;
+      this.cajaActual = null;
+    }
   }
 
-  cargarCajasCerradas(): void {
-    this.cajasCerradas = [];
+  async cargarCajasCerradas(): Promise<void> {
+    this.isLoadingCaja = true;
+    const inicio = this.fechaInicio || this.formatearFechaLocal();
+    const fin = this.fechaFin || this.formatearFechaLocal();
+
+    try {
+      this.cajasCerradas = await this.supabaseService.obtenerCajasCerradas(inicio, fin) || [];
+    } catch (error) {
+      console.error('Error cargando cajas cerradas:', error);
+      this.cajasCerradas = [];
+    } finally {
+      this.isLoadingCaja = false;
+    }
   }
 
   async abrirCaja(): Promise<void> {
     if (this.montoInicial > 0) {
       this.isLoadingCaja = true;
-      
+
       try {
         const nuevaCaja = await this.supabaseService.abrirCaja(this.montoInicial);
-        
+
         this.cajaAbierta = true;
         this.cajaActual = nuevaCaja;
-        this.mostrarModalAbrirCaja();
+        this.cerrarModalCaja();
         this.montoInicial = 0;
-        
+
         this.mostrarNotificacion('✅ Caja abierta', `Caja abierta con $${nuevaCaja.monto_inicial}`, 'success');
       } catch (error) {
         console.error('Error abriendo caja:', error);
@@ -342,10 +363,10 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.isLoadingCaja = false;
     }
   }
-  
+
   async confirmarCierreCaja(): Promise<void> {
     this.isLoadingCaja = true;
-    
+
     try {
       // Cerrar la caja en el servicio
       await this.supabaseService.cerrarCaja(this.cajaActual.id, {
@@ -361,7 +382,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.mostrarNotificacion('✅ Caja cerrada', 'Caja cerrada exitosamente', 'success');
       this.cerrarModalCierreCaja();
       this.resetearDatosCaja();
-      
+
       // Recargar datos
       await this.cargarDatos();
     } catch (error) {
@@ -371,7 +392,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.isLoadingCaja = false;
     }
   }
-  
+
   cerrarModalCierreCaja(desdeHistorial = false): void {
     if (!desdeHistorial) {
       this.modalHistoryManager.removeModalHistoryEntry('modal-cierre-caja');
@@ -381,7 +402,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.efectivoReal = 0;
     this.diferenciaCaja = 0;
   }
-  
+
   resetearDatosCaja(): void {
     // Resetear todos los valores de caja
     this.efectivoReal = 0;
@@ -395,7 +416,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       diferencia: 0
     };
   }
-  
+
   calcularDiferenciaCaja(): void {
     // Diferencia = Efectivo Real - Efectivo Esperado
     // Positivo = Sobrante, Negativo = Faltante
@@ -404,61 +425,61 @@ export class VentasComponent implements OnInit, OnDestroy {
     console.log('Efectivo Real:', this.efectivoReal);
     console.log('Efectivo Esperado:', this.resumenCierreCaja.efectivoEsperado);
   }
-  
+
   obtenerValorAbsoluto(valor: number): number {
     return Math.abs(valor);
   }
-  
+
   calcularDiferenciaCajaCerrada(caja: any): number {
     const montoInicial = caja.monto_inicial || caja.montoInicial || 0;
     const montoFinal = caja.monto_final || caja.montoFinal || 0;
     const gastos = caja.total_gastos || 0;
-    
+
     // Diferencia = Monto Final - (Monto Inicial - Gastos)
     // Si es positivo, hubo ganancia; si es negativo, hubo pérdida
     return montoFinal - montoInicial + gastos;
   }
-  
+
   async verTicketCaja(caja: any): Promise<void> {
     try {
       console.log('📄 Generando ticket para caja:', caja);
-      
+
       // Obtener ventas y gastos de esta caja específica
       const fechaApertura = caja.fecha_apertura;
       const fechaCierre = caja.fecha_cierre;
-      
+
       console.log('📅 Fecha apertura:', fechaApertura);
       console.log('📅 Fecha cierre:', fechaCierre);
-      
+
       if (!fechaApertura || !fechaCierre) {
         this.mostrarNotificacion('❌ Error', 'No se encontraron las fechas de la caja', 'error');
         return;
       }
-      
+
       // Obtener todas las ventas
       const todasVentas = await this.supabaseService.getVentas();
       console.log('📊 Total ventas en BD:', todasVentas.length);
       console.log('📊 Muestra de ventas:', todasVentas.slice(0, 3));
-      
+
       // Filtrar ventas de esta caja
       const fechaAperturaDate = new Date(fechaApertura);
       const fechaCierreDate = new Date(fechaCierre);
-      
+
       console.log('🕐 Rango de búsqueda:');
       console.log('  Desde:', fechaAperturaDate.toISOString());
       console.log('  Hasta:', fechaCierreDate.toISOString());
-      
+
       const ventasCaja = todasVentas.filter((v: any) => {
         if (!v.fecha) {
           console.warn('⚠️ Venta sin fecha:', v);
           return false;
         }
-        
+
         const fechaVenta = new Date(v.fecha);
         const cumple = fechaVenta >= fechaAperturaDate && fechaVenta <= fechaCierreDate;
-        
+
         console.log(`Venta ${v.id}: ${fechaVenta.toISOString()} - En rango: ${cumple}`);
-        
+
         if (cumple) {
           console.log('✅ Venta incluida:', {
             id: v.id,
@@ -466,22 +487,22 @@ export class VentasComponent implements OnInit, OnDestroy {
             total: v.total
           });
         }
-        
+
         return cumple;
       });
-      
+
       console.log('✅ Ventas filtradas para esta caja:', ventasCaja.length);
-      
+
       // Calcular totales por método de pago
       let pagosEfectivo = 0;
       let pagosTransferencia = 0;
       let pagosTarjeta = 0;
       let totalVentas = 0;
-      
+
       ventasCaja.forEach((v: any) => {
         const total = Number(v.total) || 0;
         totalVentas += total;
-        
+
         const metodoPago = (v.metodo_pago || 'efectivo').toLowerCase();
         if (metodoPago === 'efectivo') {
           pagosEfectivo += total;
@@ -491,19 +512,19 @@ export class VentasComponent implements OnInit, OnDestroy {
           pagosTarjeta += total;
         }
       });
-      
+
       // Obtener gastos de esta caja
       const fechaAperturaLocal = new Date(fechaApertura).toISOString().split('T')[0];
       const fechaCierreLocal = new Date(fechaCierre).toISOString().split('T')[0];
       const gastos = await this.supabaseService.obtenerGastos(fechaAperturaLocal, fechaCierreLocal);
-      
+
       const gastosCaja = gastos.filter((g: any) => {
         const fechaGasto = new Date(g.fecha);
         return fechaGasto >= new Date(fechaApertura) && fechaGasto <= new Date(fechaCierre);
       });
-      
+
       const totalGastos = gastosCaja.reduce((sum: number, g: any) => sum + (g.monto || 0), 0);
-      
+
       // Generar e imprimir ticket
       this.imprimirTicketCajaCerrada(caja, {
         totalVentas,
@@ -516,38 +537,38 @@ export class VentasComponent implements OnInit, OnDestroy {
         ventas: ventasCaja,
         gastos: gastosCaja
       });
-      
+
     } catch (error) {
       console.error('Error generando ticket:', error);
       this.mostrarNotificacion('❌ Error', 'No se pudo generar el ticket', 'error');
     }
   }
-  
+
   imprimirTicketCajaCerrada(caja: any, datos: any): void {
     const montoInicial = caja.monto_inicial || 0;
     const montoFinal = caja.monto_final || 0;
     const fechaCierre = new Date(caja.fecha_cierre);
     const fechaApertura = new Date(caja.fecha_apertura);
-    
-    const fechaCierreFormateada = fechaCierre.toLocaleDateString('es-CO', { 
-      year: 'numeric', 
-      month: 'long', 
+
+    const fechaCierreFormateada = fechaCierre.toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-    
-    const fechaAperturaFormateada = fechaApertura.toLocaleDateString('es-CO', { 
-      year: 'numeric', 
-      month: 'long', 
+
+    const fechaAperturaFormateada = fechaApertura.toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-    
+
     const efectivoEsperado = montoInicial + datos.pagosEfectivo - datos.totalGastos;
     const diferencia = montoFinal - efectivoEsperado;
-    
+
     const contenido = `
       <!DOCTYPE html>
       <html>
@@ -699,12 +720,12 @@ export class VentasComponent implements OnInit, OnDestroy {
             <tbody>
               ${datos.ventas.map((v: any) => `
                 <tr style="border-bottom: 1px solid #e5e7eb;">
-                  <td style="padding: 6px;">${new Date(v.fecha).toLocaleString('es-CO', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}</td>
+                  <td style="padding: 6px;">${new Date(v.fecha).toLocaleString('es-CO', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}</td>
                   <td style="padding: 6px;">Mesa ${v.mesa_id || 'N/A'}</td>
                   <td style="padding: 6px;">${v.metodo_pago || 'Efectivo'}</td>
                   <td style="padding: 6px; text-align: right; font-weight: 600;">${this.formatearMoneda(v.total)}</td>
@@ -736,12 +757,12 @@ export class VentasComponent implements OnInit, OnDestroy {
             <tbody>
               ${datos.gastos.map((g: any) => `
                 <tr style="border-bottom: 1px solid #e5e7eb;">
-                  <td style="padding: 6px;">${new Date(g.fecha).toLocaleString('es-CO', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}</td>
+                  <td style="padding: 6px;">${new Date(g.fecha).toLocaleString('es-CO', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}</td>
                   <td style="padding: 6px;">${g.descripcion || 'Sin descripción'}</td>
                   <td style="padding: 6px;">${g.categoria || 'General'}</td>
                   <td style="padding: 6px; text-align: right; font-weight: 600;">${this.formatearMoneda(g.monto)}</td>
@@ -796,29 +817,29 @@ export class VentasComponent implements OnInit, OnDestroy {
       </body>
       </html>
     `;
-    
+
     const ventanaImpresion = window.open('', '_blank', 'width=800,height=600');
-    
+
     if (ventanaImpresion) {
       ventanaImpresion.document.write(contenido);
       ventanaImpresion.document.close();
       ventanaImpresion.focus();
-      
+
       setTimeout(() => {
         ventanaImpresion.print();
       }, 250);
     }
   }
-  
+
   seleccionarSugerencia(monto: number): void {
     this.efectivoReal = monto;
     this.calcularDiferenciaCaja();
   }
-  
+
   seleccionarMontoInicial(monto: number): void {
     this.montoInicial = monto;
   }
-  
+
   async verificarMesasAbiertas(): Promise<number> {
     try {
       const mesas = await this.supabaseService.getMesas();
@@ -828,35 +849,35 @@ export class VentasComponent implements OnInit, OnDestroy {
       return 0;
     }
   }
-  
+
   imprimirCierreCaja(): void {
     const contenido = this.generarContenidoImpresion();
     const ventanaImpresion = window.open('', '_blank', 'width=800,height=600');
-    
+
     if (ventanaImpresion) {
       ventanaImpresion.document.write(contenido);
       ventanaImpresion.document.close();
       ventanaImpresion.focus();
-      
+
       // Esperar a que cargue y luego imprimir
       setTimeout(() => {
         ventanaImpresion.print();
       }, 250);
     }
   }
-  
+
   generarContenidoImpresion(): string {
     const fecha = new Date();
-    const fechaFormateada = fecha.toLocaleDateString('es-CO', { 
-      year: 'numeric', 
-      month: 'long', 
+    const fechaFormateada = fecha.toLocaleDateString('es-CO', {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-    
+
     const montoInicial = this.cajaActual?.monto_inicial || 0;
-    
+
     return `
       <!DOCTYPE html>
       <html>
@@ -1172,7 +1193,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     try {
       // Crear datos para Excel
       const datosReporte = this.generarDatosReporte();
-      
+
       // Crear workbook
       const ws_data = [
         ['REPORTE DE VENTAS Y RECAUDO'],
@@ -1203,7 +1224,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       ws_data.push([]);
       ws_data.push(['TOP 10 PRODUCTOS MÁS VENDIDOS']);
       ws_data.push(['Producto', 'Cantidad', 'Total Vendido']);
-      
+
       this.topProductos.forEach(producto => {
         ws_data.push([
           producto.nombre,
@@ -1215,7 +1236,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       // Crear archivo Excel simulado (en una implementación real usarías una librería como xlsx)
       const contenido = this.convertirACSV(ws_data);
       this.descargarArchivo(contenido, 'reporte-ventas.csv', 'text/csv');
-      
+
       this.mostrarNotificacion(
         '📊 Excel Exportado',
         'El reporte ha sido exportado como archivo CSV.',
@@ -1236,13 +1257,13 @@ export class VentasComponent implements OnInit, OnDestroy {
     try {
       // Generar contenido HTML para PDF
       const contenidoHTML = this.generarHTMLReporte();
-      
+
       // Crear ventana de impresión
       const ventanaImpresion = window.open('', '_blank');
       if (ventanaImpresion) {
         ventanaImpresion.document.write(contenidoHTML);
         ventanaImpresion.document.close();
-        
+
         // Esperar a que cargue y luego imprimir
         setTimeout(() => {
           ventanaImpresion.print();
@@ -1270,24 +1291,24 @@ export class VentasComponent implements OnInit, OnDestroy {
     try {
       const datosReporte = this.generarDatosReporte();
       let textoReporte = '';
-      
+
       textoReporte += '🍦 REPORTE DE VENTAS Y RECAUDO\n';
       textoReporte += '='.repeat(50) + '\n';
       textoReporte += `📅 Fecha: ${new Date().toLocaleDateString('es-CO')}\n`;
       textoReporte += `📊 Período: ${this.fechaInicio} - ${this.fechaFin}\n\n`;
-      
+
       textoReporte += '💰 RESUMEN GENERAL\n';
       textoReporte += '-'.repeat(30) + '\n';
       textoReporte += `Total Recaudado: ${this.formatearMoneda(this.recaudoActual)}\n`;
       textoReporte += `Total Gastos: ${this.formatearMoneda(this.gastosTotal)}\n`;
       textoReporte += `Mesas Cerradas: ${this.mesasCerradas.length}\n\n`;
-      
+
       textoReporte += '🪑 DETALLE DE MESAS\n';
       textoReporte += '-'.repeat(30) + '\n';
       this.mesasCerradas.forEach(mesa => {
         textoReporte += `Mesa ${mesa.numeroMesa}: ${this.formatearMoneda(mesa.total)} - ${new Date(mesa.fecha).toLocaleDateString('es-CO')}\n`;
       });
-      
+
       textoReporte += '\n🍦 TOP PRODUCTOS\n';
       textoReporte += '-'.repeat(30) + '\n';
       this.topProductos.slice(0, 5).forEach((producto, index) => {
@@ -1341,7 +1362,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   }
 
   private convertirACSV(datos: any[][]): string {
-    return datos.map(fila => 
+    return datos.map(fila =>
       fila.map(celda => `"${celda}"`).join(',')
     ).join('\n');
   }
@@ -1447,7 +1468,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     document.body.appendChild(textArea);
     textArea.focus();
     textArea.select();
-    
+
     try {
       document.execCommand('copy');
       this.mostrarNotificacion(
@@ -1462,7 +1483,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         'error'
       );
     }
-    
+
     document.body.removeChild(textArea);
   }
 
@@ -1539,7 +1560,7 @@ export class VentasComponent implements OnInit, OnDestroy {
   formatearMoneda(valor: number): string {
     // Redondear a entero para evitar decimales
     const valorRedondeado = Math.round(valor || 0);
-    
+
     // Formatear con separadores de miles
     return '$' + valorRedondeado.toLocaleString('es-CO');
   }
@@ -1580,7 +1601,7 @@ export class VentasComponent implements OnInit, OnDestroy {
     this.mesaSeleccionada.cargandoProductos = true;
     this.modalHistoryManager.registerModalOpen('modal-factura', this.mostrarModalFactura);
     this.mostrarModalFactura = true;
-    
+
     // Obtener productos de la venta
     try {
       console.log('Obteniendo productos para venta ID:', mesa.id);
@@ -1588,7 +1609,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       console.log('Productos obtenidos:', productos);
       this.mesaSeleccionada.productos = productos || [];
       this.mesaSeleccionada.cargandoProductos = false;
-      
+
       if (productos.length === 0) {
         this.toast.warning('Sin productos', 'No se encontraron productos para esta venta');
       }
@@ -1610,20 +1631,20 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   async imprimirFactura(): Promise<void> {
     if (!this.mesaSeleccionada) return;
-    
+
     this.isImprimiendo = true;
-    
+
     try {
       // Simular proceso de impresión
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Aquí se implementaría la lógica real de impresión
       console.log('Imprimiendo factura para:', this.mesaSeleccionada.numeroMesa);
       window.print();
-      
+
       // Mostrar mensaje de éxito
       this.mostrarNotificacion('🖨️ Impresión', 'Factura enviada a impresión', 'success');
-      
+
       this.cerrarModalFactura();
     } catch (error) {
       console.error('Error al imprimir factura:', error);
@@ -1632,7 +1653,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       this.isImprimiendo = false;
     }
   }
-  
+
   async exportarFacturaPDF(): Promise<void> {
     if (!this.mesaSeleccionada) return;
 
@@ -1768,8 +1789,11 @@ export class VentasComponent implements OnInit, OnDestroy {
   generarFactura(mesa: any): any {
     // Generar datos de la factura
     const fecha = new Date(mesa.fecha);
-    const numeroFactura = `F-${mesa.id.toString().padStart(6, '0')}`;
-    
+    // Usar número de mesa + fecha como número de factura legible
+    const fechaNum = fecha.toLocaleDateString('es-CO').replace(/\/|-/g, '');
+    const horaNum = fecha.toLocaleTimeString('es-CO', { hour12: false }).replace(/:/g, '');
+    const numeroFactura = `F-${String(mesa.numeroMesa || '?').padStart(2, '0')}-${fechaNum.slice(-4)}${horaNum.slice(0, 4)}`;
+
     // Usar productos reales de la mesa
     const items = (mesa.productos || []).map((producto: any) => ({
       descripcion: producto.nombre,
@@ -1779,7 +1803,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       personalizacion: producto.personalizacion || '',
       notas: producto.notas || ''
     }));
-    
+
     // Si no hay productos, mostrar mensaje
     if (items.length === 0) {
       items.push({
@@ -1791,13 +1815,13 @@ export class VentasComponent implements OnInit, OnDestroy {
         notas: ''
       });
     }
-    
+
     // Calcular subtotal e IVA según configuración
     const config = this.configFactura || this.getConfiguracionPorDefecto();
     const subtotal = mesa.total;
     const iva = config.mostrarIVA ? Math.round(subtotal * (config.porcentajeIVA / 100)) : 0;
     const total = config.mostrarIVA ? subtotal + iva : subtotal;
-    
+
     return {
       numeroFactura,
       fecha: fecha.toLocaleDateString('es-CO'),
@@ -1868,7 +1892,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
   seleccionarFormato(formato: string) {
     this.formatoSeleccionado = formato;
-    
+
     // Ajustar configuraciones por defecto según el formato
     if (formato === 'clipboard') {
       this.incluirGraficos = false;
@@ -2021,7 +2045,7 @@ export class VentasComponent implements OnInit, OnDestroy {
 
       const contenido = this.convertirACSV(ws_data);
       this.descargarArchivo(contenido, nombreArchivo, 'text/csv');
-      
+
       this.mostrarNotificacion(
         '📊 Excel Exportado',
         `El reporte de ${this.getNombreTab(tipo)} ha sido exportado.`,
@@ -2069,7 +2093,7 @@ export class VentasComponent implements OnInit, OnDestroy {
       if (ventanaImpresion) {
         ventanaImpresion.document.write(contenidoHTML);
         ventanaImpresion.document.close();
-        
+
         setTimeout(() => {
           ventanaImpresion.print();
           ventanaImpresion.close();
@@ -2486,19 +2510,19 @@ export class VentasComponent implements OnInit, OnDestroy {
     texto += '='.repeat(50) + '\n';
     texto += `📅 Fecha: ${new Date().toLocaleDateString('es-CO')}\n`;
     texto += `📊 Período: ${this.fechaInicio} - ${this.fechaFin}\n\n`;
-    
+
     texto += '💰 RESUMEN GENERAL\n';
     texto += '-'.repeat(30) + '\n';
     texto += `Total Recaudado: ${this.formatearMoneda(this.recaudoActual)}\n`;
     texto += `Total Mesas Cerradas: ${this.mesasCerradas.length}\n`;
     texto += `Total General: ${this.formatearMoneda(this.getTotalMesas())}\n\n`;
-    
+
     texto += '🪑 DETALLE DE MESAS\n';
     texto += '-'.repeat(30) + '\n';
     this.mesasCerradas.forEach(mesa => {
       texto += `Mesa ${mesa.numeroMesa}: ${this.formatearMoneda(mesa.total)} - ${new Date(mesa.fecha).toLocaleDateString('es-CO')} - ${mesa.cantidadProductos || 0} productos\n`;
     });
-    
+
     return texto;
   }
 
@@ -2508,18 +2532,18 @@ export class VentasComponent implements OnInit, OnDestroy {
     texto += '='.repeat(50) + '\n';
     texto += `📅 Fecha: ${new Date().toLocaleDateString('es-CO')}\n`;
     texto += `📊 Período: ${this.fechaInicio} - ${this.fechaFin}\n\n`;
-    
+
     texto += '💰 RESUMEN GENERAL\n';
     texto += '-'.repeat(30) + '\n';
     texto += `Total Gastos: ${this.formatearMoneda(this.gastosTotalFiltrados)}\n`;
     texto += `Número de Gastos: ${this.gastosFiltrados.length}\n\n`;
-    
+
     texto += '💸 DETALLE DE GASTOS\n';
     texto += '-'.repeat(30) + '\n';
     this.gastosFiltrados.forEach(gasto => {
       texto += `${new Date(gasto.fecha).toLocaleDateString('es-CO')}: ${gasto.descripcion} - ${gasto.categoria} - ${this.formatearMoneda(gasto.monto)} - ${(gasto.proveedor === 'personalizado' ? gasto.proveedor_personalizado || 'N/A' : gasto.proveedor || 'N/A')}\n`;
     });
-    
+
     return texto;
   }
 
@@ -2529,18 +2553,18 @@ export class VentasComponent implements OnInit, OnDestroy {
     texto += '='.repeat(50) + '\n';
     texto += `📅 Fecha: ${new Date().toLocaleDateString('es-CO')}\n`;
     texto += `📊 Período: ${this.fechaInicio} - ${this.fechaFin}\n\n`;
-    
+
     texto += '💰 RESUMEN GENERAL\n';
     texto += '-'.repeat(30) + '\n';
     texto += `Total Productos: ${this.productosVendidos.length}\n`;
     texto += `Productos Únicos: ${this.topProductos.length}\n\n`;
-    
+
     texto += '🏆 TOP PRODUCTOS\n';
     texto += '-'.repeat(30) + '\n';
     this.topProductos.forEach((producto, index) => {
       texto += `${index + 1}. ${producto.nombre}: ${producto.cantidad} unidades - ${this.formatearMoneda(producto.precio)} c/u - ${this.formatearMoneda(producto.total)} total - ${producto.categoria}\n`;
     });
-    
+
     return texto;
   }
 
@@ -2550,19 +2574,19 @@ export class VentasComponent implements OnInit, OnDestroy {
     texto += '='.repeat(50) + '\n';
     texto += `📅 Fecha: ${new Date().toLocaleDateString('es-CO')}\n`;
     texto += `📊 Período: ${this.fechaInicio} - ${this.fechaFin}\n\n`;
-    
+
     texto += '💰 ESTADO ACTUAL DE CAJA\n';
     texto += '-'.repeat(30) + '\n';
     texto += `Estado: ${this.cajaAbierta ? 'Abierta' : 'Cerrada'}\n`;
     texto += `Monto Inicial: ${this.cajaAbierta ? this.formatearMoneda(this.cajaActual?.monto_inicial || 0) : 'N/A'}\n`;
     texto += `Fecha Apertura: ${this.cajaAbierta ? new Date(this.cajaActual?.fecha_apertura).toLocaleDateString('es-CO') : 'N/A'}\n\n`;
-    
+
     texto += '📊 CAJAS CERRADAS\n';
     texto += '-'.repeat(30) + '\n';
     this.cajasCerradas.forEach(caja => {
       texto += `ID ${caja.id}: ${new Date(caja.fecha_apertura).toLocaleDateString('es-CO')} - ${caja.fecha_cierre ? new Date(caja.fecha_cierre).toLocaleDateString('es-CO') : 'N/A'} - ${this.formatearMoneda(caja.monto_inicial)} - ${caja.monto_final ? this.formatearMoneda(caja.monto_final) : 'N/A'}\n`;
     });
-    
+
     return texto;
   }
 

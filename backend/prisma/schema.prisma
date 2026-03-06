@@ -222,6 +222,7 @@ model Orden {
   descuento     Float    @default(0)
   propina       Float    @default(0)
   notas         String?
+  visibleCocina Boolean  @default(true)
   
   // Relaciones
   mesa          Mesa?    @relation(fields: [mesaId], references: [id], onDelete: SetNull)
@@ -305,14 +306,16 @@ enum EstadoPago {
 // ============================================
 
 model Venta {
-  id            String   @id @default(cuid())
-  mesaId        String?
-  usuarioId     String
-  ordenId       String?
-  total         Float
-  estado        String   @default("completada")
-  metodoPago    String   // EFECTIVO, TARJETA, etc
-  fecha         DateTime @default(now())
+  id                 String   @id @default(cuid())
+  mesaId             String?
+  usuarioId          String
+  ordenId            String?
+  total              Float
+  estado             String   @default("completada")
+  metodoPago         String   // EFECTIVO, TARJETA, etc
+  cantidadProductos  Int      @default(0)
+  productosJson      String?  // Snapshot JSON de los productos cobrados
+  fecha              DateTime @default(now())
   
   // Relaciones
   mesa          Mesa?    @relation(fields: [mesaId], references: [id], onDelete: SetNull)

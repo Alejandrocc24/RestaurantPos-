@@ -9,10 +9,19 @@ export class OrdenController {
     try {
       const skip = parseInt(req.query.skip as string) || 0;
       const take = parseInt(req.query.take as string) || 50;
+      const soloActivos = req.query.soloActivos === 'true';
+
+      const where: any = {};
+
+      if (soloActivos) {
+        where.visibleCocina = true;
+        where.estado = { in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA'] };
+      }
 
       const ordenes = await req.prisma.orden.findMany({
         skip,
         take,
+        where,
         orderBy: { createdAt: 'desc' },
         include: {
           mesa: true,
@@ -85,12 +94,13 @@ export class OrdenController {
     try {
       const { mesaId } = req.params;
 
-      // Buscar la orden activa (que no esté CANCELADA, PAGADA o COMPLETADA)
+      // Buscar la orden activa: PENDIENTE (recibida), EN_CURSO (en preparación) o COMPLETADA (lista, pendiente de cobro)
+      // La mesa sigue OCUPADA hasta que la orden sea PAGADA o CANCELADA
       const orden = await req.prisma.orden.findFirst({
         where: {
           mesaId,
           estado: {
-            in: ['PENDIENTE', 'EN_CURSO']
+            in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -347,11 +357,12 @@ export class OrdenController {
       }
 
       // Buscar si ya existe una orden activa para esta mesa
+      // (PENDIENTE=recibida, EN_CURSO=en preparación, COMPLETADA=lista pero no cobrada)
       let orden = await req.prisma.orden.findFirst({
         where: {
           mesaId,
           estado: {
-            in: ['PENDIENTE', 'EN_CURSO']
+            in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -407,7 +418,7 @@ export class OrdenController {
       // Agregar nuevos productos a la orden (existente o recién creada)
       console.log(`➕ Agregando ${items.length} producto(s) a orden ${orden.id}`);
       let totalAdelante = orden.total || 0;
-      
+
       for (const item of items) {
         const ordenProducto = await req.prisma.ordenProducto.create({
           data: {
@@ -425,9 +436,16 @@ export class OrdenController {
       }
 
       // Actualizar total de la orden con los nuevos productos
+      // Si la orden estaba COMPLETADA y se agregan más productos, volver a PENDIENTE para que cocina la vea
+      const estadoActualOrden = orden.estado;
+      const nuevoEstado = estadoActualOrden === 'COMPLETADA' ? 'PENDIENTE' : estadoActualOrden;
+
       const ordenActualizada = await req.prisma.orden.update({
         where: { id: orden.id },
-        data: { total: totalAdelante },
+        data: {
+          total: totalAdelante,
+          ...(nuevoEstado !== estadoActualOrden && { estado: nuevoEstado }),
+        },
         include: {
           mesa: true,
           usuario: { select: { id: true, nombre: true, email: true } },
@@ -480,7 +498,56 @@ export class OrdenController {
       console.log(`📝 Actualizando cantidades para orden ${ordenId}`);
       console.log(`   Productos: ${productos.length}`);
 
-      // Actualizar cada producto
+      const esCobro = req.query.esCobro === 'true';
+
+      // Si es un cobro y todos los productos van a quedar en 0, es un cobro TOTAL de la mesa.
+      // NO debemos borrar los productos para que la cocina los siga viendo.
+      const todosCero = productos.length > 0 && productos.every((p: any) => p.cantidad === 0);
+
+      if (esCobro && todosCero) {
+        console.log(`💰 Cobro total detectado para la orden ${ordenId}. Preservando comanda para cocina.`);
+
+        const ordenOriginal = await req.prisma.orden.findUnique({
+          where: { id: ordenId },
+          include: { mesa: true, productos: true }
+        });
+
+        if (ordenOriginal?.mesaId) {
+          // Desvincular de la mesa y asentar el nombre en notas para la cocina
+          const notasActualizadas = `[Mesa ${ordenOriginal.mesa.numero}] ${ordenOriginal.notas || ''}`.trim();
+
+          const ordenActualizada = await req.prisma.orden.update({
+            where: { id: ordenId },
+            data: {
+              mesaId: null,
+              notas: notasActualizadas,
+            },
+            include: {
+              mesa: true,
+              usuario: { select: { id: true, nombre: true, email: true } },
+              productos: { include: { producto: true } },
+              pagos: true,
+            }
+          });
+
+          // Liberar la mesa
+          await req.prisma.mesa.update({
+            where: { id: ordenOriginal.mesaId },
+            data: { estado: 'DISPONIBLE' },
+          }).catch((err: any) => console.warn('No se pudo liberar la mesa automáticamente:', err.message));
+
+          return res.json({
+            success: true,
+            message: 'Cobro total procesado, comanda preservada en cocina',
+            data: ordenActualizada,
+            pedidoCerrado: true,
+            productosRestantes: 0,
+            pedido: ordenActualizada,
+          });
+        }
+      }
+
+      // Flujo normal (edición parcial o corrección de error)
       let totalOrden = 0;
       for (const item of productos) {
         const { productoId, cantidad, precioUnitario } = item;
@@ -492,52 +559,53 @@ export class OrdenController {
 
         const subtotal = cantidad * (precioUnitario || 0);
 
-        // Actualizar cantidad
         await req.prisma.ordenProducto.updateMany({
-          where: {
-            ordenId,
-            productoId,
-          },
-          data: {
-            cantidad,
-            subtotal,
-          },
+          where: { ordenId, productoId },
+          data: { cantidad, subtotal },
         });
 
         totalOrden += subtotal;
-        console.log(`  ✅ Actualizado: ${productoId} -> cantidad: ${cantidad}, subtotal: ${subtotal}`);
       }
 
       // Eliminar productos con cantidad = 0
       await req.prisma.ordenProducto.deleteMany({
-        where: {
-          ordenId,
-          cantidad: 0,
-        },
+        where: { ordenId, cantidad: 0 },
       });
 
-      // Actualizar total de la orden
+      const productosRestantesCount = await req.prisma.ordenProducto.count({
+        where: { ordenId },
+      });
+
+      const pedidoCerrado = productosRestantesCount === 0;
+
+      // Actualizar total y estado (PAGADA solo si de verdad desaparece)
       const ordenActualizada = await req.prisma.orden.update({
         where: { id: ordenId },
-        data: { total: totalOrden },
+        data: {
+          total: totalOrden,
+          ...(pedidoCerrado && { estado: 'PAGADA', visibleCocina: false }),
+        },
         include: {
           mesa: true,
           usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
-          },
+          productos: { include: { producto: true } },
           pagos: true,
         },
       });
 
-      console.log(`✅ Orden ${ordenId} actualizada. Total: ${totalOrden}, Productos restantes: ${ordenActualizada.productos?.length || 0}`);
+      if (pedidoCerrado && ordenActualizada.mesaId) {
+        await req.prisma.mesa.update({
+          where: { id: ordenActualizada.mesaId },
+          data: { estado: 'DISPONIBLE' },
+        }).catch((err: any) => console.warn('No se pudo liberar la mesa automáticamente:', err.message));
+      }
 
       res.json({
         success: true,
         message: 'Cantidades actualizadas exitosamente',
         data: ordenActualizada,
-        pedidoCerrado: (ordenActualizada.productos?.length || 0) === 0,
-        productosRestantes: ordenActualizada.productos?.length || 0,
+        pedidoCerrado,
+        productosRestantes: productosRestantesCount,
         pedido: ordenActualizada,
       });
     } catch (error: any) {
@@ -545,6 +613,39 @@ export class OrdenController {
       res.status(400).json({
         success: false,
         message: error.message || 'Error al actualizar cantidades',
+      });
+    }
+  }
+
+  /**
+   * POST /api/ordenes/ocultar-cocina
+   * Ocultar órdenes completadas de la pantalla de cocina
+   */
+  static async ocultarPedidosCocina(req: Request, res: Response) {
+    try {
+      const { ids } = req.body; // Array de {id} o ids
+
+      if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Se requiere un arreglo de IDs',
+        });
+      }
+
+      await req.prisma.orden.updateMany({
+        where: { id: { in: ids } },
+        data: { visibleCocina: false },
+      });
+
+      res.json({
+        success: true,
+        message: 'Órdenes ocultadas de cocina',
+      });
+    } catch (error: any) {
+      console.error('Error ocultando órdenes:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al ocultar órdenes',
       });
     }
   }
