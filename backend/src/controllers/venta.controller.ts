@@ -110,44 +110,37 @@ export class VentaController {
 
       // Validar campos requeridos
       if (!usuario_id || total === undefined || !metodo_pago) {
-        console.warn('⚠️ [VentaController.create] Validación fallida: faltan campos requeridos');
         return res.status(400).json({
           success: false,
           message: 'Faltan campos requeridos: usuario_id, total, metodo_pago',
         });
       }
 
-      // DEBUG: Verificar req.prisma
-      console.log('🔍 [VentaController.create] req.prisma existe?', !!req.prisma, typeof req.prisma);
       if (!req.prisma) {
-        console.error('❌ [VentaController.create] req.prisma es undefined!');
-        console.error('    req keys:', Object.keys(req).filter(k => !k.startsWith('_')).slice(0, 20));
         return res.status(500).json({
           success: false,
           message: 'Prisma client no inicializado',
         });
       }
 
-      // Crear la venta
-      const venta = await req.prisma.venta.create({
-        data: {
-          mesaId: mesa_id || null,
-          usuarioId: usuario_id,
-          ordenId: orden_id || null,
-          total: parseFloat(total),
-          estado,
-          metodoPago: metodo_pago,
-          cantidadProductos: parseInt(cantidad_productos) || 0,
-          productosJson: productos_json ? JSON.stringify(productos_json) : null,
-          fecha: fecha ? new Date(fecha) : new Date(),
-        },
-        include: {
-          mesa: { select: { id: true, numero: true } },
-          usuario: { select: { id: true, nombre: true, email: true } },
-        },
-      });
+      const t0 = Date.now();
 
-      console.log('✅ [VentaController.create] Venta creada exitosamente:', venta.id);
+      // UN SOLO viaje de red al servidor PostgreSQL (casts explícitos para evitar mismatch de tipos)
+      const result: any[] = await req.prisma.$queryRawUnsafe(
+        `SELECT crear_venta($1::text, $2::text, $3::text, $4::float8, $5::text, $6::text, $7::timestamp, $8::int, $9::text) as data`,
+        mesa_id || null,
+        usuario_id,
+        orden_id || null,
+        parseFloat(total),
+        estado,
+        metodo_pago,
+        fecha ? new Date(fecha) : new Date(),
+        parseInt(cantidad_productos) || 0,
+        productos_json ? JSON.stringify(productos_json) : null
+      );
+
+      const venta = result[0]?.data;
+      console.log(`✅ [SP] Venta creada en ${Date.now() - t0}ms:`, venta?.id);
 
       res.status(201).json({
         success: true,
@@ -156,7 +149,6 @@ export class VentaController {
       });
     } catch (error: any) {
       console.error('❌ [VentaController.create] Error:', error.message);
-      console.error('Stack:', error.stack);
       res.status(500).json({
         success: false,
         message: error.message || 'Error al crear venta',

@@ -7,6 +7,7 @@ import { config } from './config/index.js';
 import { loggerMiddleware, ensurePrismaMiddleware } from './middleware/request.js';
 import { errorMiddleware } from './middleware/auth.js';
 import apiRoutes from './routes/index.js';
+import { BackupService } from './services/backup.service.js';
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: config.isDevelopment 
+    origin: config.isDevelopment
       ? ['http://localhost:4200', 'http://localhost:3000', 'http://127.0.0.1:4200', 'http://127.0.0.1:3000']
       : process.env.FRONTEND_URL || '*',
     credentials: true,
@@ -33,8 +34,8 @@ app.use(
 app.use(morgan('combined'));
 
 // Body parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use(express.json({ limit: '500mb' }));
+app.use(express.urlencoded({ limit: '500mb', extended: true }));
 // Cookie parser (para refresh tokens en cookies HttpOnly)
 app.use(cookieParser());
 
@@ -76,6 +77,8 @@ app.use(errorMiddleware);
 
 async function startServer() {
   try {
+    BackupService.init();
+
     app.listen(config.port, () => {
       console.log(`
 ╔════════════════════════════════════════╗

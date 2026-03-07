@@ -92,23 +92,52 @@ export class MesaController {
    */
   static async create(req: Request, res: Response) {
     try {
-      const { numero, capacidad } = req.body;
+      const { numero, capacidad, posicion, ubicacion } = req.body;
 
-      if (!numero || !capacidad) {
+      console.log('📝 [MesaController.create] Body recibido:', JSON.stringify(req.body));
+
+      // Validate required fields
+      const numValue = Number(numero);
+      const capValue = Number(capacidad);
+
+      if (!numero || isNaN(numValue) || numValue <= 0) {
         return res.status(400).json({
           success: false,
-          message: 'Faltan campos requeridos: numero, capacidad',
+          message: 'El número de mesa es requerido y debe ser un número positivo',
+        });
+      }
+
+      if (!capacidad || isNaN(capValue) || capValue <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'La capacidad es requerida y debe ser un número positivo',
+        });
+      }
+
+      // Check if mesa number already exists
+      const existingMesa = await req.prisma.mesa.findUnique({
+        where: { numero: numValue },
+      });
+
+      if (existingMesa) {
+        return res.status(400).json({
+          success: false,
+          message: `Ya existe una mesa con el número ${numValue}`,
         });
       }
 
       const mesa = await req.prisma.mesa.create({
         data: {
-          numero: parseInt(numero),
-          capacidad: parseInt(capacidad),
+          numero: numValue,
+          capacidad: capValue,
           estado: 'DISPONIBLE',
           activo: true,
+          posicion: posicion ? String(posicion) : null,
+          ubicacion: ubicacion ? String(ubicacion) : null,
         },
       });
+
+      console.log('✅ [MesaController.create] Mesa creada:', { id: mesa.id, numero: mesa.numero });
 
       res.status(201).json({
         success: true,
@@ -116,9 +145,19 @@ export class MesaController {
         data: mesa,
       });
     } catch (error: any) {
+      console.error('❌ [MesaController.create] Error:', error.message);
+
+      // Prisma unique constraint error
+      if (error.code === 'P2002') {
+        return res.status(400).json({
+          success: false,
+          message: 'Ya existe una mesa con ese número',
+        });
+      }
+
       res.status(400).json({
         success: false,
-        message: error.message,
+        message: error.message || 'Error al crear la mesa',
       });
     }
   }
@@ -184,9 +223,9 @@ export class MesaController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { numero, capacidad, estado, activo } = req.body;
+      const { numero, capacidad, estado, activo, posicion, ubicacion } = req.body;
 
-      console.log(`🔄 [MesaController.update] Actualizando mesa ${id} con datos:`, { numero, capacidad, estado, activo });
+      console.log(`🔄 [MesaController.update] Actualizando mesa ${id} con datos:`, { numero, capacidad, estado, activo, posicion, ubicacion });
 
       // Build payload incrementally so we can normalize/validate
       const data: any = {};
@@ -195,6 +234,12 @@ export class MesaController {
       }
       if (capacidad !== undefined) {
         data.capacidad = parseInt(capacidad);
+      }
+      if (posicion !== undefined) {
+        data.posicion = posicion ? String(posicion) : null;
+      }
+      if (ubicacion !== undefined) {
+        data.ubicacion = ubicacion ? String(ubicacion) : null;
       }
 
       if (estado !== undefined) {

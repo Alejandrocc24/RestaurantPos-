@@ -16,10 +16,12 @@ import proveedorRoutes from './proveedor.routes.js';
 import cajaRoutes from './caja.routes.js';
 import ventaRoutes from './venta.routes.js';
 import backupRoutes from './backup.routes.js';
+import initRoutes from './init.routes.js';
 
 const router = Router();
 
 router.use('/auth', authRoutes);
+router.use('/init', initRoutes);
 router.use('/productos', productoRoutes);
 router.use('/mesas', mesaRoutes);
 router.use('/gastos', gastoRoutes);

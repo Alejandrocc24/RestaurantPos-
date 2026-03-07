@@ -307,4 +307,12 @@ export class ApiService {
       timeout(this.requestTimeoutMs)
     );
   }
+
+  /**
+   * Carga TODOS los datos iniciales en un solo request (mesas, productos, categorías, grupos).
+   * Reemplaza 4 llamadas separadas que antes tardaban ~2s cada una.
+   */
+  getDatosIniciales(): Observable<ApiResponse<any>> {
+    return this.withHandling(this.http.get<ApiResponse<any>>(`${this.baseUrl}/init`));
+  }
 }

@@ -13,6 +13,7 @@ import { AuthService } from '../services/auth.service';
 import { PermissionsService } from '../services/permissions.service';
 import { ModalHistoryManager } from '../shared/utils/modal-history-manager';
 import { SupabaseService } from '../services/supabase.service';
+import { ApiService } from '../services/api.service';
 import Swal from 'sweetalert2';
 
 interface CategoriaProducto {
@@ -262,7 +263,8 @@ export class MesasComponent implements OnInit, OnDestroy {
     private productosService: ProductosService,
     private authService: AuthService,
     private permissionsService: PermissionsService,
-    private supabaseService: SupabaseService
+    private supabaseService: SupabaseService,
+    private apiService: ApiService
   ) {
     if (typeof window !== 'undefined') {
       window.addEventListener('popstate', this.popStateHandler);
@@ -273,15 +275,132 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.verificarPermisos();
 
     try {
-      await Promise.all([
-        this.cargarMesas(),
-        this.cargarGruposModificadores(),
-        this.cargarCategoriasDesdeDB(),
-        this.cargarProductosDesdeDB()
-      ]);
+      console.log('🚀 Cargando datos iniciales con endpoint combo...');
+      const t0 = Date.now();
+
+      // UN SOLO request para obtener mesas + productos + categorías + grupos
+      const resp: any = await firstValueFrom(this.apiService.getDatosIniciales());
+
+      if (resp?.success && resp?.data) {
+        const data = resp.data;
+
+        // Procesar mesas
+        if (data.mesas) {
+          this.mesas = data.mesas.map((mesa: any) => this.normalizarMesa(mesa));
+          this.mesas = this.asignarPosicionesAutomaticas(this.mesas);
+          this.cargandoMesas = false;
+        }
+
+        // Procesar categorías
+        if (data.categorias) {
+          this.categoriasProductos = data.categorias.map((c: any) => {
+            const nombreCategoria = (c.nombre || '').toString();
+            let subcategoriasNormalizadas: string[] = [];
+            const rawSubcategorias = c.subcategorias;
+            if (Array.isArray(rawSubcategorias)) {
+              subcategoriasNormalizadas = rawSubcategorias
+                .map((sub: any) => typeof sub === 'string' ? sub : sub?.nombre)
+                .filter((sub: string | undefined): sub is string => !!sub && sub.trim().length > 0);
+            }
+            return {
+              id: nombreCategoria.toLowerCase().replace(/\s+/g, ''),
+              nombre: nombreCategoria,
+              icono: '🍽️',
+              subcategorias: subcategoriasNormalizadas
+            };
+          });
+        }
+
+        // Procesar productos
+        if (data.productos) {
+          this.productos = data.productos.map((p: any) => {
+            let gruposModificadores: number[] | undefined;
+            let configuracionGrupos: any[] | undefined;
+            const gmFuente = p.gruposModificadores || p.grupos_modificadores;
+            const cgFuente = p.configuracionGrupos || p.configuracion_grupos;
+            if (gmFuente) {
+              try {
+                gruposModificadores = typeof gmFuente === 'string' ? JSON.parse(gmFuente) : gmFuente;
+              } catch (e) { gruposModificadores = undefined; }
+            }
+            if (cgFuente) {
+              try {
+                configuracionGrupos = typeof cgFuente === 'string' ? JSON.parse(cgFuente) : cgFuente;
+              } catch (e) { configuracionGrupos = undefined; }
+            }
+            let comentarios: string[] = [];
+            if (p.comentarios && Array.isArray(p.comentarios)) {
+              if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'object' && p.comentarios[0].texto) {
+                comentarios = p.comentarios.map((c: any) => c.texto);
+              } else if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'string') {
+                comentarios = p.comentarios;
+              }
+            }
+            return {
+              id: p.id,
+              nombre: p.nombre,
+              precio: Number(p.precio) || 0,
+              categoria: p.categoria ? (typeof p.categoria === 'string' ? p.categoria : p.categoria.nombre).toLowerCase().replace(/\s+/g, '') : null,
+              subcategoria: p.subcategoria,
+              descripcion: p.descripcion,
+              icono: p.icono || '🍨',
+              especial: p.especial || false,
+              gruposModificadores,
+              configuracionGrupos,
+              comentarios,
+              activo: p.activo !== undefined ? p.activo : true
+            };
+          });
+        }
+
+        // Procesar grupos modificadores
+        if (data.gruposModificadores && data.gruposModificadores.length > 0) {
+          this.gruposModificadores = data.gruposModificadores.map((g: any) => ({
+            id: g.id,
+            nombre: g.nombre,
+            obligatorio: g.requerido || false,
+            cobrarPrecio: g.cobrar_precio || false,
+            modificadores: (g.opciones || []).map((op: any) => ({
+              id: op.id,
+              nombre: op.nombre,
+              precioAdicional: op.precioAdicional || 0,
+              productoId: op.productoId || null,
+              producto: op.producto || null
+            }))
+          }));
+        } else {
+          this.cargarGruposModificadoresEjemplo();
+        }
+
+        this.aplicarFiltros();
+        console.log(`✅ Datos iniciales cargados en ${Date.now() - t0}ms | Mesas: ${this.mesas.length} | Productos: ${this.productos.length} | Categorías: ${this.categoriasProductos.length} | Grupos: ${this.gruposModificadores.length}`);
+
+        // Cargar productos de mesas ocupadas (en segundo plano)
+        await this.cargarProductosMesasOcupadas();
+      } else {
+        // Fallback: cargar de forma individual si el endpoint combo falla
+        console.warn('⚠️ Endpoint combo falló, cargando datos individuales...');
+        await Promise.all([
+          this.cargarMesas(),
+          this.cargarGruposModificadores(),
+          this.cargarCategoriasDesdeDB(),
+          this.cargarProductosDesdeDB()
+        ]);
+      }
     } catch (error) {
-      console.error('Error durante la carga inicial de MesasComponent:', error);
-      this.toast.error('Error', 'No se pudo completar la carga inicial. Intenta nuevamente.');
+      console.error('Error durante la carga inicial:', error);
+      // Fallback individual
+      try {
+        await Promise.all([
+          this.cargarMesas(),
+          this.cargarGruposModificadores(),
+          this.cargarCategoriasDesdeDB(),
+          this.cargarProductosDesdeDB()
+        ]);
+      } catch (fallbackError) {
+        console.error('Error en fallback:', fallbackError);
+        this.toast.error('Error', 'No se pudo completar la carga inicial.');
+      }
     }
   }
 
@@ -345,12 +464,11 @@ export class MesasComponent implements OnInit, OnDestroy {
    */
   private async cargarProductosMesasOcupadas(): Promise<void> {
     const mesasOcupadas = this.mesas.filter(m => m.estado === 'ocupado');
-    console.log(`🔄 Cargando productos para ${mesasOcupadas.length} mesa(s) ocupada(s)...`);
+    console.log(`🔄 Cargando productos paralelos para ${mesasOcupadas.length} mesa(s) ocupada(s)...`);
 
-    for (const mesa of mesasOcupadas) {
+    await Promise.all(mesasOcupadas.map(async (mesa) => {
       try {
         const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(mesa.id);
-
         if (pedidoActivo) {
           const productos = this.mapearProductosPedidoDesdeBackend(pedidoActivo.productos || []);
           mesa.productos = productos;
@@ -359,9 +477,8 @@ export class MesasComponent implements OnInit, OnDestroy {
         }
       } catch (error: any) {
         console.warn(`⚠️ No se pudieron cargar productos de mesa ${mesa.numero}:`, error.message);
-        // No cambiar el estado — el backend ya lo determinó correctamente
       }
-    }
+    }));
 
     this.aplicarFiltros();
     console.log(`✅ Carga de productos completada`);
@@ -859,11 +976,13 @@ export class MesasComponent implements OnInit, OnDestroy {
 
   private actualizarMesaEnColeccion(mesaActualizada: Mesa): void {
     const index = this.mesas.findIndex((m) => m.id === mesaActualizada.id);
+    let nuevasMesas = [...this.mesas];
     if (index !== -1) {
-      this.mesas[index] = { ...this.mesas[index], ...mesaActualizada };
+      nuevasMesas[index] = { ...nuevasMesas[index], ...mesaActualizada };
     } else {
-      this.mesas.push({ ...mesaActualizada });
+      nuevasMesas.push({ ...mesaActualizada });
     }
+    this.mesas = nuevasMesas;
   }
 
 
@@ -873,7 +992,7 @@ export class MesasComponent implements OnInit, OnDestroy {
   }
 
   aplicarFiltros(): void {
-    this.mesasFiltradas = this.mesas;
+    this.mesasFiltradas = [...this.mesas];
   }
 
   cambiarEstadoMesa(mesa: Mesa, nuevoEstado: Mesa['estado']): void {
@@ -1346,7 +1465,8 @@ export class MesasComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Error creando mesa:', error);
-          this.toast.error('Error', 'No se pudo crear la mesa');
+          const mensaje = error?.error?.message || 'No se pudo crear la mesa';
+          this.toast.error('Error', mensaje);
         }
       });
   }
@@ -2297,9 +2417,19 @@ export class MesasComponent implements OnInit, OnDestroy {
   async confirmarCierreCuenta(): Promise<void> {
     if (!this.mesaSeleccionadaInfo) return;
 
-    // ✅ VALIDACIÓN CRÍTICA: Verificar que hay una caja abierta antes de procesar la venta
+    // ✅ VALIDACIÓN CRÍTICA: Paralelizamos la petición de caja con la del pedido activo para ahorrar 500ms
+    let cajaAbierta: any;
+    let pedidoActivo: any;
+
     try {
-      const cajaAbierta = await this.supabaseService.obtenerCajaAbierta();
+      const [cajaAbiertaRes, pedidoActivoRes] = await Promise.all([
+        this.supabaseService.obtenerCajaAbierta(),
+        this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id)
+      ]);
+
+      cajaAbierta = cajaAbiertaRes;
+      pedidoActivo = pedidoActivoRes;
+
       if (!cajaAbierta) {
         await Swal.fire({
           title: '⚠️ Caja Cerrada',
@@ -2322,8 +2452,8 @@ export class MesasComponent implements OnInit, OnDestroy {
         return;
       }
     } catch (error) {
-      console.error('Error verificando caja:', error);
-      this.toast.error('Error', 'No se pudo verificar el estado de la caja');
+      console.error('Error verificando estado inicial para cobro:', error);
+      this.toast.error('Error', 'No se pudo verificar el estado de la caja o pedido');
       return;
     }
 
@@ -2351,9 +2481,6 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
 
     try {
-      // Obtener pedido activo
-      const pedidoActivo = await this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id);
-
       if (!pedidoActivo || !pedidoActivo.id) {
         this.toast.error('Error', 'No se encontró un pedido activo para esta mesa');
         return;
@@ -2375,32 +2502,19 @@ export class MesasComponent implements OnInit, OnDestroy {
 
       console.log('📤 Actualizando cantidades en pedido:', productosActualizados);
 
-      // Actualizar cantidades en el backend
-      console.log('➡️ Enviando request actualizarCantidadesProductos', pedidoActivo.id, productosActualizados);
-      const resultado = await this.supabaseService.actualizarCantidadesProductos(
-        pedidoActivo.id,
-        productosActualizados,
-        true // Indicador de que esto es un cobro, para no borrar comandas de cocina
-      );
-      console.log('✅ Resultado actualización:', resultado);
-
-      // Registrar la venta
-      const now = new Date();
-      const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
-
       // Obtener usuario autenticado
       const usuarioActual = this.authService.getUser();
       if (!usuarioActual || !usuarioActual.id) {
         throw new Error('No hay usuario autenticado');
       }
 
-      // Calcular cantidad total de productos cobrados
+      const now = new Date();
+      const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
       const cantidadProductosCobrados = this.mesaSeleccionadaInfo.productos?.reduce((sum: number, producto: any) => {
         const cantidadCobrada = this.productosCobro[producto.id] ? (this.cantidadesCobro[producto.id] || producto.cantidad || 1) : 0;
         return sum + cantidadCobrada;
       }, 0) || 0;
 
-      // Crear snapshot de los productos cobrados para la factura
       const productosSnapshot = (this.mesaSeleccionadaInfo.productos || [])
         .filter((producto: any) => this.productosCobro[producto.id])
         .map((producto: any) => {
@@ -2421,26 +2535,23 @@ export class MesasComponent implements OnInit, OnDestroy {
         estado: 'completada',
         metodo_pago: this.metodoPago,
         fecha: localISOTime,
-        orden_id: pedidoActivo.id, // ← Enlazar la venta con el pedido cerrado
+        orden_id: pedidoActivo.id,
         cantidad_productos: cantidadProductosCobrados,
         productos_json: productosSnapshot
       };
-      console.log('➡️ Creando venta', venta);
-      await this.supabaseService.crearVenta(venta);
+
+      // Paralelizamos las llamadas al backend (ambas escrituras a nivel base de datos)
+      console.log('➡️ Enviando requerimientos paralelos a Base de Datos (cantidades y ventas)...');
+      const [resultado] = await Promise.all([
+        this.supabaseService.actualizarCantidadesProductos(pedidoActivo.id, productosActualizados, true),
+        this.supabaseService.crearVenta(venta)
+      ]);
+      console.log('✅ Resultado actualización completado:', resultado);
 
       // Si el pedido se cerró completamente (no quedan productos)
       if (resultado.pedidoCerrado) {
-        // ✅ Actualizar EN EL BACKEND
-        try {
-          console.log('🔄 Intentando actualizar mesa:', this.mesaSeleccionadaInfo.id);
-          const mesaActualizada = await this.supabaseService.actualizarMesa(this.mesaSeleccionadaInfo.id, {
-            estado: 'disponible'
-          });
-          console.log('✅ Mesa actualizada en backend:', mesaActualizada);
-        } catch (errorMesa) {
-          console.error('❌ Error al actualizar mesa en backend:', errorMesa);
-          throw errorMesa;
-        }
+        // NOTA: El backend YA actualizó el estado de la mesa a 'disponible' internamente.
+        // No necesitamos hacer la consulta extra. Actualizamos estado del cliente.
 
         // Actualizar localmente
         const index = this.mesas.findIndex(m => m.id === this.mesaSeleccionadaInfo!.id);

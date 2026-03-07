@@ -352,12 +352,12 @@ export class SupabaseService {
 
   async getCajaAbierta() {
     try {
-      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService
-      const cajasResp = await firstValueFrom(this.api.getData('cajas'));
+      // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService con filtro de servidor
+      const cajasResp = await firstValueFrom(this.api.getData('cajas?estado=abierta'));
       const cajas = cajasResp.data || [];
 
-      // Buscar caja abierta
-      return cajas.find((caja: any) => caja.estado === 'abierta') || null;
+      // Devuelve la primera (idealmente solo hay una o unas pocas activas)
+      return cajas.length > 0 ? cajas[0] : null;
     } catch (error) {
       console.error('Error al obtener caja abierta:', error);
       return null;

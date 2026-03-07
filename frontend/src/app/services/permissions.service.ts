@@ -60,13 +60,30 @@ export class PermissionsService {
     this.loadUserPermissions();
   }
 
+  /**
+   * Normaliza el nombre del rol desde la BD a la clave interna usada para permisos por defecto.
+   * Ejemplo: 'Administrador' → 'admin', 'Gerente' → 'gerente', 'Cajero' → 'cajero'
+   */
+  private normalizeRoleName(roleName: string): string {
+    const roleMap: Record<string, string> = {
+      'administrador': 'admin',
+      'admin': 'admin',
+      'gerente': 'gerente',
+      'cajero': 'cajero',
+      'cocina': 'cocina',
+      'vendedor': 'vendedor',
+    };
+    return roleMap[roleName.toLowerCase()] || roleName.toLowerCase();
+  }
+
   private loadUserPermissions(): void {
     const user = this.authService.getUser();
     if (user) {
-      this.userRole = (user.roles && user.roles.length > 0) ? user.roles[0] : '';
+      const rawRole = (user.roles && user.roles.length > 0) ? user.roles[0] : (user.rol || '');
+      this.userRole = this.normalizeRoleName(rawRole);
       // Priorizar permisos del rol desde la base de datos
       let permisosDelBackend = user.permisos || [];
-      
+
       // Si los permisos vienen como string JSON, parsearlos
       if (typeof permisosDelBackend === 'string') {
         try {
@@ -76,12 +93,12 @@ export class PermissionsService {
           permisosDelBackend = [];
         }
       }
-      
+
       // Asegurar que sea un array
       if (!Array.isArray(permisosDelBackend)) {
         permisosDelBackend = [];
       }
-      
+
       // Si hay permisos del backend, usarlos directamente (son los del rol desde la BD)
       if (permisosDelBackend.length > 0) {
         this.userPermissions = [...permisosDelBackend];
@@ -90,8 +107,13 @@ export class PermissionsService {
         const defaultPermissions = this.getDefaultPermissionsForRole(this.userRole);
         this.userPermissions = [...defaultPermissions];
       }
-      
-      console.log('🔐 Permisos cargados para rol', this.userRole, ':', this.userPermissions);
+
+      // Asegurar que admin siempre tenga mesas.modo_edicion en su lista de permisos
+      if (this.userRole === 'admin' && !this.userPermissions.includes('mesas.modo_edicion')) {
+        this.userPermissions.push('mesas.modo_edicion');
+      }
+
+      console.log('🔐 Permisos cargados para rol', this.userRole, '(raw:', rawRole, '):', this.userPermissions);
     }
   }
 
@@ -107,7 +129,7 @@ export class PermissionsService {
     if (this.userRole === 'admin') {
       return true;
     }
-    
+
     return this.userPermissions.includes(permission);
   }
 
@@ -118,7 +140,7 @@ export class PermissionsService {
     if (this.userRole === 'admin') {
       return true;
     }
-    
+
     return permissions.some(permission => this.userPermissions.includes(permission));
   }
 
@@ -129,7 +151,7 @@ export class PermissionsService {
     if (this.userRole === 'admin') {
       return true;
     }
-    
+
     return permissions.every(permission => this.userPermissions.includes(permission));
   }
 

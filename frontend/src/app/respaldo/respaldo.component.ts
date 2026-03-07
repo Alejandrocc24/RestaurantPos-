@@ -22,7 +22,8 @@ export class RespaldoComponent implements OnInit, OnDestroy {
   // Datos del formulario de respaldo
   opcionesRespaldo = {
     baseDatos: true,
-    archivos: false
+    archivos: false,
+    subirADrive: true
   };
   nombreRespaldo: string = '';
   descripcionRespaldo: string = '';
@@ -66,16 +67,16 @@ export class RespaldoComponent implements OnInit, OnDestroy {
     const dia = String(fecha.getDate()).padStart(2, '0');
     const hora = String(fecha.getHours()).padStart(2, '0');
     const minutos = String(fecha.getMinutes()).padStart(2, '0');
-    
+
     // Contar respaldos del día actual
     const respaldosHoy = this.historialRespaldos.filter(r => {
       if (!r.fecha) return false;
       const fechaRespaldo = new Date(r.fecha);
       return fechaRespaldo.getDate() === fecha.getDate() &&
-             fechaRespaldo.getMonth() === fecha.getMonth() &&
-             fechaRespaldo.getFullYear() === fecha.getFullYear();
+        fechaRespaldo.getMonth() === fecha.getMonth() &&
+        fechaRespaldo.getFullYear() === fecha.getFullYear();
     }).length;
-    
+
     const numero = String(respaldosHoy + 1).padStart(3, '0');
     this.nombreRespaldo = `Respaldo_${año}_${mes}_${dia}_${hora}${minutos}_${numero}`;
   }
@@ -103,7 +104,8 @@ export class RespaldoComponent implements OnInit, OnDestroy {
   resetFormularioRespaldo(): void {
     this.opcionesRespaldo = {
       baseDatos: true,
-      archivos: false
+      archivos: false,
+      subirADrive: true
     };
     this.nombreRespaldo = '';
     this.descripcionRespaldo = '';
@@ -166,10 +168,10 @@ export class RespaldoComponent implements OnInit, OnDestroy {
 
         if (response.success) {
           this.toast.success('Respaldo creado', response.message || 'El respaldo fue creado exitosamente');
-          
+
           // Recargar historial
           this.cargarHistorial();
-          
+
           // Mostrar información del respaldo
           if (response.backup?.google_drive_url) {
             this.toast.info('Google Drive', 'Respaldo guardado en Google Drive');
@@ -179,7 +181,10 @@ export class RespaldoComponent implements OnInit, OnDestroy {
         }
 
         this.creandoRespaldo = false;
-        setTimeout(() => this.resetFormularioRespaldo(), 2000);
+        setTimeout(() => {
+          this.resetFormularioRespaldo();
+          this.cambiarTab('historial');
+        }, 2000);
       },
       error: (error) => {
         clearInterval(progresoInterval);
@@ -242,9 +247,9 @@ export class RespaldoComponent implements OnInit, OnDestroy {
         if (response.success) {
           const resultados = response.resultados;
           const mensaje = `Restauración completada: ${resultados?.total_registros || 0} registros restaurados`;
-          
+
           this.toast.success('Restauración exitosa', mensaje);
-          
+
           if (resultados?.tablas_con_errores && resultados.tablas_con_errores.length > 0) {
             this.toast.warning('Advertencia', `${resultados.tablas_con_errores.length} tablas con errores`);
           }
@@ -273,14 +278,14 @@ export class RespaldoComponent implements OnInit, OnDestroy {
 
   descargarRespaldo(respaldo: BackupMetadata): void {
     if (!respaldo.id) return;
-    
+
     this.toast.info('Descarga', `Descargando respaldo: ${respaldo.nombre}`);
     this.backupService.downloadBackupAsFile(respaldo.id, respaldo.nombre);
   }
 
   abrirEnGoogleDrive(respaldo: BackupMetadata): void {
     if (!respaldo.id) return;
-    
+
     if (respaldo.google_drive_url) {
       window.open(respaldo.google_drive_url, '_blank');
     } else {

@@ -22,7 +22,7 @@ async function main() {
         'ventas.ver', 'ventas.crear', 'ventas.editar', 'ventas.anular',
         'pedidos.ver', 'pedidos.crear', 'pedidos.editar', 'pedidos.cerrar',
         // Mesas
-        'mesas.ver', 'mesas.gestionar', 'mesas.transferir', 'mesas.dividir',
+        'mesas.ver', 'mesas.gestionar', 'mesas.transferir', 'mesas.dividir', 'mesas.modo_edicion',
         // Cocina
         'cocina.ver', 'cocina.preparar', 'cocina.completar',
         // Caja y Movimientos

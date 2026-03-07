@@ -21,11 +21,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     }
 
     const token = authHeader.substring(7);
-    console.log('🔐 [authMiddleware] Token recibido, verificando...');
+
 
     // Verificar y decodificar el JWT
     const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
-    console.log('✅ [authMiddleware] Token verificado. TenantId:', decoded.tenantId, 'UserId:', decoded.userId);
+
 
     // Obtener tenantId del token
     const tenantId = decoded.tenantId;
@@ -43,14 +43,12 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
     // Inyectar cliente Prisma del tenant
     const prismaClient = getPrismaClient(tenantId);
-    console.log('✅ [authMiddleware] Prisma client obtenido:', !!prismaClient, typeof prismaClient, prismaClient?.constructor?.name);
     req.prisma = prismaClient;
-    console.log('✅ [authMiddleware] req.prisma asignado:', !!req.prisma);
 
     next();
   } catch (error: any) {
     console.error('❌ [authMiddleware] Error en validación de token:', error.name, error.message);
-    
+
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
@@ -78,11 +76,11 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
  */
 export function optionalTenantMiddleware(req: Request, res: Response, next: NextFunction) {
   let tenantId = req.body.tenantId || req.headers['x-tenant-id'];
-  
+
   console.log('🔍 [optionalTenantMiddleware] Buscando tenantId...');
   console.log('  - Body tenantId:', req.body.tenantId);
   console.log('  - Header x-tenant-id:', req.headers['x-tenant-id']);
-  
+
   // Si no hay tenantId, intentar extraerlo del email
   if (!tenantId && req.body.email) {
     const email = req.body.email;

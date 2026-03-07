@@ -3,7 +3,14 @@ import { Request, Response } from 'express';
 export class CajaController {
   static async getAll(req: Request, res: Response) {
     try {
-      const cajas = await req.prisma.caja.findMany({ orderBy: { fecha_apertura: 'desc' } });
+      const { estado } = req.query;
+      const where: any = {};
+      if (estado) where.estado = estado as string;
+
+      const cajas = await req.prisma.caja.findMany({
+        where,
+        orderBy: { fecha_apertura: 'desc' }
+      });
       res.json({ success: true, message: 'Cajas obtenidas', data: cajas });
     } catch (error: any) {
       res.status(500).json({ success: false, message: error.message });

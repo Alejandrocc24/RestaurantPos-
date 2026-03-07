@@ -94,25 +94,16 @@ export class OrdenController {
     try {
       const { mesaId } = req.params;
 
-      // Buscar la orden activa: PENDIENTE (recibida), EN_CURSO (en preparación) o COMPLETADA (lista, pendiente de cobro)
-      // La mesa sigue OCUPADA hasta que la orden sea PAGADA o CANCELADA
-      const orden = await req.prisma.orden.findFirst({
-        where: {
-          mesaId,
-          estado: {
-            in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
-          },
-          pagos: true,
-        },
-      });
+      console.log(`🚀 [SP] obtener_orden_activa_mesa ${mesaId}`);
+      const t0 = Date.now();
+
+      const result: any[] = await req.prisma.$queryRawUnsafe(
+        `SELECT obtener_orden_activa_mesa($1) as data`,
+        mesaId
+      );
+
+      const orden = result[0]?.data;
+      console.log(`✅ [SP] Orden activa obtenida en ${Date.now() - t0}ms`);
 
       if (!orden) {
         return res.status(200).json({
@@ -206,18 +197,18 @@ export class OrdenController {
 
       // Si hay productos, agregarlos a la orden
       if (productos && Array.isArray(productos)) {
-        for (const prod of productos) {
-          await req.prisma.ordenProducto.create({
-            data: {
-              ordenId: orden.id,
-              productoId: prod.productoId,
-              cantidad: prod.cantidad || 1,
-              precioUnitario: prod.precioUnitario || 0,
-              subtotal: (prod.cantidad || 1) * (prod.precioUnitario || 0),
-              notas: prod.notas || null,
-            },
-          });
-        }
+        const productosData = productos.map((prod: any) => ({
+          ordenId: orden.id,
+          productoId: prod.productoId,
+          cantidad: prod.cantidad || 1,
+          precioUnitario: prod.precioUnitario || 0,
+          subtotal: (prod.cantidad || 1) * (prod.precioUnitario || 0),
+          notas: prod.notas || null,
+        }));
+
+        await req.prisma.ordenProducto.createMany({
+          data: productosData
+        });
 
         // Recalcular el total de la orden
         const ordenConfig = await req.prisma.ordenProducto.findMany({
@@ -332,131 +323,32 @@ export class OrdenController {
     try {
       const { mesaId } = req.params;
       const { notas, items } = req.body;
-      const usuarioId = req.userId; // Obtener del token autenticado
+      const usuarioId = req.userId;
 
-      // Validaciones básicas
       if (!usuarioId) {
-        return res.status(400).json({
-          success: false,
-          message: 'usuarioId no encontrado en el token',
-        });
+        return res.status(400).json({ success: false, message: 'usuarioId no encontrado en el token' });
       }
-
       if (!mesaId) {
-        return res.status(400).json({
-          success: false,
-          message: 'mesaId es requerido',
-        });
+        return res.status(400).json({ success: false, message: 'mesaId es requerido' });
       }
-
       if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'items es requerido y debe ser un array',
-        });
+        return res.status(400).json({ success: false, message: 'items es requerido y debe ser un array' });
       }
 
-      // Buscar si ya existe una orden activa para esta mesa
-      // (PENDIENTE=recibida, EN_CURSO=en preparación, COMPLETADA=lista pero no cobrada)
-      let orden = await req.prisma.orden.findFirst({
-        where: {
-          mesaId,
-          estado: {
-            in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA']
-          }
-        },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
-          },
-          pagos: true,
-        },
-      });
+      console.log(`🚀 [SP] crear_orden_mesa para mesa ${mesaId} con ${items.length} item(s)`);
+      const t0 = Date.now();
 
-      // Si no existe orden activa, crear una nueva
-      if (!orden) {
-        console.log(`📝 Creando nueva orden para mesa ${mesaId}`);
-        orden = await req.prisma.orden.create({
-          data: {
-            mesaId,
-            usuarioId: usuarioId as string,
-            estado: 'PENDIENTE',
-            total: 0,
-            notas: notas || null,
-          },
-          include: {
-            mesa: true,
-            usuario: { select: { id: true, nombre: true, email: true } },
-            productos: {
-              include: { producto: true },
-            },
-            pagos: true,
-          },
-        });
-      } else {
-        console.log(`🔄 Usando orden activa existente para mesa ${mesaId}: ${orden.id}`);
-        // Actualizar notas si se proporcionan
-        if (notas !== null && notas !== undefined) {
-          orden = await req.prisma.orden.update({
-            where: { id: orden.id },
-            data: { notas },
-            include: {
-              mesa: true,
-              usuario: { select: { id: true, nombre: true, email: true } },
-              productos: {
-                include: { producto: true },
-              },
-              pagos: true,
-            },
-          });
-        }
-      }
+      // UN SOLO viaje de red al servidor PostgreSQL
+      const result: any[] = await req.prisma.$queryRawUnsafe(
+        `SELECT crear_orden_mesa($1, $2, $3, $4::jsonb) as data`,
+        mesaId,
+        usuarioId,
+        notas || null,
+        JSON.stringify(items)
+      );
 
-      // Agregar nuevos productos a la orden (existente o recién creada)
-      console.log(`➕ Agregando ${items.length} producto(s) a orden ${orden.id}`);
-      let totalAdelante = orden.total || 0;
-
-      for (const item of items) {
-        const ordenProducto = await req.prisma.ordenProducto.create({
-          data: {
-            ordenId: orden.id,
-            productoId: item.productoId,
-            cantidad: item.cantidad || 1,
-            precioUnitario: item.precioUnitario || 0,
-            subtotal: (item.cantidad || 1) * (item.precioUnitario || 0),
-            notas: item.notas || null,
-            comentario: item.comentario || null,
-          },
-        });
-        totalAdelante += ordenProducto.subtotal;
-        console.log(`  ✅ Producto agregado: ${item.productoId} x${item.cantidad}`);
-      }
-
-      // Actualizar total de la orden con los nuevos productos
-      // Si la orden estaba COMPLETADA y se agregan más productos, volver a PENDIENTE para que cocina la vea
-      const estadoActualOrden = orden.estado;
-      const nuevoEstado = estadoActualOrden === 'COMPLETADA' ? 'PENDIENTE' : estadoActualOrden;
-
-      const ordenActualizada = await req.prisma.orden.update({
-        where: { id: orden.id },
-        data: {
-          total: totalAdelante,
-          ...(nuevoEstado !== estadoActualOrden && { estado: nuevoEstado }),
-        },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
-          },
-          pagos: true,
-        },
-      });
-
-      console.log(`✅ Orden actualizada. Total: ${totalAdelante}, Productos: ${ordenActualizada.productos?.length || 0}`);
+      const ordenActualizada = result[0]?.data;
+      console.log(`✅ [SP] Orden procesada en ${Date.now() - t0}ms. Total: ${ordenActualizada?.total}`);
 
       res.json({
         success: true,
@@ -479,134 +371,58 @@ export class OrdenController {
   static async updateCantidades(req: Request, res: Response) {
     try {
       const { ordenId } = req.params;
-      const { productos } = req.body; // Array de {productoId, cantidad, ...}
+      const { productos } = req.body;
 
       if (!ordenId) {
-        return res.status(400).json({
-          success: false,
-          message: 'ordenId es requerido',
-        });
+        return res.status(400).json({ success: false, message: 'ordenId es requerido' });
       }
-
       if (!productos || !Array.isArray(productos) || productos.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'productos es requerido y debe ser un array',
-        });
+        return res.status(400).json({ success: false, message: 'productos es requerido y debe ser un array' });
       }
-
-      console.log(`📝 Actualizando cantidades para orden ${ordenId}`);
-      console.log(`   Productos: ${productos.length}`);
 
       const esCobro = req.query.esCobro === 'true';
-
-      // Si es un cobro y todos los productos van a quedar en 0, es un cobro TOTAL de la mesa.
-      // NO debemos borrar los productos para que la cocina los siga viendo.
       const todosCero = productos.length > 0 && productos.every((p: any) => p.cantidad === 0);
 
+      console.log(`🚀 [SP] updateCantidades orden ${ordenId} | esCobro=${esCobro} todosCero=${todosCero}`);
+      const t0 = Date.now();
+
       if (esCobro && todosCero) {
-        console.log(`💰 Cobro total detectado para la orden ${ordenId}. Preservando comanda para cocina.`);
+        // COBRO TOTAL: UN SOLO viaje de red
+        const result: any[] = await req.prisma.$queryRawUnsafe(
+          `SELECT cobrar_orden_total($1) as data`,
+          ordenId
+        );
 
-        const ordenOriginal = await req.prisma.orden.findUnique({
-          where: { id: ordenId },
-          include: { mesa: true, productos: true }
+        const ordenActualizada = result[0]?.data;
+        console.log(`✅ [SP] Cobro total en ${Date.now() - t0}ms`);
+
+        return res.json({
+          success: true,
+          message: 'Cobro total procesado, comanda preservada en cocina',
+          data: ordenActualizada,
+          pedidoCerrado: true,
+          productosRestantes: 0,
+          pedido: ordenActualizada,
         });
-
-        if (ordenOriginal?.mesaId) {
-          // Desvincular de la mesa y asentar el nombre en notas para la cocina
-          const notasActualizadas = `[Mesa ${ordenOriginal.mesa.numero}] ${ordenOriginal.notas || ''}`.trim();
-
-          const ordenActualizada = await req.prisma.orden.update({
-            where: { id: ordenId },
-            data: {
-              mesaId: null,
-              notas: notasActualizadas,
-            },
-            include: {
-              mesa: true,
-              usuario: { select: { id: true, nombre: true, email: true } },
-              productos: { include: { producto: true } },
-              pagos: true,
-            }
-          });
-
-          // Liberar la mesa
-          await req.prisma.mesa.update({
-            where: { id: ordenOriginal.mesaId },
-            data: { estado: 'DISPONIBLE' },
-          }).catch((err: any) => console.warn('No se pudo liberar la mesa automáticamente:', err.message));
-
-          return res.json({
-            success: true,
-            message: 'Cobro total procesado, comanda preservada en cocina',
-            data: ordenActualizada,
-            pedidoCerrado: true,
-            productosRestantes: 0,
-            pedido: ordenActualizada,
-          });
-        }
       }
 
-      // Flujo normal (edición parcial o corrección de error)
-      let totalOrden = 0;
-      for (const item of productos) {
-        const { productoId, cantidad, precioUnitario } = item;
+      // COBRO PARCIAL o edición: UN SOLO viaje de red
+      const result: any[] = await req.prisma.$queryRawUnsafe(
+        `SELECT actualizar_cantidades_orden($1, $2::jsonb) as data`,
+        ordenId,
+        JSON.stringify(productos)
+      );
 
-        if (!productoId || cantidad === undefined) {
-          console.warn(`⚠️ Producto sin ID o cantidad: ${JSON.stringify(item)}`);
-          continue;
-        }
-
-        const subtotal = cantidad * (precioUnitario || 0);
-
-        await req.prisma.ordenProducto.updateMany({
-          where: { ordenId, productoId },
-          data: { cantidad, subtotal },
-        });
-
-        totalOrden += subtotal;
-      }
-
-      // Eliminar productos con cantidad = 0
-      await req.prisma.ordenProducto.deleteMany({
-        where: { ordenId, cantidad: 0 },
-      });
-
-      const productosRestantesCount = await req.prisma.ordenProducto.count({
-        where: { ordenId },
-      });
-
-      const pedidoCerrado = productosRestantesCount === 0;
-
-      // Actualizar total y estado (PAGADA solo si de verdad desaparece)
-      const ordenActualizada = await req.prisma.orden.update({
-        where: { id: ordenId },
-        data: {
-          total: totalOrden,
-          ...(pedidoCerrado && { estado: 'PAGADA', visibleCocina: false }),
-        },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: { include: { producto: true } },
-          pagos: true,
-        },
-      });
-
-      if (pedidoCerrado && ordenActualizada.mesaId) {
-        await req.prisma.mesa.update({
-          where: { id: ordenActualizada.mesaId },
-          data: { estado: 'DISPONIBLE' },
-        }).catch((err: any) => console.warn('No se pudo liberar la mesa automáticamente:', err.message));
-      }
+      const data = result[0]?.data;
+      console.log(`✅ [SP] Cantidades actualizadas en ${Date.now() - t0}ms`);
 
       res.json({
         success: true,
         message: 'Cantidades actualizadas exitosamente',
-        data: ordenActualizada,
-        pedidoCerrado,
-        productosRestantes: productosRestantesCount,
-        pedido: ordenActualizada,
+        data: data,
+        pedidoCerrado: data?.pedidoCerrado || false,
+        productosRestantes: data?.productosRestantes || 0,
+        pedido: data,
       });
     } catch (error: any) {
       console.error('Error actualizando cantidades:', error);

@@ -77,14 +77,16 @@ export class CocinaComponent implements OnInit, OnDestroy {
     this.cargarPedidos();
     this.aplicarFiltros();
 
-    // Actualizar tiempo cada segundo y recargar pedidos cada 1 segundo
+    // Actualizar tiempo transcurrido en UI localmente cada segundo
+    this.timerSubscription = interval(1000).subscribe(() => { /* Forzar Change Detection para los getters de tiempo */ });
+
+    // Recargar los pedidos desde el servidor cada 3 segundos (balance ideal)
     this.ngZone.runOutsideAngular(() => {
-      this.timerSubscription = interval(1000).subscribe((count) => {
+      this.timerSubscription.add(interval(3000).subscribe(() => {
         this.ngZone.run(() => {
-          // Recargar pedidos cada 1 segundo para aparición instantánea
           this.cargarPedidos();
         });
-      });
+      }));
     });
   }
 

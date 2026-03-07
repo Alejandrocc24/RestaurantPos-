@@ -7,6 +7,7 @@ import { environment } from '../../environments/environment';
 export interface BackupOptions {
   baseDatos: boolean;
   archivos: boolean;
+  subirADrive?: boolean;
 }
 
 export interface BackupMetadata {
@@ -43,7 +44,7 @@ export interface BackupResponse {
 export class BackupService {
   private apiUrl = `${environment.apiUrl}/backup`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   /**
    * Crear un nuevo respaldo
@@ -52,7 +53,8 @@ export class BackupService {
     const payload = {
       nombre,
       descripcion,
-      opciones
+      opciones,
+      subirADrive: opciones.subirADrive
     };
 
     return this.http.post<BackupResponse>(`${this.apiUrl}/create`, payload).pipe(
@@ -97,11 +99,11 @@ export class BackupService {
   restoreBackup(file: File): Observable<BackupResponse> {
     return new Observable(observer => {
       const reader = new FileReader();
-      
+
       reader.onload = (e: any) => {
         try {
           const backupData = JSON.parse(e.target.result);
-          
+
           this.http.post<BackupResponse>(`${this.apiUrl}/restore`, { backupData }).pipe(
             catchError(this.handleError)
           ).subscribe({
@@ -141,11 +143,11 @@ export class BackupService {
       this.downloadBackup(backupId).subscribe({
         next: (blob) => {
           const reader = new FileReader();
-          
+
           reader.onload = (e: any) => {
             try {
               const backupData = JSON.parse(e.target.result);
-              
+
               this.http.post<BackupResponse>(`${this.apiUrl}/restore`, { backupData }).pipe(
                 catchError(this.handleError)
               ).subscribe({
@@ -223,9 +225,9 @@ export class BackupService {
    */
   private handleError(error: any): Observable<never> {
     console.error('Error en BackupService:', error);
-    
+
     let errorMessage = 'Ocurrió un error inesperado';
-    
+
     if (error.error instanceof ErrorEvent) {
       // Error del lado del cliente
       errorMessage = `Error: ${error.error.message}`;
@@ -233,7 +235,7 @@ export class BackupService {
       // Error del servidor
       errorMessage = error.error.error || error.error.message || errorMessage;
     }
-    
+
     return throwError(() => ({
       success: false,
       error: errorMessage

@@ -86,7 +86,11 @@
                     <span class="checkmark"></span>
                     Archivos del sistema
                   </label>
-
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="opcionesRespaldo.subirADrive" name="subirADrive">
+                    <span class="checkmark"></span>
+                    Subir a Google Drive (requiere configuración)
+                  </label>
                 </div>
 
                 <div class="form-group">
@@ -127,13 +131,15 @@
                   <p class="progress-text">{{ mensajeProgreso }} ({{ progresoOperacion }}%)</p>
                 </div>
 
-                <button 
-                  class="btn btn-primary btn-large" 
-                  (click)="crearRespaldo()"
-                  [disabled]="creandoRespaldo">
-                  <i class="fas fa-download"></i> 
-                  {{ creandoRespaldo ? 'Creando...' : 'Crear Respaldo' }}
-                </button>
+                <div class="form-actions">
+                  <button 
+                    class="btn btn-primary btn-large" 
+                    (click)="crearRespaldo()"
+                    [disabled]="creandoRespaldo">
+                    <i class="fas fa-download"></i> 
+                    {{ creandoRespaldo ? 'Creando...' : 'Crear Respaldo' }}
+                  </button>
+                </div>
               </div>
             </div>
 

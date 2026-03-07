@@ -191,6 +191,8 @@ model Mesa {
   capacidad Int
   estado    EstadoMesa @default(DISPONIBLE)
   activo    Boolean  @default(true)
+  posicion  String?
+  ubicacion String?
   
   ordenes   Orden[]
   ventas    Venta[]

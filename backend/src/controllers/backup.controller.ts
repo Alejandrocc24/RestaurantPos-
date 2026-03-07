@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { BackupService } from '../services/backup.service.js';
 
 export class BackupController {
     private static backupsDir = path.join(process.cwd(), 'backups');
@@ -39,55 +40,21 @@ export class BackupController {
 
     static async createBackup(req: Request, res: Response) {
         try {
-            const { nombre, descripcion, opciones } = req.body;
-            BackupController.ensureBackupsDir();
+            const { nombre, descripcion, opciones, subirADrive = false } = req.body;
 
-            const fileName = `backup-${Date.now()}-${nombre || 'manual'}.json`;
-            const filePath = path.join(BackupController.backupsDir, fileName);
-
-            // Extracción real de todas las tablas de la BD usando prisma
-            const dbData = {
-                usuarios: await req.prisma.usuario.findMany(),
-                roles: await req.prisma.rol.findMany(),
-                usuarioRoles: await req.prisma.usuarioRol.findMany(),
-                categorias: await req.prisma.categoria.findMany(),
-                subcategorias: await req.prisma.subcategoria.findMany(),
-                categoriaGastos: await req.prisma.categoriaGasto.findMany(),
-                productos: await req.prisma.producto.findMany(),
-                gruposModificadores: await req.prisma.grupoModificador.findMany(),
-                opcionesModificador: await req.prisma.opcionModificador.findMany(),
-                mesas: await req.prisma.mesa.findMany(),
-                ordenes: await req.prisma.orden.findMany(),
-                ordenProductos: await req.prisma.ordenProducto.findMany(),
-                pagos: await req.prisma.pago.findMany(),
-                ventas: await req.prisma.venta.findMany(),
-                comentarios: await req.prisma.comentario.findMany(),
-                comentariosPreestablecidos: await req.prisma.comentarioPreestablecido.findMany(),
-                gastos: await req.prisma.gasto.findMany(),
-                cajas: await req.prisma.caja.findMany(),
-                proveedores: await req.prisma.proveedor.findMany(),
-                compras: await req.prisma.compra.findMany(),
-                configuraciones: await req.prisma.configuracion.findMany(),
-            };
-
-            const backupData = {
-                metadata: {
-                    fecha: new Date().toISOString(),
-                    nombre: nombre || 'manual',
-                    descripcion: descripcion || 'Respaldo manual local'
-                },
-                data: dbData
-            };
-
-            fs.writeFileSync(filePath, JSON.stringify(backupData, null, 2));
+            const result = await BackupService.performBackup(
+                nombre || 'manual',
+                descripcion || 'Respaldo manual local',
+                subirADrive
+            );
 
             res.status(200).json({
                 success: true,
                 message: 'Respaldo creado con éxito',
                 backup: {
-                    nombre: fileName,
-                    descripcion: descripcion,
-                    fecha: new Date().toISOString()
+                    nombre: result.fileName,
+                    ruta: result.filePath,
+                    urlDrive: result.fileUrl || null
                 }
             });
         } catch (error: any) {
@@ -183,7 +150,7 @@ export class BackupController {
                 if (dbData.usuarioRoles?.length) { await tx.usuarioRol.createMany({ data: dbData.usuarioRoles }); tablas_restauradas.push('usuarioRoles'); }
 
                 // Cajas y Proveedores
-                if (dbData.caja?.length) { await tx.caja.createMany({ data: dbData.cajas }); tablas_restauradas.push('cajas'); }
+                if (dbData.cajas?.length) { await tx.caja.createMany({ data: dbData.cajas }); tablas_restauradas.push('cajas'); }
                 if (dbData.proveedores?.length) { await tx.proveedor.createMany({ data: dbData.proveedores }); tablas_restauradas.push('proveedores'); }
                 if (dbData.compras?.length) { await tx.compra.createMany({ data: dbData.compras }); tablas_restauradas.push('compras'); }
 
@@ -207,6 +174,9 @@ export class BackupController {
                 if (dbData.ordenProductos?.length) { await tx.ordenProducto.createMany({ data: dbData.ordenProductos }); tablas_restauradas.push('ordenProductos'); }
                 if (dbData.pagos?.length) { await tx.pago.createMany({ data: dbData.pagos }); tablas_restauradas.push('pagos'); }
                 if (dbData.comentarios?.length) { await tx.comentario.createMany({ data: dbData.comentarios }); tablas_restauradas.push('comentarios'); }
+            }, {
+                maxWait: 60000,
+                timeout: 300000, // 5 min para inserción masiva
             });
 
             res.status(200).json({
@@ -219,8 +189,8 @@ export class BackupController {
                 }
             });
         } catch (error: any) {
-            console.error('Error restaurando:', error.message);
-            res.status(500).json({ success: false, error: 'Error interno restaurando', details: error.message });
+            console.error('CRITICAL Error restaurando DB:', error);
+            res.status(500).json({ success: false, error: 'Error interno restaurando: ' + error.message, details: error.stack });
         }
     }
 
