@@ -221,6 +221,15 @@ export class BackupService {
   }
 
   /**
+   * Borrar los datos de prueba
+   */
+  wipeData(): Observable<BackupResponse> {
+    return this.http.post<BackupResponse>(`${this.apiUrl}/wipe`, {}).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Manejo de errores
    */
   private handleError(error: any): Observable<never> {

@@ -3,8 +3,10 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import { GoogleDriveService } from './google-drive.service.js';
+import { config } from '../config/index.js';
+import { getPrismaClient } from '../config/prisma.js';
 
-const prisma = new PrismaClient();
+const defaultPrisma = new PrismaClient();
 const driveService = new GoogleDriveService();
 
 export class BackupService {
@@ -17,44 +19,87 @@ export class BackupService {
 
         // Programar el backup automático cada día a las 2 AM
         cron.schedule('0 2 * * *', async () => {
-            console.log('Iniciando respaldo automático...');
+            console.log('Iniciando respaldo automático multi-tenant...');
             try {
-                await this.performBackup('Automático Diario', 'Respaldo automático del sistema a las 2 AM');
-                console.log('Respaldo automático completado.');
+                // Descubrir todas las DB de tenants creadas (segun el prefijo de DATABASE_URL)
+                const baseUrl = config.databaseUrl;
+                if (!baseUrl) throw new Error('DATABASE_URL no definida');
+
+                const urlObj = new URL(baseUrl);
+                const dbName = urlObj.pathname.substring(1);
+                const pattern = `${dbName}_%`;
+
+                // Consulta cruda para listar bases de datos multi-tenant en PostgreSQL
+                const result: any[] = await defaultPrisma.$queryRaw`
+                    SELECT datname 
+                    FROM pg_database 
+                    WHERE datname LIKE ${pattern};
+                `;
+
+                if (result.length === 0) {
+                    console.log('No se encontraron BDs de tenants. Respaldando la base de datos por defecto (posiblemente entorno single-tenant)...');
+                    await this.performBackup(defaultPrisma, 'principal', 'Automático Diario', 'Respaldo de BD principal');
+                } else {
+                    for (const db of result) {
+                        const datname = db.datname;
+                        const isUnderScore = datname.startsWith(`${dbName}_`);
+                        const tenantId = isUnderScore ? datname.substring(dbName.length + 1) : datname;
+
+                        console.log(`\n--- Creando respaldo automático para tenant: ${tenantId}...`);
+
+                        const tenantPrisma = getPrismaClient(tenantId);
+                        try {
+                            await this.performBackup(tenantPrisma, tenantId, 'Automático Diario', `Respaldo automático del tenant ${tenantId}`);
+                            console.log(`[EXITO] Respaldo automático de tenant: ${tenantId} completado.`);
+                        } catch (error) {
+                            console.error(`[ERROR] Fallo el respaldo automático para tenant ${tenantId}:`, error);
+                        }
+                    }
+                }
+
+                console.log('\n=======================================');
+                console.log('Respaldo automático global finalizado.');
+                console.log('=======================================');
             } catch (error) {
-                console.error('Error durante el respaldo automático:', error);
+                console.error('Error durante el escaneo y respaldo automático multi-tenant:', error);
             }
         });
     }
 
-    static async performBackup(nombre: string, descripcion: string, subirADrive: boolean = true) {
+    static async performBackup(prismaClient: PrismaClient, tenantId: string, nombre: string, descripcion: string, subirADrive: boolean = true) {
         try {
-            const fileName = `backup-${Date.now()}-${nombre.replace(/\s+/g, '_')}.json`;
-            const filePath = path.join(this.backupsDir, fileName);
+            // Asegurar un directorio individual para este tenant
+            const tenantBackupsDir = path.join(this.backupsDir, tenantId);
+            if (!fs.existsSync(tenantBackupsDir)) {
+                fs.mkdirSync(tenantBackupsDir, { recursive: true });
+            }
 
-            // Obtener todos los datos usando Prisma (Extraído del BackupController)
+            const fileName = `backup-${tenantId}-${Date.now()}-${nombre.replace(/\s+/g, '_')}.json`;
+            const filePath = path.join(tenantBackupsDir, fileName);
+
+            // Obtener todos los datos usando el PrismaClient instanciado de este Tenant
             const dbData = {
-                usuarios: await prisma.usuario.findMany(),
-                roles: await prisma.rol.findMany(),
-                usuarioRoles: await prisma.usuarioRol.findMany(),
-                categorias: await prisma.categoria.findMany(),
-                subcategorias: await prisma.subcategoria.findMany(),
-                categoriaGastos: await prisma.categoriaGasto.findMany(),
-                productos: await prisma.producto.findMany(),
-                gruposModificadores: await prisma.grupoModificador.findMany(),
-                opcionesModificador: await prisma.opcionModificador.findMany(),
-                mesas: await prisma.mesa.findMany(),
-                ordenes: await prisma.orden.findMany(),
-                ordenProductos: await prisma.ordenProducto.findMany(),
-                pagos: await prisma.pago.findMany(),
-                ventas: await prisma.venta.findMany(),
-                comentarios: await prisma.comentario.findMany(),
-                comentariosPreestablecidos: await prisma.comentarioPreestablecido.findMany(),
-                gastos: await prisma.gasto.findMany(),
-                cajas: await prisma.caja.findMany(),
-                proveedores: await prisma.proveedor.findMany(),
-                compras: await prisma.compra.findMany(),
-                configuraciones: await prisma.configuracion.findMany(),
+                usuarios: await prismaClient.usuario.findMany(),
+                roles: await prismaClient.rol.findMany(),
+                usuarioRoles: await prismaClient.usuarioRol.findMany(),
+                categorias: await prismaClient.categoria.findMany(),
+                subcategorias: await prismaClient.subcategoria.findMany(),
+                categoriaGastos: await prismaClient.categoriaGasto.findMany(),
+                productos: await prismaClient.producto.findMany(),
+                gruposModificadores: await prismaClient.grupoModificador.findMany(),
+                opcionesModificador: await prismaClient.opcionModificador.findMany(),
+                mesas: await prismaClient.mesa.findMany(),
+                ordenes: await prismaClient.orden.findMany(),
+                ordenProductos: await prismaClient.ordenProducto.findMany(),
+                pagos: await prismaClient.pago.findMany(),
+                ventas: await prismaClient.venta.findMany(),
+                comentarios: await prismaClient.comentario.findMany(),
+                comentariosPreestablecidos: await prismaClient.comentarioPreestablecido.findMany(),
+                gastos: await prismaClient.gasto.findMany(),
+                cajas: await prismaClient.caja.findMany(),
+                proveedores: await prismaClient.proveedor.findMany(),
+                compras: await prismaClient.compra.findMany(),
+                configuraciones: await prismaClient.configuracion.findMany(),
             };
 
             const backupData = {
@@ -85,6 +130,54 @@ export class BackupService {
             return { fileName, filePath, fileUrl };
         } catch (error: any) {
             console.error('Error creando el backup interno:', error);
+            throw error;
+        }
+    }
+
+    static async wipeData(prismaClient: PrismaClient, currentUserId: string) {
+        try {
+            await prismaClient.$transaction(async (tx: any) => {
+                // Ventas y Ordenes (en orden inverso de dependencias)
+                await tx.pago.deleteMany();
+                await tx.comentario.deleteMany();
+                await tx.ordenProducto.deleteMany();
+                await tx.venta.deleteMany();
+                await tx.orden.deleteMany();
+
+                // Gastos y Compras
+                await tx.compra.deleteMany();
+                await tx.gasto.deleteMany();
+                await tx.caja.deleteMany();
+                await tx.proveedor.deleteMany();
+                await tx.categoriaGasto.deleteMany();
+
+                // Productos
+                await tx.opcionModificador.deleteMany();
+                await tx.grupoModificador.deleteMany();
+                await tx.producto.deleteMany();
+                await tx.subcategoria.deleteMany();
+                await tx.categoria.deleteMany();
+
+                // Usuarios: borramos roles asignados y usuarios a excepción del usuario actual que ejecuta la acción
+                // Mantener al usuario actual evita que la cuenta quede inaccesible
+                await tx.usuarioRol.deleteMany({
+                    where: {
+                        usuarioId: { not: currentUserId }
+                    }
+                });
+
+                await tx.usuario.deleteMany({
+                    where: {
+                        id: { not: currentUserId }
+                    }
+                });
+            }, {
+                maxWait: 60000,
+                timeout: 120000, // 2 min para este proceso
+            });
+            console.log(`[EXITO] Datos de prueba borrados correctamente. Manteniendo intacta estructura y usuario administrador (${currentUserId}).`);
+        } catch (error: any) {
+            console.error('Error al borrar datos:', error);
             throw error;
         }
     }

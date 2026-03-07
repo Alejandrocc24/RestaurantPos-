@@ -36,6 +36,10 @@ export class RespaldoComponent implements OnInit, OnDestroy {
   creandoRespaldo: boolean = false;
   restaurandoRespaldo: boolean = false;
   cargandoHistorial: boolean = false;
+  borrandoDatos: boolean = false;
+
+  // Confirmaciones
+  confirmarBorrado: boolean = false;
 
   // Progreso
   progresoOperacion: number = 0;
@@ -354,6 +358,55 @@ export class RespaldoComponent implements OnInit, OnDestroy {
         error: (error) => {
           console.error('Error eliminando:', error);
           this.toast.error('Error', 'Error al eliminar el respaldo');
+        }
+      });
+    }
+  }
+
+  wipeData(): void {
+    if (!this.confirmarBorrado) {
+      this.toast.warning('Confirmación requerida', 'Debes confirmar que entiendes los riesgos.');
+      return;
+    }
+
+    if (confirm('¿Estás absolutamente seguro de que deseas borrar todos los datos de prueba? Esta acción no se puede deshacer.')) {
+      this.borrandoDatos = true;
+      this.progresoOperacion = 0;
+      this.mensajeProgreso = 'Borrando datos...';
+
+      const progresoInterval = setInterval(() => {
+        if (this.progresoOperacion < 90) {
+          this.progresoOperacion += 10;
+        }
+      }, 500);
+
+      this.backupService.wipeData().subscribe({
+        next: (response) => {
+          clearInterval(progresoInterval);
+          this.progresoOperacion = 100;
+          this.mensajeProgreso = 'Datos borrados exitosamente';
+
+          if (response.success) {
+            this.toast.success('Éxito', response.message || 'Datos borrados correctamente');
+            setTimeout(() => {
+              this.cambiarTab('historial');
+              this.confirmarBorrado = false;
+              this.borrandoDatos = false;
+              this.progresoOperacion = 0;
+              this.mensajeProgreso = '';
+            }, 2000);
+          } else {
+            this.toast.error('Error', response.error || 'No se pudieron borrar todos los datos');
+            this.borrandoDatos = false;
+          }
+        },
+        error: (error) => {
+          clearInterval(progresoInterval);
+          console.error('Error borrando datos:', error);
+          this.toast.error('Error', error.error || 'Ocurrió un error al borrar los datos');
+          this.borrandoDatos = false;
+          this.progresoOperacion = 0;
+          this.mensajeProgreso = '';
         }
       });
     }

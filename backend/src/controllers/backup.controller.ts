@@ -6,19 +6,24 @@ import { BackupService } from '../services/backup.service.js';
 export class BackupController {
     private static backupsDir = path.join(process.cwd(), 'backups');
 
-    private static ensureBackupsDir() {
-        if (!fs.existsSync(this.backupsDir)) {
-            fs.mkdirSync(this.backupsDir, { recursive: true });
+    static getTenantBackupsDir(tenantId: string) {
+        const tenantDir = path.join(this.backupsDir, tenantId);
+        if (!fs.existsSync(tenantDir)) {
+            fs.mkdirSync(tenantDir, { recursive: true });
         }
+        return tenantDir;
     }
 
     static async listBackups(req: Request, res: Response) {
         try {
-            BackupController.ensureBackupsDir();
-            const files = fs.readdirSync(BackupController.backupsDir).filter(f => f.endsWith('.json'));
+            const tenantId = req.tenantId;
+            if (!tenantId) return res.status(400).json({ success: false, error: 'TenantId requerido' });
+
+            const tenantDir = BackupController.getTenantBackupsDir(tenantId);
+            const files = fs.readdirSync(tenantDir).filter(f => f.endsWith('.json'));
 
             const respaldos = files.map((file, index) => {
-                const stats = fs.statSync(path.join(BackupController.backupsDir, file));
+                const stats = fs.statSync(path.join(tenantDir, file));
                 return {
                     id: index + 1,
                     nombre: file,
@@ -41,8 +46,12 @@ export class BackupController {
     static async createBackup(req: Request, res: Response) {
         try {
             const { nombre, descripcion, opciones, subirADrive = false } = req.body;
+            const tenantId = req.tenantId;
+            if (!tenantId) return res.status(400).json({ success: false, error: 'TenantId requerido' });
 
             const result = await BackupService.performBackup(
+                req.prisma,
+                tenantId,
                 nombre || 'manual',
                 descripcion || 'Respaldo manual local',
                 subirADrive
@@ -66,12 +75,15 @@ export class BackupController {
     static async downloadBackup(req: Request, res: Response) {
         try {
             const id = parseInt(req.params.id);
-            BackupController.ensureBackupsDir();
-            const files = fs.readdirSync(BackupController.backupsDir).filter(f => f.endsWith('.json'));
+            const tenantId = req.tenantId;
+            if (!tenantId) return res.status(400).json({ success: false, error: 'TenantId requerido' });
+
+            const tenantDir = BackupController.getTenantBackupsDir(tenantId);
+            const files = fs.readdirSync(tenantDir).filter(f => f.endsWith('.json'));
 
             if (id > 0 && id <= files.length) {
                 const file = files[id - 1];
-                res.download(path.join(BackupController.backupsDir, file));
+                res.download(path.join(tenantDir, file));
             } else {
                 res.status(404).json({ success: false, error: 'Respaldo no encontrado' });
             }
@@ -83,12 +95,15 @@ export class BackupController {
     static async deleteBackup(req: Request, res: Response) {
         try {
             const id = parseInt(req.params.id);
-            BackupController.ensureBackupsDir();
-            const files = fs.readdirSync(BackupController.backupsDir).filter(f => f.endsWith('.json'));
+            const tenantId = req.tenantId;
+            if (!tenantId) return res.status(400).json({ success: false, error: 'TenantId requerido' });
+
+            const tenantDir = BackupController.getTenantBackupsDir(tenantId);
+            const files = fs.readdirSync(tenantDir).filter(f => f.endsWith('.json'));
 
             if (id > 0 && id <= files.length) {
                 const file = files[id - 1];
-                fs.unlinkSync(path.join(BackupController.backupsDir, file));
+                fs.unlinkSync(path.join(tenantDir, file));
                 res.status(200).json({ success: true, message: 'Eliminado correctamente' });
             } else {
                 res.status(404).json({ success: false, error: 'Respaldo no encontrado' });
@@ -199,6 +214,26 @@ export class BackupController {
             res.status(200).json({ success: true, url: 'https://ejemplo.com/descarga' });
         } catch (error) {
             res.status(500).json({ success: false, error: 'Incapaz de obtener la URL' });
+        }
+    }
+
+    static async wipeData(req: Request, res: Response) {
+        try {
+            const tenantId = req.tenantId;
+            const currentUserId = req.userId;
+
+            if (!tenantId) return res.status(400).json({ success: false, error: 'TenantId requerido' });
+            if (!currentUserId) return res.status(400).json({ success: false, error: 'UserId requerido para proteger cuenta actual' });
+
+            await BackupService.wipeData(req.prisma, currentUserId);
+
+            res.status(200).json({
+                success: true,
+                message: 'Datos de prueba borrados con éxito'
+            });
+        } catch (error: any) {
+            console.error('Error al borrar los datos de prueba:', error);
+            res.status(500).json({ success: false, error: 'Error al borrar los datos', details: error.message });
         }
     }
 }

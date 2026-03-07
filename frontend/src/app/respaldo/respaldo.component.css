@@ -428,6 +428,59 @@
   opacity: 0.7;
 }
 
+/* Tab de Borrado */
+.danger-tab {
+  color: #dc3545;
+}
+
+.danger-tab:hover {
+  background: #f8dbdf;
+  color: #a71d2a;
+}
+
+.danger-tab.active {
+  color: #dc3545;
+  border-bottom-color: #dc3545;
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.danger-box {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.danger-box i {
+  color: #721c24;
+}
+
+.danger-box strong, .danger-box p {
+  color: #721c24;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.danger-fill {
+  background: linear-gradient(90deg, #dc3545 0%, #a71d2a 100%);
+}
+
+.delete-section {
+  background: #fff;
+  border: 1px solid #f5c6cb;
+  padding: 20px;
+  border-radius: 8px;
+}
+
 /* Barra de progreso */
 .progress-container {
   margin: 20px 0;

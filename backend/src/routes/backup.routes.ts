@@ -13,5 +13,6 @@ router.get('/download/:id', BackupController.downloadBackup);
 router.delete('/delete/:id', BackupController.deleteBackup);
 router.get('/url/:id', BackupController.getDownloadUrl);
 router.post('/restore', BackupController.restoreBackup);
+router.post('/wipe', BackupController.wipeData);
 
 export default router;

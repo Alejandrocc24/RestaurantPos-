@@ -51,26 +51,22 @@
         <div class="backup-interface">
           <div class="backup-tabs">
             <div class="tab-buttons">
-              <button 
-                class="tab-btn" 
-                [class.active]="tabActivo === 'respaldo'"
-                (click)="cambiarTab('respaldo')">
+              <button class="tab-btn" [class.active]="tabActivo === 'respaldo'" (click)="cambiarTab('respaldo')">
                 <i class="fas fa-download"></i> Crear Respaldo
               </button>
-              <button 
-                class="tab-btn" 
-                [class.active]="tabActivo === 'restauracion'"
+              <button class="tab-btn" [class.active]="tabActivo === 'restauracion'"
                 (click)="cambiarTab('restauracion')">
                 <i class="fas fa-upload"></i> Restaurar
               </button>
-              <button 
-                class="tab-btn" 
-                [class.active]="tabActivo === 'historial'"
-                (click)="cambiarTab('historial')">
+              <button class="tab-btn" [class.active]="tabActivo === 'historial'" (click)="cambiarTab('historial')">
                 <i class="fas fa-history"></i> Historial
               </button>
+              <button class="tab-btn danger-tab" [class.active]="tabActivo === 'borrado'"
+                (click)="cambiarTab('borrado')">
+                <i class="fas fa-trash-alt"></i> Borrar Datos
+              </button>
             </div>
-            
+
             <!-- Tab de Crear Respaldo -->
             <div class="tab-content" *ngIf="tabActivo === 'respaldo'">
               <div class="backup-options">
@@ -96,31 +92,21 @@
                 <div class="form-group">
                   <label for="nombreRespaldo">Nombre del Respaldo</label>
                   <div class="input-with-button">
-                    <input
-                      type="text"
-                      id="nombreRespaldo"
-                      [(ngModel)]="nombreRespaldo"
-                      placeholder="Respaldo_2024_01_15"
-                      class="form-input">
-                    <button 
-                      type="button"
-                      class="btn-regenerar"
-                      (click)="generarNombreAutomatico()"
+                    <input type="text" id="nombreRespaldo" [(ngModel)]="nombreRespaldo"
+                      placeholder="Respaldo_2024_01_15" class="form-input">
+                    <button type="button" class="btn-regenerar" (click)="generarNombreAutomatico()"
                       title="Generar nuevo nombre automático">
                       <i class="fas fa-sync-alt"></i>
                     </button>
                   </div>
-                  <small class="form-hint">El nombre se genera automáticamente. Puedes modificarlo o regenerarlo.</small>
+                  <small class="form-hint">El nombre se genera automáticamente. Puedes modificarlo o
+                    regenerarlo.</small>
                 </div>
 
                 <div class="form-group">
                   <label for="descripcionRespaldo">Descripcion (opcional)</label>
-                  <textarea
-                    id="descripcionRespaldo"
-                    [(ngModel)]="descripcionRespaldo"
-                    placeholder="Descripcion del respaldo..."
-                    class="form-textarea"
-                    rows="3"></textarea>
+                  <textarea id="descripcionRespaldo" [(ngModel)]="descripcionRespaldo"
+                    placeholder="Descripcion del respaldo..." class="form-textarea" rows="3"></textarea>
                 </div>
 
                 <!-- Barra de progreso -->
@@ -132,11 +118,8 @@
                 </div>
 
                 <div class="form-actions">
-                  <button 
-                    class="btn btn-primary btn-large" 
-                    (click)="crearRespaldo()"
-                    [disabled]="creandoRespaldo">
-                    <i class="fas fa-download"></i> 
+                  <button class="btn btn-primary btn-large" (click)="crearRespaldo()" [disabled]="creandoRespaldo">
+                    <i class="fas fa-download"></i>
                     {{ creandoRespaldo ? 'Creando...' : 'Crear Respaldo' }}
                   </button>
                 </div>
@@ -149,11 +132,7 @@
                 <h4>Restaurar desde Respaldo</h4>
                 <div class="form-group">
                   <label for="archivoRespaldo">Seleccionar Archivo de Respaldo</label>
-                  <input
-                    type="file"
-                    id="archivoRespaldo"
-                    (change)="seleccionarArchivo($event)"
-                    accept=".zip,.sql,.bak"
+                  <input type="file" id="archivoRespaldo" (change)="seleccionarArchivo($event)" accept=".zip,.sql,.bak"
                     class="form-file">
                 </div>
 
@@ -161,7 +140,8 @@
                   <i class="fas fa-exclamation-triangle"></i>
                   <div class="warning-content">
                     <strong>¡Advertencia!</strong>
-                    <p>La restauracion sobrescribira todos los datos actuales. Asegurate de tener un respaldo reciente antes de continuar.</p>
+                    <p>La restauracion sobrescribira todos los datos actuales. Asegurate de tener un respaldo reciente
+                      antes de continuar.</p>
                   </div>
                 </div>
 
@@ -181,11 +161,10 @@
                   <p class="progress-text">{{ mensajeProgreso }} ({{ progresoOperacion }}%)</p>
                 </div>
 
-                <button
-                  class="btn btn-warning btn-large"
+                <button class="btn btn-warning btn-large"
                   [disabled]="!confirmarRestauracion || !archivoSeleccionado || restaurandoRespaldo"
                   (click)="restaurarRespaldo()">
-                  <i class="fas fa-upload"></i> 
+                  <i class="fas fa-upload"></i>
                   {{ restaurandoRespaldo ? 'Restaurando...' : 'Restaurar Sistema' }}
                 </button>
               </div>
@@ -195,7 +174,7 @@
             <div class="tab-content" *ngIf="tabActivo === 'historial'">
               <div class="backup-history">
                 <h4>Historial de Respaldos</h4>
-                
+
                 <div *ngIf="cargandoHistorial" class="loading-spinner">
                   <i class="fas fa-spinner fa-spin"></i>
                   <p>Cargando historial...</p>
@@ -214,18 +193,16 @@
                         <span class="history-date">{{ respaldo.fecha }}</span>
                         <span class="history-size">{{ respaldo.tamano }}</span>
                         <span class="history-type">{{ respaldo.tipo }}</span>
-                        <span *ngIf="respaldo.registros" class="history-records">{{ respaldo.registros }} registros</span>
+                        <span *ngIf="respaldo.registros" class="history-records">{{ respaldo.registros }}
+                          registros</span>
                       </div>
                       <div *ngIf="respaldo.descripcion" class="history-description">
                         {{ respaldo.descripcion }}
                       </div>
                     </div>
                     <div class="history-actions">
-                      <button 
-                        *ngIf="respaldo.google_drive_url" 
-                        class="action-btn drive" 
-                        (click)="abrirEnGoogleDrive(respaldo)" 
-                        title="Abrir en Google Drive">
+                      <button *ngIf="respaldo.google_drive_url" class="action-btn drive"
+                        (click)="abrirEnGoogleDrive(respaldo)" title="Abrir en Google Drive">
                         <i class="fab fa-google-drive"></i>
                       </button>
                       <button class="action-btn" (click)="descargarRespaldo(respaldo)" title="Descargar">
@@ -248,6 +225,49 @@
                 </div>
               </div>
             </div>
+
+            <!-- Tab de Borrado de Datos -->
+            <div class="tab-content" *ngIf="tabActivo === 'borrado'">
+              <div class="restore-options delete-section">
+                <h4><i class="fas fa-exclamation-circle text-danger"></i> Borrado de Datos de Prueba</h4>
+
+                <div class="warning-box danger-box">
+                  <i class="fas fa-radiation"></i>
+                  <div class="warning-content">
+                    <strong>¡ACCION DESTRUCTIVA!</strong>
+                    <p>Esta opción borrará todos los datos de <strong>Productos, Ventas, Gastos y Usuarios</strong>
+                      (excepto el administrador actual). La estructura de la base de datos se mantendrá intacta.</p>
+                    <p>Utilice esta opción <strong>SOLO</strong> cuando haya finalizado las pruebas y esté listo para
+                      iniciar con datos reales en producción. Se recomienda encarecidamente <a href="javascript:void(0)"
+                        (click)="cambiarTab('respaldo')">crear un respaldo</a> antes de continuar.</p>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" [(ngModel)]="confirmarBorrado" name="confirmarBorrado">
+                    <span class="checkmark"></span>
+                    Confirmo que entiendo que los datos serán eliminados permanentemente y no se podrán recuperar sin un
+                    respaldo previo
+                  </label>
+                </div>
+
+                <!-- Barra de progreso borrado -->
+                <div *ngIf="borrandoDatos" class="progress-container">
+                  <div class="progress-bar">
+                    <div class="progress-fill danger-fill" [style.width.%]="progresoOperacion"></div>
+                  </div>
+                  <p class="progress-text">{{ mensajeProgreso }}</p>
+                </div>
+
+                <button class="btn btn-danger btn-large" [disabled]="!confirmarBorrado || borrandoDatos"
+                  (click)="wipeData()">
+                  <i class="fas fa-trash-alt"></i>
+                  {{ borrandoDatos ? 'Borrando...' : 'Borrar TODOS los Datos' }}
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
