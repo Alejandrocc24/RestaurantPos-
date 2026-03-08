@@ -37,6 +37,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isSidebarVisible: boolean = false; // Controla la visibilidad del sidebar (cerrado por defecto)
   currentView: string = 'welcome'; // Controla qué componente mostrar
   private userSubscription: Subscription = new Subscription();
+  private clockInterval: any;
 
   constructor(
     private router: Router,
@@ -51,10 +52,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.permissions.refreshPermissions();
 
     this.updateDateTime();
-    // Actualizar la fecha y hora cada minuto
-    setInterval(() => {
+    // Actualizar la fecha y hora cada segundo
+    this.clockInterval = setInterval(() => {
       this.updateDateTime();
-    }, 60000);
+    }, 1000);
 
     // Sincronizar vista con los query params
     this.route.queryParams.subscribe(params => {
@@ -84,6 +85,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.userSubscription) {
       this.userSubscription.unsubscribe();
     }
+    if (this.clockInterval) {
+      clearInterval(this.clockInterval);
+    }
   }
 
   updateDateTime() {
@@ -92,7 +96,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
     
     this.currentDate = `${days[now.getDay()]}`;
-    this.currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    let hours = now.getHours();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // la hora '0' deberia ser '12'
+    
+    this.currentTime = `${hours.toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} ${ampm}`;
   }
 
   toggleSidebar(): void {

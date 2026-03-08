@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ToastService } from '../shared/toast/toast.service';
 import { BackupService, BackupMetadata } from '../services/backup.service';
 import { ModalHistoryManager } from '../shared/utils/modal-history-manager';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-respaldo',
@@ -300,67 +301,89 @@ export class RespaldoComponent implements OnInit, OnDestroy {
   restaurarDesdeHistorial(respaldo: BackupMetadata): void {
     if (!respaldo.id) return;
 
-    if (confirm(`¿Estás seguro de que quieres restaurar desde "${respaldo.nombre}"? Esta acción sobrescribirá todos los datos actuales.`)) {
-      this.restaurandoRespaldo = true;
-      this.progresoOperacion = 0;
-      this.mensajeProgreso = 'Restaurando desde historial...';
+    Swal.fire({
+      title: '¿Restaurar sistema?',
+      text: `¿Estás seguro de que quieres restaurar desde "${respaldo.nombre}"? Esta acción sobrescribirá todos los datos actuales.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ffc107',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, restaurar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.restaurandoRespaldo = true;
+        this.progresoOperacion = 0;
+        this.mensajeProgreso = 'Restaurando desde historial...';
 
-      const progresoInterval = setInterval(() => {
-        if (this.progresoOperacion < 90) {
-          this.progresoOperacion += 5;
-        }
-      }, 800);
-
-      this.backupService.restoreFromHistory(respaldo.id).subscribe({
-        next: (response) => {
-          clearInterval(progresoInterval);
-          this.progresoOperacion = 100;
-          this.mensajeProgreso = 'Restauración completada';
-
-          if (response.success) {
-            this.toast.success('Restauración exitosa', 'Datos restaurados correctamente');
-            setTimeout(() => {
-              this.cargarHistorial();
-              this.restaurandoRespaldo = false;
-              this.progresoOperacion = 0;
-              this.mensajeProgreso = '';
-            }, 2000);
-          } else {
-            this.toast.error('Error', response.error || 'No se pudo restaurar');
-            this.restaurandoRespaldo = false;
+        const progresoInterval = setInterval(() => {
+          if (this.progresoOperacion < 90) {
+            this.progresoOperacion += 5;
           }
-        },
-        error: (error) => {
-          clearInterval(progresoInterval);
-          console.error('Error restaurando:', error);
-          this.toast.error('Error', 'Error al restaurar el respaldo');
-          this.restaurandoRespaldo = false;
-          this.progresoOperacion = 0;
-          this.mensajeProgreso = '';
-        }
-      });
-    }
+        }, 800);
+
+        this.backupService.restoreFromHistory(respaldo.id!).subscribe({
+          next: (response) => {
+            clearInterval(progresoInterval);
+            this.progresoOperacion = 100;
+            this.mensajeProgreso = 'Restauración completada';
+
+            if (response.success) {
+              this.toast.success('Restauración exitosa', 'Datos restaurados correctamente');
+              setTimeout(() => {
+                this.cargarHistorial();
+                this.restaurandoRespaldo = false;
+                this.progresoOperacion = 0;
+                this.mensajeProgreso = '';
+              }, 2000);
+            } else {
+              this.toast.error('Error', response.error || 'No se pudo restaurar');
+              this.restaurandoRespaldo = false;
+            }
+          },
+          error: (error) => {
+            clearInterval(progresoInterval);
+            console.error('Error restaurando:', error);
+            this.toast.error('Error', 'Error al restaurar el respaldo');
+            this.restaurandoRespaldo = false;
+            this.progresoOperacion = 0;
+            this.mensajeProgreso = '';
+          }
+        });
+      }
+    });
   }
 
   eliminarRespaldo(respaldo: BackupMetadata): void {
     if (!respaldo.id) return;
 
-    if (confirm(`¿Estás seguro de que quieres eliminar el respaldo "${respaldo.nombre}"?`)) {
-      this.backupService.deleteBackup(respaldo.id).subscribe({
-        next: (response) => {
-          if (response.success) {
-            this.toast.success('Eliminado', 'Respaldo eliminado exitosamente');
-            this.cargarHistorial();
-          } else {
-            this.toast.error('Error', response.error || 'No se pudo eliminar');
+    Swal.fire({
+      title: '¿Eliminar respaldo?',
+      text: `¿Estás seguro de que quieres eliminar el respaldo "${respaldo.nombre}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.backupService.deleteBackup(respaldo.id!).subscribe({
+          next: (response) => {
+            if (response.success) {
+              this.toast.success('Eliminado', 'Respaldo eliminado exitosamente');
+              this.cargarHistorial();
+            } else {
+              this.toast.error('Error', response.error || 'No se pudo eliminar');
+            }
+          },
+          error: (error) => {
+            console.error('Error eliminando:', error);
+            this.toast.error('Error', 'Error al eliminar el respaldo');
           }
-        },
-        error: (error) => {
-          console.error('Error eliminando:', error);
-          this.toast.error('Error', 'Error al eliminar el respaldo');
-        }
-      });
-    }
+        });
+      }
+    });
   }
 
   wipeData(): void {
@@ -369,47 +392,58 @@ export class RespaldoComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (confirm('¿Estás absolutamente seguro de que deseas borrar todos los datos de prueba? Esta acción no se puede deshacer.')) {
-      this.borrandoDatos = true;
-      this.progresoOperacion = 0;
-      this.mensajeProgreso = 'Borrando datos...';
+    Swal.fire({
+      title: '¿Borrar TODOS los datos?',
+      text: '¿Estás absolutamente seguro de que deseas borrar todos los datos de prueba? Esta acción no se puede deshacer.',
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, borrar todo',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.borrandoDatos = true;
+        this.progresoOperacion = 0;
+        this.mensajeProgreso = 'Borrando datos...';
 
-      const progresoInterval = setInterval(() => {
-        if (this.progresoOperacion < 90) {
-          this.progresoOperacion += 10;
-        }
-      }, 500);
-
-      this.backupService.wipeData().subscribe({
-        next: (response) => {
-          clearInterval(progresoInterval);
-          this.progresoOperacion = 100;
-          this.mensajeProgreso = 'Datos borrados exitosamente';
-
-          if (response.success) {
-            this.toast.success('Éxito', response.message || 'Datos borrados correctamente');
-            setTimeout(() => {
-              this.cambiarTab('historial');
-              this.confirmarBorrado = false;
-              this.borrandoDatos = false;
-              this.progresoOperacion = 0;
-              this.mensajeProgreso = '';
-            }, 2000);
-          } else {
-            this.toast.error('Error', response.error || 'No se pudieron borrar todos los datos');
-            this.borrandoDatos = false;
+        const progresoInterval = setInterval(() => {
+          if (this.progresoOperacion < 90) {
+            this.progresoOperacion += 10;
           }
-        },
-        error: (error) => {
-          clearInterval(progresoInterval);
-          console.error('Error borrando datos:', error);
-          this.toast.error('Error', error.error || 'Ocurrió un error al borrar los datos');
-          this.borrandoDatos = false;
-          this.progresoOperacion = 0;
-          this.mensajeProgreso = '';
-        }
-      });
-    }
+        }, 500);
+
+        this.backupService.wipeData().subscribe({
+          next: (response) => {
+            clearInterval(progresoInterval);
+            this.progresoOperacion = 100;
+            this.mensajeProgreso = 'Datos borrados exitosamente';
+
+            if (response.success) {
+              this.toast.success('Éxito', response.message || 'Datos borrados correctamente');
+              setTimeout(() => {
+                this.cambiarTab('historial');
+                this.confirmarBorrado = false;
+                this.borrandoDatos = false;
+                this.progresoOperacion = 0;
+                this.mensajeProgreso = '';
+              }, 2000);
+            } else {
+              this.toast.error('Error', response.error || 'No se pudieron borrar todos los datos');
+              this.borrandoDatos = false;
+            }
+          },
+          error: (error) => {
+            clearInterval(progresoInterval);
+            console.error('Error borrando datos:', error);
+            this.toast.error('Error', error.error || 'Ocurrió un error al borrar los datos');
+            this.borrandoDatos = false;
+            this.progresoOperacion = 0;
+            this.mensajeProgreso = '';
+          }
+        });
+      }
+    });
   }
 
   private handleModalClose(modalId: string): void {

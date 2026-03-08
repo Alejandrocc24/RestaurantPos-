@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { config } from './config/index.js';
-import { loggerMiddleware, ensurePrismaMiddleware } from './middleware/request.js';
+import { loggerMiddleware } from './middleware/request.js';
 import { errorMiddleware } from './middleware/auth.js';
 import apiRoutes from './routes/index.js';
 import { BackupService } from './services/backup.service.js';

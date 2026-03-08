@@ -78,7 +78,9 @@ export class CocinaComponent implements OnInit, OnDestroy {
     this.aplicarFiltros();
 
     // Actualizar tiempo transcurrido en UI localmente cada segundo
-    this.timerSubscription = interval(1000).subscribe(() => { /* Forzar Change Detection para los getters de tiempo */ });
+    this.timerSubscription = interval(1000).subscribe(() => { 
+      this.tiempoActual = new Date();
+    });
 
     // Recargar los pedidos desde el servidor cada 3 segundos (balance ideal)
     this.ngZone.runOutsideAngular(() => {
