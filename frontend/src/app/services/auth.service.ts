@@ -26,6 +26,7 @@ export class AuthService {
         this.http.post<ApiResponse<LoginResponse>>(`${this.baseUrl}/auth/login`, {
           email,
           password,
+          tenantId,
         }, { withCredentials: true }),
       );
 

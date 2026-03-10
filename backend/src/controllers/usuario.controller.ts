@@ -1,12 +1,25 @@
 import { Request, Response } from 'express';
 import { hashPassword } from '../utils/auth.js';
+import { config } from '../config/index.js';
 
 export class UsuarioController {
   static async getUsuarios(req: Request, res: Response) {
     try {
       const { skip, take, search } = req.query;
 
+      // Verificar si el usuario actual es el desarrollador
+      const currentUser = await req.prisma.usuario.findUnique({
+        where: { id: req.userId },
+        select: { email: true }
+      });
+      const isDevUser = currentUser?.email === config.devEmail;
+
       const where: any = {};
+
+      // Ocultar usuario desarrollador solo para clientes (no para el propio dev)
+      if (!isDevUser) {
+        where.email = { not: config.devEmail };
+      }
 
       if (search) {
         where.OR = [
@@ -143,7 +156,7 @@ export class UsuarioController {
       } else if (rol) {
         // Si viene un string de rol, buscar el rol por nombre (case-insensitive)
         const rolObj = await req.prisma.rol.findFirst({
-          where: { 
+          where: {
             nombre: {
               mode: 'insensitive',
               equals: rol
@@ -222,6 +235,14 @@ export class UsuarioController {
         });
       }
 
+      // Proteger usuario desarrollador: solo el propio dev puede editarse
+      if (existe.email === config.devEmail && req.userId !== existe.id) {
+        return res.status(403).json({
+          success: false,
+          message: 'No tienes permisos para editar este usuario'
+        });
+      }
+
       // Preparar data a actualizar
       const updateData: any = {
         nombre,
@@ -240,7 +261,7 @@ export class UsuarioController {
       } else if (rol) {
         // Buscar el rol de manera case-insensitive
         const rolObj = await req.prisma.rol.findFirst({
-          where: { 
+          where: {
             nombre: {
               mode: 'insensitive',
               equals: rol
@@ -316,6 +337,14 @@ export class UsuarioController {
         return res.status(404).json({
           success: false,
           message: 'Usuario no encontrado'
+        });
+      }
+
+      // Proteger usuario desarrollador: NO se puede eliminar
+      if (existe.email === config.devEmail) {
+        return res.status(403).json({
+          success: false,
+          message: 'Este usuario no puede ser eliminado'
         });
       }
 

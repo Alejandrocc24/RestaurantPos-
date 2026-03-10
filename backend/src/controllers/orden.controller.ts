@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { SocketService } from '../services/socket.service.js';
 
 export class OrdenController {
   /**
@@ -235,6 +236,8 @@ export class OrdenController {
         },
       });
 
+      SocketService.emitGlobal('ordenCreada', ordenActualizada);
+
       res.status(201).json({
         success: true,
         message: 'Orden creada',
@@ -282,6 +285,8 @@ export class OrdenController {
         },
       });
 
+      SocketService.emitGlobal('ordenActualizada', orden);
+
       res.json({
         success: true,
         message: 'Orden actualizada',
@@ -306,6 +311,8 @@ export class OrdenController {
       await req.prisma.orden.delete({
         where: { id },
       });
+
+      SocketService.emitGlobal('ordenEliminada', { id });
 
       res.json({
         success: true,
@@ -349,6 +356,8 @@ export class OrdenController {
 
       const ordenActualizada = result[0]?.data;
       console.log(`✅ [SP] Orden procesada en ${Date.now() - t0}ms. Total: ${ordenActualizada?.total}`);
+
+      SocketService.emitGlobal('ordenMesaActualizada', ordenActualizada);
 
       res.json({
         success: true,
@@ -396,6 +405,8 @@ export class OrdenController {
         const ordenActualizada = result[0]?.data;
         console.log(`✅ [SP] Cobro total en ${Date.now() - t0}ms`);
 
+        SocketService.emitGlobal('cantidadesOrdenActualizadas', ordenActualizada);
+
         return res.json({
           success: true,
           message: 'Cobro total procesado, comanda preservada en cocina',
@@ -415,6 +426,8 @@ export class OrdenController {
 
       const data = result[0]?.data;
       console.log(`✅ [SP] Cantidades actualizadas en ${Date.now() - t0}ms`);
+
+      SocketService.emitGlobal('cantidadesOrdenActualizadas', data);
 
       res.json({
         success: true,
@@ -452,6 +465,8 @@ export class OrdenController {
         where: { id: { in: ids } },
         data: { visibleCocina: false },
       });
+
+      SocketService.emitGlobal('ordenesOcultadas', { ids });
 
       res.json({
         success: true,

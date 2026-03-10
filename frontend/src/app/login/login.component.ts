@@ -11,7 +11,7 @@ import Swal from 'sweetalert2';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule] 
+  imports: [CommonModule, FormsModule]
 })
 export class LoginComponent {
   email: string = '';
@@ -19,16 +19,29 @@ export class LoginComponent {
   isLoading: boolean = false;
   showPassword: boolean = false;
 
+  // Soporte para login de desarrollador multi-tenant
+  isDevEmail: boolean = false;
+  devTenantId: string = '';
+
   constructor(
     private router: Router,
     private authService: AuthService
-  ) {}
+  ) { }
 
   /**
    * Alternar la visibilidad de la contraseña
    */
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  /**
+   * Detecta si el email es del desarrollador (@dev)
+   * para mostrar el campo de selección de tenant
+   */
+  onEmailChange(): void {
+    const email = this.email.trim().toLowerCase();
+    this.isDevEmail = email.endsWith('@dev');
   }
 
   /**
@@ -44,7 +57,7 @@ export class LoginComponent {
 
   async onSubmit(event: Event): Promise<void> {
     event.preventDefault();
-    
+
     if (!this.email || !this.password) {
       Swal.fire({
         title: 'Error',
@@ -55,10 +68,20 @@ export class LoginComponent {
       return;
     }
 
+    // Si es dev, validar que ingresó un tenant
+    if (this.isDevEmail && !this.devTenantId.trim()) {
+      Swal.fire({
+        title: 'Tenant requerido',
+        text: 'Como desarrollador, debes especificar a qué tenant conectarte',
+        icon: 'warning',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
     this.isLoading = true;
 
     try {
-      // Validar email
       const emailTrimmed = this.email.trim();
       if (!emailTrimmed.includes('@')) {
         Swal.fire({
@@ -71,16 +94,25 @@ export class LoginComponent {
         return;
       }
 
-      // Extraer tenantId del dominio del email
-      const tenantId = this.extractTenantFromEmail(emailTrimmed);
+      // Determinar tenantId:
+      // - Si es dev (@dev): usar el tenantId explícito del campo
+      // - Si es usuario normal: extraer del dominio del email
+      let tenantId: string;
+      if (this.isDevEmail) {
+        tenantId = this.devTenantId.trim().toLowerCase();
+        console.log('🔐 [LoginComponent] Login como DESARROLLADOR');
+        console.log('  - Email:', emailTrimmed);
+        console.log('  - Tenant explícito:', tenantId);
+      } else {
+        tenantId = this.extractTenantFromEmail(emailTrimmed);
+        console.log('🔐 [LoginComponent] Login como usuario normal');
+        console.log('  - Email:', emailTrimmed);
+        console.log('  - Tenant (del email):', tenantId);
+      }
 
-      console.log('🔐 [LoginComponent] Intentando login...');
-      console.log('  - Email:', emailTrimmed);
-      console.log('  - TenantId (extraído del email):', tenantId);
-
-      // Llamar a AuthService con el nuevo formato
+      // Llamar a AuthService - envía tenantId en el body
       const result = await this.authService.signIn(emailTrimmed, this.password, tenantId);
-      
+
       if (result.success) {
         console.log('✅ [LoginComponent] Login exitoso, redirigiendo...');
         Swal.fire({
@@ -103,7 +135,7 @@ export class LoginComponent {
                 <li>Tu correo electrónico</li>
                 <li>Tu contraseña</li>
                 <li>Que tu cuenta esté activa</li>
-                <li>Que hayas seleccionado el tenant correcto</li>
+                ${this.isDevEmail ? '<li>Que el tenant especificado sea correcto</li>' : ''}
               </ul>
               <p style="color: #666; font-size: 12px; margin-top: 10px;">${result.error || ''}</p>
             </div>
@@ -124,7 +156,7 @@ export class LoginComponent {
             <p style="color: #666; font-size: 14px;">Por favor verifica:</p>
             <ul style="text-align: left; color: #666; font-size: 14px; margin-top: 10px;">
               <li>Tu conexión a internet</li>
-              <li>Que el servidor esté en funcionamiento en: http://localhost:3000</li>
+              <li>Que el servidor esté en funcionamiento</li>
               <li>Contacta al administrador si el problema persiste</li>
             </ul>
           </div>

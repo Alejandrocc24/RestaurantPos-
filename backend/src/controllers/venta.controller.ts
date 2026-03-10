@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { SocketService } from '../services/socket.service.js';
 
 export class VentaController {
   /**
@@ -142,6 +143,8 @@ export class VentaController {
       const venta = result[0]?.data;
       console.log(`✅ [SP] Venta creada en ${Date.now() - t0}ms:`, venta?.id);
 
+      SocketService.emitGlobal('ventaCreada', venta);
+
       res.status(201).json({
         success: true,
         message: 'Venta creada exitosamente',
@@ -195,6 +198,8 @@ export class VentaController {
         },
       });
 
+      SocketService.emitGlobal('ventaActualizada', venta);
+
       res.json({
         success: true,
         message: 'Venta actualizada',
@@ -231,6 +236,8 @@ export class VentaController {
       await req.prisma.venta.delete({
         where: { id },
       });
+
+      SocketService.emitGlobal('ventaEliminada', { id });
 
       res.json({
         success: true,

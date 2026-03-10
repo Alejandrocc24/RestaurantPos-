@@ -745,7 +745,8 @@ export class SupabaseService {
   async crearUsuario(usuario: any) {
     const resp = await firstValueFrom(this.api.insertData('usuarios', usuario));
     if (!resp?.success) throw new Error(resp?.error || 'Error al crear usuario');
-    return resp.data?.[0] ?? null;
+    // El backend devuelve data como objeto directo, no como array
+    return Array.isArray(resp.data) ? resp.data[0] : resp.data ?? null;
   }
 
   async actualizarUsuario(id: number, usuario: any) {

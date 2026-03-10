@@ -34,6 +34,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   currentTime: string = '';
   userName: string = 'usuario';
   userEmail: string = '';
+  businessName: string = 'RestaurantPOS'; // Nombre dinámico basado en tenantId
   isSidebarVisible: boolean = false; // Controla la visibilidad del sidebar (cerrado por defecto)
   currentView: string = 'welcome'; // Controla qué componente mostrar
   private userSubscription: Subscription = new Subscription();
@@ -44,12 +45,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private authService: AuthService,
     private permissions: PermissionsService
-  ) {}
+  ) { }
 
   ngOnInit() {
     // Restaurar sesión desde localStorage PRIMERO
     this.authService.restoreSession();
     this.permissions.refreshPermissions();
+
+    // Obtener nombre del negocio del tenantId
+    this.loadBusinessName();
 
     this.updateDateTime();
     // Actualizar la fecha y hora cada segundo
@@ -94,15 +98,75 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const now = new Date();
     const days = ['DOMINGO', 'LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO'];
     const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-    
+
     this.currentDate = `${days[now.getDay()]}`;
-    
+
     let hours = now.getHours();
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
     hours = hours ? hours : 12; // la hora '0' deberia ser '12'
-    
+
     this.currentTime = `${hours.toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} ${ampm}`;
+  }
+
+  /**
+   * Carga el nombre del negocio basado en el tenantId guardado.
+   * Convierte tenantId como 'dulcemomento' → 'Dulce Momento'
+   */
+  private loadBusinessName(): void {
+    if (typeof window === 'undefined') return;
+    const tenantId = localStorage.getItem('tenantId');
+    if (tenantId && tenantId !== 'dev') {
+      this.businessName = this.formatTenantName(tenantId);
+    }
+  }
+
+  /**
+   * Formatea un tenantId en un nombre legible.
+   * Ej: 'dulcemomento' → 'Dulce Momento', 'buenosaires' → 'Buenos Aires'
+   */
+  private formatTenantName(tenantId: string): string {
+    // Diccionario de palabras comunes en español para separar tenantIds
+    const commonWords = [
+      'dulce', 'momento', 'buenos', 'aires', 'la', 'el', 'los', 'las',
+      'gran', 'parrilla', 'casa', 'sabor', 'cafe', 'restaurant', 'restaurante',
+      'cocina', 'bar', 'pizza', 'pollo', 'taco', 'grill', 'food', 'del', 'de',
+      'san', 'santa', 'don', 'doña', 'rio', 'mar', 'sol', 'luna', 'verde',
+      'azul', 'rojo', 'oro', 'plata', 'nueva', 'nuevo', 'viejo', 'vieja',
+      'norte', 'sur', 'centro', 'rico', 'lindo', 'bella', 'bello',
+    ];
+
+    let name = tenantId.toLowerCase();
+
+    // Intentar separar usando el diccionario de palabras
+    let result = '';
+    let remaining = name;
+
+    while (remaining.length > 0) {
+      let matched = false;
+      // Buscar la palabra más larga que coincida al inicio
+      const sortedWords = [...commonWords].sort((a, b) => b.length - a.length);
+      for (const word of sortedWords) {
+        if (remaining.startsWith(word)) {
+          if (result.length > 0) result += ' ';
+          result += word.charAt(0).toUpperCase() + word.slice(1);
+          remaining = remaining.slice(word.length);
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        // Si no encontramos una palabra conocida, tomar el carácter y continuar
+        if (result.length > 0 && remaining.charAt(0) !== ' ') {
+          result += remaining.charAt(0);
+        } else {
+          result += remaining.charAt(0).toUpperCase();
+        }
+        remaining = remaining.slice(1);
+      }
+    }
+
+    return result || tenantId.charAt(0).toUpperCase() + tenantId.slice(1);
   }
 
   toggleSidebar(): void {
@@ -129,7 +193,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
 
     const module = viewModuleMap[view];
-    
+
     // Verificar permisos antes de cambiar vista
     if (module && !this.permissions.canAccessModule(module)) {
       Swal.fire({

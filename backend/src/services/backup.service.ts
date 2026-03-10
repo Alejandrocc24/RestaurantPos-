@@ -134,48 +134,87 @@ export class BackupService {
         }
     }
 
-    static async wipeData(prismaClient: PrismaClient, currentUserId: string) {
+    static async wipeData(prismaClient: PrismaClient, currentUserId: string, categories?: string[]) {
         try {
+            // Si no se pasan categorías, borrar todo (comportamiento legacy)
+            const borrarTodo = !categories || categories.length === 0;
+            const borrarEstadisticas = borrarTodo || categories!.includes('estadisticas');
+            const borrarGastos = borrarTodo || categories!.includes('gastos');
+            const borrarCarta = borrarTodo || categories!.includes('carta');
+            const borrarUsuarios = borrarTodo || categories!.includes('usuarios');
+
+            // Buscar el usuario desarrollador para protegerlo
+            const devUser = await prismaClient.usuario.findFirst({
+                where: { email: config.devEmail }
+            });
+            // IDs a proteger: el usuario actual + el usuario desarrollador
+            const protectedIds = [currentUserId];
+            if (devUser && !protectedIds.includes(devUser.id)) {
+                protectedIds.push(devUser.id);
+            }
+
+            const borrados: string[] = [];
+
             await prismaClient.$transaction(async (tx: any) => {
-                // Ventas y Ordenes (en orden inverso de dependencias)
-                await tx.pago.deleteMany();
-                await tx.comentario.deleteMany();
-                await tx.ordenProducto.deleteMany();
-                await tx.venta.deleteMany();
-                await tx.orden.deleteMany();
+                // 1. Estadísticas: Ventas, Ordenes, Pagos, Comentarios, Cajas
+                if (borrarEstadisticas) {
+                    await tx.pago.deleteMany();
+                    await tx.comentario.deleteMany();
+                    await tx.ordenProducto.deleteMany();
+                    await tx.venta.deleteMany();
+                    await tx.orden.deleteMany();
+                    await tx.caja.deleteMany();
+                    borrados.push('estadisticas');
+                }
 
-                // Gastos y Compras
-                await tx.compra.deleteMany();
-                await tx.gasto.deleteMany();
-                await tx.caja.deleteMany();
-                await tx.proveedor.deleteMany();
-                await tx.categoriaGasto.deleteMany();
+                // 2. Gastos, Compras, Proveedores, Categorías de Gasto
+                if (borrarGastos) {
+                    await tx.compra.deleteMany();
+                    await tx.gasto.deleteMany();
+                    await tx.proveedor.deleteMany();
+                    await tx.categoriaGasto.deleteMany();
+                    borrados.push('gastos');
+                }
 
-                // Productos
-                await tx.opcionModificador.deleteMany();
-                await tx.grupoModificador.deleteMany();
-                await tx.producto.deleteMany();
-                await tx.subcategoria.deleteMany();
-                await tx.categoria.deleteMany();
-
-                // Usuarios: borramos roles asignados y usuarios a excepción del usuario actual que ejecuta la acción
-                // Mantener al usuario actual evita que la cuenta quede inaccesible
-                await tx.usuarioRol.deleteMany({
-                    where: {
-                        usuarioId: { not: currentUserId }
+                // 3. Carta: Productos, Categorías, Subcategorías, Modificadores
+                if (borrarCarta) {
+                    // Si no se borran estadísticas, hay que borrar primero las dependencias de productos en órdenes
+                    if (!borrarEstadisticas) {
+                        await tx.pago.deleteMany();
+                        await tx.comentario.deleteMany();
+                        await tx.ordenProducto.deleteMany();
+                        await tx.venta.deleteMany();
+                        await tx.orden.deleteMany();
+                        borrados.push('estadisticas (requerido por carta)');
                     }
-                });
+                    await tx.opcionModificador.deleteMany();
+                    await tx.grupoModificador.deleteMany();
+                    await tx.producto.deleteMany();
+                    await tx.subcategoria.deleteMany();
+                    await tx.categoria.deleteMany();
+                    borrados.push('carta');
+                }
 
-                await tx.usuario.deleteMany({
-                    where: {
-                        id: { not: currentUserId }
-                    }
-                });
+                // 4. Usuarios: borramos roles asignados y usuarios a excepción de los protegidos
+                if (borrarUsuarios) {
+                    await tx.usuarioRol.deleteMany({
+                        where: {
+                            usuarioId: { notIn: protectedIds }
+                        }
+                    });
+                    await tx.usuario.deleteMany({
+                        where: {
+                            id: { notIn: protectedIds }
+                        }
+                    });
+                    borrados.push('usuarios');
+                }
             }, {
                 maxWait: 60000,
                 timeout: 120000, // 2 min para este proceso
             });
-            console.log(`[EXITO] Datos de prueba borrados correctamente. Manteniendo intacta estructura y usuario administrador (${currentUserId}).`);
+            console.log(`[EXITO] Datos borrados: [${borrados.join(', ')}]. Usuarios protegidos: ${protectedIds.join(', ')}`);
+            return borrados;
         } catch (error: any) {
             console.error('Error al borrar datos:', error);
             throw error;

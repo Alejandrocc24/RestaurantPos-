@@ -209,3 +209,56 @@ input[type="password"]::placeholder {
     padding: 10px 12px;
   }
 }
+
+/* Developer Tenant Field (solo visible para @dev) */
+.dev-tenant-field {
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 12px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    transform: translateY(0);
+  }
+}
+
+.dev-label {
+  display: block;
+  color: #e94560;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dev-input {
+  background: #16213e !important;
+  border-color: #0f3460 !important;
+  color: #e0e0e0 !important;
+}
+
+.dev-input:focus {
+  border-color: #e94560 !important;
+  box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.2) !important;
+}
+
+.dev-input::placeholder {
+  color: #5a5a7a !important;
+}
+
+.dev-hint {
+  display: block;
+  color: #5a5a7a;
+  font-size: 0.7rem;
+  margin-top: 6px;
+}

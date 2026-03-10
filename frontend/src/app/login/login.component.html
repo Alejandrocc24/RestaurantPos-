@@ -9,6 +9,7 @@
         placeholder="Correo (usuario@negocio)"
         required="required"
         [(ngModel)]="email"
+        (ngModelChange)="onEmailChange()"
         [disabled]="isLoading"
         class="form-control"
       />
@@ -31,6 +32,24 @@
         >
           <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
         </button>
+      </div>
+
+      <!-- Campo de tenantId solo visible para el desarrollador (@dev) -->
+      <div class="dev-tenant-field" *ngIf="isDevEmail">
+        <label class="dev-label">
+          <i class="bi bi-terminal"></i> Tenant de destino
+        </label>
+        <input
+          type="text"
+          name="tenantId"
+          placeholder="Ej: dulcemomento, laparrilla"
+          [(ngModel)]="devTenantId"
+          [disabled]="isLoading"
+          class="form-control dev-input"
+        />
+        <small class="dev-hint">
+          Ingresa el identificador del cliente al que deseas acceder
+        </small>
       </div>
 
       <button 

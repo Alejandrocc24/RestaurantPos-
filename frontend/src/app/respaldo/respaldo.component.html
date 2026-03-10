@@ -190,17 +190,102 @@
             <!-- Tab de Borrado de Datos -->
             <div class="tab-content" *ngIf="tabActivo === 'borrado'">
               <div class="restore-options delete-section">
-                <h4><i class="fas fa-exclamation-circle text-danger"></i> Borrado de Datos de Prueba</h4>
+                <h4><i class="fas fa-exclamation-circle text-danger"></i> Borrado Selectivo de Datos</h4>
 
-                <div class="warning-box danger-box">
+                <p class="delete-description">Selecciona las categorías de datos que deseas eliminar. Esto te permite,
+                  por ejemplo, mantener la carta de productos y solo limpiar las estadísticas de prueba.</p>
+
+                <div class="wipe-categories">
+                  <!-- Estadísticas -->
+                  <label class="wipe-category-card" [class.selected]="categoriasBorrado.estadisticas">
+                    <input type="checkbox" [(ngModel)]="categoriasBorrado.estadisticas" name="wipeEstadisticas">
+                    <div class="wipe-card-content">
+                      <div class="wipe-card-icon">
+                        <i class="fas fa-chart-line"></i>
+                      </div>
+                      <div class="wipe-card-info">
+                        <strong>Estadísticas y Operaciones</strong>
+                        <span>Ventas, Órdenes, Pagos, Comentarios, Cajas</span>
+                      </div>
+                      <div class="wipe-card-check">
+                        <i class="fas" [class.fa-check-circle]="categoriasBorrado.estadisticas"
+                          [class.fa-circle]="!categoriasBorrado.estadisticas"></i>
+                      </div>
+                    </div>
+                  </label>
+
+                  <!-- Gastos -->
+                  <label class="wipe-category-card" [class.selected]="categoriasBorrado.gastos">
+                    <input type="checkbox" [(ngModel)]="categoriasBorrado.gastos" name="wipeGastos">
+                    <div class="wipe-card-content">
+                      <div class="wipe-card-icon gastos-icon">
+                        <i class="fas fa-receipt"></i>
+                      </div>
+                      <div class="wipe-card-info">
+                        <strong>Gastos y Compras</strong>
+                        <span>Gastos, Compras, Proveedores, Categorías de Gasto</span>
+                      </div>
+                      <div class="wipe-card-check">
+                        <i class="fas" [class.fa-check-circle]="categoriasBorrado.gastos"
+                          [class.fa-circle]="!categoriasBorrado.gastos"></i>
+                      </div>
+                    </div>
+                  </label>
+
+                  <!-- Carta -->
+                  <label class="wipe-category-card" [class.selected]="categoriasBorrado.carta">
+                    <input type="checkbox" [(ngModel)]="categoriasBorrado.carta" name="wipeCarta">
+                    <div class="wipe-card-content">
+                      <div class="wipe-card-icon carta-icon">
+                        <i class="fas fa-utensils"></i>
+                      </div>
+                      <div class="wipe-card-info">
+                        <strong>Carta / Menú</strong>
+                        <span>Productos, Categorías, Subcategorías, Modificadores</span>
+                      </div>
+                      <div class="wipe-card-check">
+                        <i class="fas" [class.fa-check-circle]="categoriasBorrado.carta"
+                          [class.fa-circle]="!categoriasBorrado.carta"></i>
+                      </div>
+                    </div>
+                  </label>
+
+                  <!-- Usuarios -->
+                  <label class="wipe-category-card" [class.selected]="categoriasBorrado.usuarios">
+                    <input type="checkbox" [(ngModel)]="categoriasBorrado.usuarios" name="wipeUsuarios">
+                    <div class="wipe-card-content">
+                      <div class="wipe-card-icon usuarios-icon">
+                        <i class="fas fa-users"></i>
+                      </div>
+                      <div class="wipe-card-info">
+                        <strong>Usuarios</strong>
+                        <span>Todos los usuarios excepto el actual y el desarrollador</span>
+                      </div>
+                      <div class="wipe-card-check">
+                        <i class="fas" [class.fa-check-circle]="categoriasBorrado.usuarios"
+                          [class.fa-circle]="!categoriasBorrado.usuarios"></i>
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <!-- Aviso condicional -->
+                <div class="warning-box info-box" *ngIf="categoriasBorrado.carta && !categoriasBorrado.estadisticas">
+                  <i class="fas fa-info-circle"></i>
+                  <div class="warning-content">
+                    <strong>Nota importante</strong>
+                    <p>Al borrar la carta, también se eliminarán las <strong>ventas y órdenes</strong> automáticamente,
+                      ya que los productos asociados serán eliminados.</p>
+                  </div>
+                </div>
+
+                <div class="warning-box danger-box" *ngIf="getCategoriasSeleccionadas().length > 0">
                   <i class="fas fa-radiation"></i>
                   <div class="warning-content">
-                    <strong>¡ACCION DESTRUCTIVA!</strong>
-                    <p>Esta opción borrará todos los datos de <strong>Productos, Ventas, Gastos y Usuarios</strong>
-                      (excepto el administrador actual). La estructura de la base de datos se mantendrá intacta.</p>
-                    <p>Utilice esta opción <strong>SOLO</strong> cuando haya finalizado las pruebas y esté listo para
-                      iniciar con datos reales en producción. Se recomienda encarecidamente <a href="javascript:void(0)"
-                        (click)="cambiarTab('respaldo')">crear un respaldo</a> antes de continuar.</p>
+                    <strong>¡ACCIÓN DESTRUCTIVA!</strong>
+                    <p>Los datos seleccionados serán eliminados permanentemente. Se recomienda <a
+                        href="javascript:void(0)" (click)="cambiarTab('respaldo')">crear un respaldo</a> antes de
+                      continuar.</p>
                   </div>
                 </div>
 
@@ -221,11 +306,18 @@
                   <p class="progress-text">{{ mensajeProgreso }}</p>
                 </div>
 
-                <button class="btn btn-danger btn-large" [disabled]="!confirmarBorrado || borrandoDatos"
-                  (click)="wipeData()">
-                  <i class="fas fa-trash-alt"></i>
-                  {{ borrandoDatos ? 'Borrando...' : 'Borrar TODOS los Datos' }}
-                </button>
+                <div class="wipe-actions">
+                  <button class="btn btn-danger btn-large"
+                    [disabled]="!confirmarBorrado || borrandoDatos || getCategoriasSeleccionadas().length === 0"
+                    (click)="wipeData()">
+                    <i class="fas fa-trash-alt"></i>
+                    {{ borrandoDatos ? 'Borrando...' : (isBorradoTodo() ? 'Borrar TODOS los Datos' : 'Borrar Datos
+                    Seleccionados') }}
+                  </button>
+                  <span class="wipe-count" *ngIf="getCategoriasSeleccionadas().length > 0">
+                    {{ getCategoriasSeleccionadas().length }} de 4 categorías seleccionadas
+                  </span>
+                </div>
               </div>
             </div>
 

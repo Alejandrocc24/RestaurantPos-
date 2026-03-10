@@ -11,19 +11,13 @@
             <span class="required">*</span> Nombre de Usuario
           </label>
           <div class="input-with-suffix">
-            <input 
-              type="text" 
-              id="nombreUsuario" 
-              name="nombreUsuario"
-              [(ngModel)]="nombreUsuario" 
-              (ngModelChange)="actualizarNombreCompleto()"
-              class="form-input input-username" 
-              [class.error]="errores.nombreUsuario"
-              placeholder="Ejemplo: jhon"
-              required>
-            <span class="input-suffix">&#64;dulcemomento</span>
+            <input type="text" id="nombreUsuario" name="nombreUsuario" [(ngModel)]="nombreUsuario"
+              (ngModelChange)="actualizarNombreCompleto()" class="form-input input-username"
+              [class.error]="errores.nombreUsuario" placeholder="Ejemplo: jhon" required>
+            <span class="input-suffix">&#64;{{ tenantDomain }}</span>
           </div>
-          <div class="help-text">Usuario de acceso: <strong>{{ nombreUsuario || 'usuario' }}&#64;dulcemomento</strong></div>
+          <div class="help-text">Usuario de acceso: <strong>{{ nombreUsuario || 'usuario' }}&#64;{{ tenantDomain
+              }}</strong></div>
           <div class="error-message" *ngIf="errores.nombreUsuario">{{ errores.nombreUsuario }}</div>
         </div>
 
@@ -31,15 +25,8 @@
           <label for="nombreCompleto" class="form-label">
             <span class="required">*</span> Nombre Completo
           </label>
-          <input 
-            type="text" 
-            id="nombreCompleto" 
-            name="nombreCompleto"
-            [(ngModel)]="nuevoUsuario.nombreCompleto" 
-            class="form-input" 
-            [class.error]="errores.nombreCompleto"
-            placeholder="Ejemplo: Jhon Doe"
-            required>
+          <input type="text" id="nombreCompleto" name="nombreCompleto" [(ngModel)]="nuevoUsuario.nombreCompleto"
+            class="form-input" [class.error]="errores.nombreCompleto" placeholder="Ejemplo: Jhon Doe" required>
           <div class="error-message" *ngIf="errores.nombreCompleto">{{ errores.nombreCompleto }}</div>
         </div>
 
@@ -47,14 +34,8 @@
           <label for="email" class="form-label">
             Email (Opcional)
           </label>
-          <input 
-            type="email" 
-            id="email" 
-            name="email"
-            [(ngModel)]="nuevoUsuario.email" 
-            class="form-input" 
-            [class.error]="errores.email"
-            placeholder="correo@ejemplo.com (opcional)">
+          <input type="email" id="email" name="email" [(ngModel)]="nuevoUsuario.email" class="form-input"
+            [class.error]="errores.email" placeholder="correo@ejemplo.com (opcional)">
           <div class="help-text">Solo si necesita recibir notificaciones por correo</div>
           <div class="error-message" *ngIf="errores.email">{{ errores.email }}</div>
         </div>
@@ -63,12 +44,7 @@
           <label for="rol" class="form-label">
             <span class="required">*</span> Rol del Usuario
           </label>
-          <select 
-            id="rol" 
-            name="rol"
-            [(ngModel)]="nuevoUsuario.rol" 
-            class="form-input" 
-            required>
+          <select id="rol" name="rol" [(ngModel)]="nuevoUsuario.rol" class="form-input" required>
             <option *ngFor="let rol of roles" [value]="rol.valor">
               {{ rol.etiqueta }}
             </option>
@@ -81,10 +57,7 @@
             <label class="form-label">🔐 Cambiar Contraseña</label>
             <div class="password-toggle">
               <label class="checkbox-label">
-                <input 
-                  type="checkbox" 
-                  [(ngModel)]="cambiarPassword"
-                  name="cambiarPassword">
+                <input type="checkbox" [(ngModel)]="cambiarPassword" name="cambiarPassword">
                 <span class="checkmark"></span>
                 Cambiar contraseña del usuario
               </label>
@@ -98,22 +71,12 @@
             <span class="required">*</span> Contraseña
           </label>
           <div class="password-input">
-            <input 
-              [type]="showPassword ? 'text' : 'password'"
-              id="password" 
-              name="password"
-              [(ngModel)]="nuevoUsuario.password" 
-              class="form-input" 
-              [class.error]="errores.password"
-              placeholder="Mínimo 6 caracteres"
-              required>
-            <button
-              type="button"
-              class="password-toggle"
-              (click)="togglePasswordVisibility('password')"
+            <input [type]="showPassword ? 'text' : 'password'" id="password" name="password"
+              [(ngModel)]="nuevoUsuario.password" class="form-input" [class.error]="errores.password"
+              placeholder="Mínimo 6 caracteres" required>
+            <button type="button" class="password-toggle" (click)="togglePasswordVisibility('password')"
               [attr.aria-pressed]="showPassword"
-              aria-label="{{ showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña' }}"
-            >
+              aria-label="{{ showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña' }}">
               <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
             </button>
           </div>
@@ -125,22 +88,12 @@
             <span class="required">*</span> Confirmar Contraseña
           </label>
           <div class="password-input">
-            <input 
-              [type]="showConfirmPassword ? 'text' : 'password'"
-              id="confirmPassword" 
-              name="confirmPassword"
-              [(ngModel)]="nuevoUsuario.confirmPassword" 
-              class="form-input" 
-              [class.error]="errores.confirmPassword"
-              placeholder="Repita la contraseña"
-              required>
-            <button
-              type="button"
-              class="password-toggle"
-              (click)="togglePasswordVisibility('confirmPassword')"
+            <input [type]="showConfirmPassword ? 'text' : 'password'" id="confirmPassword" name="confirmPassword"
+              [(ngModel)]="nuevoUsuario.confirmPassword" class="form-input" [class.error]="errores.confirmPassword"
+              placeholder="Repita la contraseña" required>
+            <button type="button" class="password-toggle" (click)="togglePasswordVisibility('confirmPassword')"
               [attr.aria-pressed]="showConfirmPassword"
-              aria-label="{{ showConfirmPassword ? 'Ocultar confirmación' : 'Mostrar confirmación' }}"
-            >
+              aria-label="{{ showConfirmPassword ? 'Ocultar confirmación' : 'Mostrar confirmación' }}">
               <i class="bi" [ngClass]="showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
             </button>
           </div>
@@ -149,10 +102,7 @@
 
         <div class="form-group checkbox-group">
           <label class="checkbox-label">
-            <input 
-              type="checkbox" 
-              name="activo"
-              [(ngModel)]="nuevoUsuario.activo">
+            <input type="checkbox" name="activo" [(ngModel)]="nuevoUsuario.activo">
             <span class="checkmark"></span>
             Usuario activo
           </label>
@@ -165,7 +115,8 @@
           <button type="submit" class="btn btn-primary" [disabled]="enviando || !usuarioForm.form.valid">
             <span class="btn-icon" *ngIf="!enviando">{{ esEdicion ? '💾' : '✓' }}</span>
             <span class="btn-icon loading" *ngIf="enviando">⏳</span>
-            {{ enviando ? (esEdicion ? 'Guardando...' : 'Creando...') : (esEdicion ? 'Guardar Cambios' : 'Crear Usuario') }}
+            {{ enviando ? (esEdicion ? 'Guardando...' : 'Creando...') : (esEdicion ? 'Guardar Cambios' : 'Crear
+            Usuario') }}
           </button>
         </div>
       </form>

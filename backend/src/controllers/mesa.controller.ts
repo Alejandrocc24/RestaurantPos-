@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { SocketService } from '../services/socket.service.js';
 
 export class MesaController {
   /**
@@ -139,6 +140,8 @@ export class MesaController {
 
       console.log('✅ [MesaController.create] Mesa creada:', { id: mesa.id, numero: mesa.numero });
 
+      SocketService.emitGlobal('mesaCreada', mesa);
+
       res.status(201).json({
         success: true,
         message: 'Mesa creada',
@@ -202,6 +205,8 @@ export class MesaController {
         where: { id },
         data: { estado: estadoUpper },
       });
+
+      SocketService.emitGlobal('mesaActualizada', mesa);
 
       res.json({
         success: true,
@@ -287,6 +292,9 @@ export class MesaController {
       });
 
       console.log(`✅ [MesaController.update] Mesa actualizada en BD:`, { id, estado: mesa.estado });
+
+      SocketService.emitGlobal('mesaActualizada', mesa);
+
       res.json({
         success: true,
         message: 'Mesa actualizada',
@@ -312,6 +320,8 @@ export class MesaController {
       await req.prisma.mesa.delete({
         where: { id },
       });
+
+      SocketService.emitGlobal('mesaEliminada', { id });
 
       res.json({
         success: true,

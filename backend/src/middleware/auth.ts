@@ -87,9 +87,12 @@ export function optionalTenantMiddleware(req: Request, res: Response, next: Next
     const emailParts = email.split('@');
     if (emailParts.length === 2) {
       const domain = emailParts[1].split('.')[0];
-      tenantId = domain; // Sin prefijo 'tenant-'
+      tenantId = domain;
       console.log('  - TenantId extraído del email:', tenantId);
     }
+    // Nota: Para el usuario desarrollador, si se proporciona tenantId explícito
+    // (body o header x-tenant-id), se usa ese en lugar del dominio del email.
+    // Esto permite al dev acceder a CUALQUIER base de datos de cliente.
   }
 
   if (!tenantId) {

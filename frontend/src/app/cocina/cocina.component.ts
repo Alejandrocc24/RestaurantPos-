@@ -6,6 +6,8 @@ import { takeUntil } from 'rxjs/operators';
 import { PermissionsService } from '../services/permissions.service';
 import { VentasService } from '../services/ventas.service';
 import { ApiService } from '../services/api.service';
+import { SocketService } from '../services/socket.service';
+
 
 interface Orden {
   id: number;
@@ -69,7 +71,8 @@ export class CocinaComponent implements OnInit, OnDestroy {
     private permissions: PermissionsService,
     private ventasService: VentasService,
     private apiService: ApiService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private socketService: SocketService
   ) { }
 
   ngOnInit() {
@@ -78,13 +81,27 @@ export class CocinaComponent implements OnInit, OnDestroy {
     this.aplicarFiltros();
 
     // Actualizar tiempo transcurrido en UI localmente cada segundo
-    this.timerSubscription = interval(1000).subscribe(() => { 
+    this.timerSubscription = interval(1000).subscribe(() => {
       this.tiempoActual = new Date();
     });
 
-    // Recargar los pedidos desde el servidor cada 3 segundos (balance ideal)
+    // Suscripciones a WebSockets para tiempo real
+    this.socketService.listen('ordenCreada').pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.ngZone.run(() => this.cargarPedidos());
+    });
+    this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.ngZone.run(() => this.cargarPedidos());
+    });
+    this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.ngZone.run(() => this.cargarPedidos());
+    });
+    this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.ngZone.run(() => this.cargarPedidos());
+    });
+
+    // Fallback de recarga cada 30 segundos en lugar de 3 (ya que tenemos WebSockets)
     this.ngZone.runOutsideAngular(() => {
-      this.timerSubscription.add(interval(3000).subscribe(() => {
+      this.timerSubscription!.add(interval(30000).subscribe(() => {
         this.ngZone.run(() => {
           this.cargarPedidos();
         });

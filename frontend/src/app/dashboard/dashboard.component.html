@@ -16,9 +16,9 @@
         <span class="toggle-text">Menú</span>
       </button>
       
-      <!-- Logo Dulce Momento -->
+      <!-- Logo del negocio (dinámico por tenant) -->
       <div class="logo">
-        <h1>Dulce Momento</h1>
+        <h1>{{ businessName }}</h1>
       </div>
       
       <!-- Fecha y Hora -->
@@ -47,7 +47,7 @@
     <div class="content-area">
       <!-- Contenido dinámico según la vista seleccionada -->
       <div *ngIf="currentView === 'welcome'" class="welcome-message">
-        <h2>Bienvenido al Dashboard de Dulce Momento</h2>
+        <h2>Bienvenido al Dashboard de {{ businessName }}</h2>
         <p>Hola {{ userName }}, selecciona una opción del menú para comenzar</p>
       </div>
       

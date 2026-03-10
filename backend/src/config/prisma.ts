@@ -6,55 +6,56 @@ import { config } from './index.js';
 const prismaClients = new Map<string, PrismaClient>();
 
 /**
- * Obtiene o crea un cliente Prisma para un tenant específico
- * Usa caching para evitar agotar el pool de conexiones
+ * Busca la URL de base de datos para un tenant específico.
+ * Estrategia de búsqueda:
+ *   1. Variable de entorno DATABASE_URL_{tenantId} (ej: DATABASE_URL_dulcemomento)
+ *   2. Fallback a DATABASE_URL general (para compatibilidad / desarrollo)
+ */
+function resolveTenantDatabaseUrl(tenantId: string): string {
+  // 1. Buscar variable específica: DATABASE_URL_dulcemomento, DATABASE_URL_laparrilla, etc.
+  const envKey = `DATABASE_URL_${tenantId}`;
+  const tenantUrl = process.env[envKey];
+
+  if (tenantUrl) {
+    console.log(`✅ [resolveTenantDatabaseUrl] Usando ${envKey} para tenant: ${tenantId}`);
+    return tenantUrl;
+  }
+
+  // 2. Fallback a la URL general
+  const baseUrl = config.databaseUrl;
+  if (!baseUrl) {
+    throw new Error(`No se encontró DATABASE_URL ni ${envKey}. Configura la variable de entorno para el tenant "${tenantId}".`);
+  }
+
+  console.log(`⚠️ [resolveTenantDatabaseUrl] No se encontró ${envKey}, usando DATABASE_URL por defecto para tenant: ${tenantId}`);
+  return baseUrl;
+}
+
+/**
+ * Obtiene o crea un cliente Prisma para un tenant específico.
+ * Cada tenant tiene su propia conexión a su proyecto Supabase.
+ * Usa caching para evitar agotar el pool de conexiones.
  */
 export function getPrismaClient(tenantId: string): PrismaClient {
   try {
     // Retornar cliente cacheado si existe
     if (prismaClients.has(tenantId)) {
-      const cached = prismaClients.get(tenantId)!;
-      console.log(`✅ [getPrismaClient] Usando cliente cacheado para tenant: ${tenantId}`);
-      return cached;
+      return prismaClients.get(tenantId)!;
     }
 
-    const baseUrl = config.databaseUrl;
-    
-    if (!baseUrl) {
-      console.error('❌ [getPrismaClient] DATABASE_URL no está configurada');
-      throw new Error('DATABASE_URL environment variable is not set');
-    }
-    
-    // Detectar si es Supabase (pooler) o BD local
-    const isSupabase = baseUrl.includes('pooler.supabase.com') || baseUrl.includes('supabase.co');
-    
-    let tenantDatabaseUrl = baseUrl;
-    
-    // Solo cambiar BD si NO es Supabase
-    if (!isSupabase) {
-      const urlObj = new URL(baseUrl);
-      const dbName = urlObj.pathname.substring(1); // Remove leading slash
-      
-      // Crear nueva URL con el nombre del tenant como BD
-      const tenantDbName = dbName.includes('_') 
-        ? `${dbName}_${tenantId}` 
-        : `${dbName}_${tenantId}`;
-      
-      urlObj.pathname = `/${tenantDbName}`;
-      tenantDatabaseUrl = urlObj.toString();
-    }
+    // Resolver la URL de la BD para este tenant
+    const tenantDatabaseUrl = resolveTenantDatabaseUrl(tenantId);
 
-    // Crear nuevo cliente Prisma con pool optimization
+    // Crear nuevo cliente Prisma
     const prisma = new PrismaClient({
       datasources: {
         db: {
           url: tenantDatabaseUrl,
         },
       },
-      // Log: ['query', 'warn', 'error'], // Descomentar para debug
+      // log: ['query', 'warn', 'error'], // Descomentar para debug
     });
 
-    // Validar que Prisma se creó correctamente
     if (!prisma) {
       throw new Error('Failed to create PrismaClient instance');
     }
@@ -65,9 +66,20 @@ export function getPrismaClient(tenantId: string): PrismaClient {
 
     return prisma;
   } catch (error: any) {
-    console.error(`❌ [getPrismaClient] Error creando cliente Prisma: ${error.message}`);
+    console.error(`❌ [getPrismaClient] Error creando cliente Prisma para tenant "${tenantId}": ${error.message}`);
     throw error;
   }
+}
+
+/**
+ * Lista todos los tenants configurados por variable de entorno.
+ * Busca todas las variables DATABASE_URL_* en process.env.
+ */
+export function getConfiguredTenants(): string[] {
+  const prefix = 'DATABASE_URL_';
+  return Object.keys(process.env)
+    .filter(key => key.startsWith(prefix) && key !== 'DATABASE_URL')
+    .map(key => key.substring(prefix.length));
 }
 
 /**
@@ -94,17 +106,8 @@ export async function disconnectAllPrisma(): Promise<void> {
 }
 
 /**
- * Obtiene la URL de base de datos para un tenant (en desarrollo)
+ * Obtiene la URL de base de datos resuelta para un tenant
  */
 export function getTenantDatabaseUrl(tenantId: string): string {
-  const baseUrl = config.databaseUrl;
-  const urlObj = new URL(baseUrl);
-  const dbName = urlObj.pathname.substring(1);
-  
-  const tenantDbName = dbName.includes('_') 
-    ? `${dbName}_${tenantId}`
-    : `${dbName}_${tenantId}`;
-  
-  urlObj.pathname = `/${tenantDbName}`;
-  return urlObj.toString();
+  return resolveTenantDatabaseUrl(tenantId);
 }

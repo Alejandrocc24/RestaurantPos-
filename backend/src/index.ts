@@ -3,13 +3,16 @@ import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
+import { createServer } from 'http';
 import { config } from './config/index.js';
 import { loggerMiddleware } from './middleware/request.js';
 import { errorMiddleware } from './middleware/auth.js';
 import apiRoutes from './routes/index.js';
 import { BackupService } from './services/backup.service.js';
+import { SocketService } from './services/socket.service.js';
 
 const app = express();
+const httpServer = createServer(app);
 
 // ============================================
 // MIDDLEWARES DE SEGURIDAD
@@ -79,7 +82,10 @@ async function startServer() {
   try {
     BackupService.init();
 
-    app.listen(config.port, () => {
+    // Inicializar Socket.IO
+    SocketService.init(httpServer);
+
+    httpServer.listen(config.port, () => {
       console.log(`
 ╔════════════════════════════════════════╗
 ║     RestaurantPOS API iniciado        ║

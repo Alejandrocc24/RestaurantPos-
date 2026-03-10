@@ -1,14 +1,27 @@
 import { Request, Response } from 'express';
+import { config } from '../config/index.js';
 
 export class RolController {
   static async getRoles(req: Request, res: Response) {
     try {
       const { skip, take, search } = req.query;
 
+      // Verificar si el usuario actual es el desarrollador
+      const currentUser = await req.prisma.usuario.findUnique({
+        where: { id: req.userId },
+        select: { email: true }
+      });
+      const isDevUser = currentUser?.email === config.devEmail;
+
       const where: any = {};
 
+      // Ocultar rol desarrollador solo para clientes (no para el propio dev)
+      if (!isDevUser) {
+        where.nombre = { not: config.devRoleName };
+      }
+
       if (search) {
-        where.nombre = { contains: String(search), mode: 'insensitive' };
+        where.nombre = { ...(where.nombre || {}), contains: String(search), mode: 'insensitive' };
       }
 
       const roles = await req.prisma.rol.findMany({
@@ -120,6 +133,14 @@ export class RolController {
         });
       }
 
+      // Proteger rol desarrollador: NO se puede editar
+      if (existe.nombre === config.devRoleName) {
+        return res.status(403).json({
+          success: false,
+          message: 'Este rol no puede ser modificado'
+        });
+      }
+
       // Preparar los datos de actualización
       const updateData: any = {
         activo: activo !== undefined ? activo : existe.activo
@@ -182,6 +203,14 @@ export class RolController {
         return res.status(404).json({
           success: false,
           message: 'Rol no encontrado'
+        });
+      }
+
+      // Proteger rol desarrollador: NO se puede eliminar
+      if (existe.nombre === config.devRoleName) {
+        return res.status(403).json({
+          success: false,
+          message: 'Este rol no puede ser eliminado'
         });
       }
 

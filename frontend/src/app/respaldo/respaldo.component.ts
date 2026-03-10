@@ -42,6 +42,14 @@ export class RespaldoComponent implements OnInit, OnDestroy {
   // Confirmaciones
   confirmarBorrado: boolean = false;
 
+  // Categorías de borrado selectivo
+  categoriasBorrado = {
+    estadisticas: true,
+    gastos: false,
+    carta: false,
+    usuarios: false
+  };
+
   // Progreso
   progresoOperacion: number = 0;
   mensajeProgreso: string = '';
@@ -386,20 +394,61 @@ export class RespaldoComponent implements OnInit, OnDestroy {
     });
   }
 
+  getCategoriasSeleccionadas(): string[] {
+    const cats: string[] = [];
+    if (this.categoriasBorrado.estadisticas) cats.push('estadisticas');
+    if (this.categoriasBorrado.gastos) cats.push('gastos');
+    if (this.categoriasBorrado.carta) cats.push('carta');
+    if (this.categoriasBorrado.usuarios) cats.push('usuarios');
+    return cats;
+  }
+
+  getNombresCategorias(): string[] {
+    const nombres: string[] = [];
+    if (this.categoriasBorrado.estadisticas) nombres.push('Ventas, Órdenes, Pagos y Cajas');
+    if (this.categoriasBorrado.gastos) nombres.push('Gastos, Compras y Proveedores');
+    if (this.categoriasBorrado.carta) nombres.push('Productos, Categorías y Modificadores');
+    if (this.categoriasBorrado.usuarios) nombres.push('Usuarios (excepto el actual y desarrollador)');
+    return nombres;
+  }
+
+  isBorradoTodo(): boolean {
+    return this.categoriasBorrado.estadisticas && this.categoriasBorrado.gastos && this.categoriasBorrado.carta && this.categoriasBorrado.usuarios;
+  }
+
   wipeData(): void {
     if (!this.confirmarBorrado) {
       this.toast.warning('Confirmación requerida', 'Debes confirmar que entiendes los riesgos.');
       return;
     }
 
+    const categoriasSeleccionadas = this.getCategoriasSeleccionadas();
+    if (categoriasSeleccionadas.length === 0) {
+      this.toast.warning('Selecciona al menos una categoría', 'Debes elegir qué datos deseas borrar.');
+      return;
+    }
+
+    const nombres = this.getNombresCategorias();
+    const esTodo = this.isBorradoTodo();
+
+    // Aviso si se borra la carta: esto fuerza borrar estadísticas también
+    let avisoExtra = '';
+    if (this.categoriasBorrado.carta && !this.categoriasBorrado.estadisticas) {
+      avisoExtra = '\n\n⚠️ Al borrar la carta también se eliminarán las ventas y órdenes, ya que dependen de los productos.';
+    }
+
     Swal.fire({
-      title: '¿Borrar TODOS los datos?',
-      text: '¿Estás absolutamente seguro de que deseas borrar todos los datos de prueba? Esta acción no se puede deshacer.',
-      icon: 'error',
+      title: esTodo ? '¿Borrar TODOS los datos?' : '¿Borrar datos seleccionados?',
+      html: `<p>Se eliminarán los siguientes datos:</p>
+             <ul style="text-align: left; margin: 10px 20px;">
+               ${nombres.map(n => `<li style="margin-bottom: 5px;">• ${n}</li>`).join('')}
+             </ul>
+             <p style="color: #dc3545; font-weight: bold;">Esta acción no se puede deshacer.${avisoExtra}</p>`,
+      icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc3545',
       cancelButtonColor: '#6c757d',
-      confirmButtonText: 'Sí, borrar todo',
+      confirmButtonText: esTodo ? 'Sí, borrar todo' : 'Sí, borrar seleccionados',
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
@@ -413,7 +462,7 @@ export class RespaldoComponent implements OnInit, OnDestroy {
           }
         }, 500);
 
-        this.backupService.wipeData().subscribe({
+        this.backupService.wipeData(categoriasSeleccionadas).subscribe({
           next: (response) => {
             clearInterval(progresoInterval);
             this.progresoOperacion = 100;

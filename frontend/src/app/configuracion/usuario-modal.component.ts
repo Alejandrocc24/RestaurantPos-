@@ -17,10 +17,11 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
   @Output() usuarioEditado = new EventEmitter<any>();
   @Output() modalCerrado = new EventEmitter<void>();
 
-  nombreUsuario: string = ''; // Parte antes de @dulcemomento
-  
+  nombreUsuario: string = ''; // Parte antes de @tenant
+  tenantDomain: string = ''; // Dominio del tenant dinámico (@buenosaires, @dulcemomento, etc.)
+
   nuevoUsuario: any = {
-    nombre: '', // Este será nombreUsuario@dulcemomento
+    nombre: '', // Este será nombreUsuario@tenant
     nombreCompleto: '', // Nombre real de la persona
     email: '',
     rol: 'usuario',
@@ -49,6 +50,10 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
   constructor(private supabase: SupabaseService) { }
 
   async ngOnInit() {
+    // Obtener el tenantId del localStorage para el dominio del email
+    if (typeof window !== 'undefined') {
+      this.tenantDomain = localStorage.getItem('tenantId') || 'negocio';
+    }
     // Cargar roles desde la base de datos
     await this.cargarRoles();
     this.inicializarFormulario();
@@ -63,17 +68,17 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
 
   private inicializarFormulario() {
     if (this.esEdicion && this.usuario) {
-      // Extraer el nombre de usuario del email (formato: usuario@dulcemomento)
+      // Extraer el nombre de usuario del email (formato: usuario@tenant)
       const email = this.usuario.email || '';
-      if (email.includes('@dulcemomento')) {
+      if (email.includes('@')) {
         this.nombreUsuario = email.split('@')[0];
       } else {
         this.nombreUsuario = '';
       }
-      
+
       // El rol ahora viene simplificado del backend como esta.usuario.rol
       const rolUsuario = this.usuario.rol || 'usuario';
-      
+
       // Si es edición, copiar los datos del usuario (sin contraseña)
       this.nuevoUsuario = {
         id: this.usuario.id,
@@ -95,9 +100,9 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
   }
 
   actualizarNombreCompleto() {
-    // Actualizar el nombre de usuario con el formato @dulcemomento
+    // Actualizar el nombre de usuario con el formato @tenant
     if (this.nombreUsuario) {
-      this.nuevoUsuario.nombre = `${this.nombreUsuario.toLowerCase().trim()}@dulcemomento`;
+      this.nuevoUsuario.nombre = `${this.nombreUsuario.toLowerCase().trim()}@${this.tenantDomain}`;
     } else {
       this.nuevoUsuario.nombre = '';
     }
@@ -111,7 +116,7 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
         valor: (rol.codigo || rol.nombre || '').toLowerCase(),
         etiqueta: rol.nombre
       }));
-      
+
       // Si no hay roles en la BD, usar los predefinidos
       if (this.roles.length === 0) {
         this.roles = this.rolesDisponibles;
@@ -162,7 +167,7 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
   }
 
   validarEmail(email: string): boolean {
-    // Aceptar emails con @dulcemomento (sin punto) y emails estándar
+    // Aceptar emails con @tenant (sin punto) y emails estándar
     const emailRegex = /^[^\s@]+@[^\s@]+$/;
     return emailRegex.test(email);
   }
@@ -170,7 +175,7 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
   async guardarUsuario(): Promise<void> {
     // Actualizar el nombre antes de validar
     this.actualizarNombreCompleto();
-    
+
     if (!this.validarFormulario()) {
       return;
     }
@@ -183,29 +188,29 @@ export class UsuarioModalComponent implements OnInit, OnChanges {
         const usuarioEditado: any = {
           id: this.nuevoUsuario.id,
           nombre: this.nuevoUsuario.nombreCompleto, // Nombre real
-          email: `${this.nombreUsuario.toLowerCase().trim()}@dulcemomento`, // Email generado
+          email: `${this.nombreUsuario.toLowerCase().trim()}@${this.tenantDomain}`, // Email generado
           rol: this.nuevoUsuario.rol,
           activo: this.nuevoUsuario.activo
         };
-        
+
         // Solo incluir password si se cambió
         if (this.cambiarPassword && this.nuevoUsuario.password) {
           usuarioEditado.password = this.nuevoUsuario.password;
         }
-        
+
         this.usuarioEditado.emit(usuarioEditado);
       } else {
         // Crear nuevo usuario
         const usuario = {
           nombre: this.nuevoUsuario.nombreCompleto, // Nombre real de la persona
-          email: `${this.nombreUsuario.toLowerCase().trim()}@dulcemomento`, // Generar email automáticamente
+          email: `${this.nombreUsuario.toLowerCase().trim()}@${this.tenantDomain}`, // Generar email automáticamente
           password: this.nuevoUsuario.password,
           rol: this.nuevoUsuario.rol,
           activo: this.nuevoUsuario.activo
         };
         this.usuarioCreado.emit(usuario);
       }
-      
+
       // Limpiar formulario y cerrar modal
       this.limpiarFormulario();
       this.cerrarModal();

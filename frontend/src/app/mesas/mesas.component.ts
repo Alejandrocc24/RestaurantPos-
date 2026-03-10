@@ -14,6 +14,7 @@ import { PermissionsService } from '../services/permissions.service';
 import { ModalHistoryManager } from '../shared/utils/modal-history-manager';
 import { SupabaseService } from '../services/supabase.service';
 import { ApiService } from '../services/api.service';
+import { SocketService } from '../services/socket.service';
 import Swal from 'sweetalert2';
 
 interface CategoriaProducto {
@@ -264,7 +265,8 @@ export class MesasComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private permissionsService: PermissionsService,
     private supabaseService: SupabaseService,
-    private apiService: ApiService
+    private apiService: ApiService,
+    private socketService: SocketService
   ) {
     if (typeof window !== 'undefined') {
       window.addEventListener('popstate', this.popStateHandler);
@@ -273,6 +275,12 @@ export class MesasComponent implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     this.verificarPermisos();
+
+    // Suscripciones WebSocket para actualizar mesas y productos en tiempo real
+    this.socketService.listen('mesaCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesas());
+    this.socketService.listen('mesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesas());
+    this.socketService.listen('mesaEliminada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesas());
+    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarProductosMesasOcupadas());
 
     try {
       console.log('🚀 Cargando datos iniciales con endpoint combo...');

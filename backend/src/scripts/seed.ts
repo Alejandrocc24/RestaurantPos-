@@ -2,88 +2,49 @@ import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../utils/auth.js';
 
 /**
- * Script para inicializar la BD con datos de ejemplo
+ * Script para inicializar la BD con datos base para cada nuevo cliente/entorno.
  * Ejecutar con: npm run seed
  * 
- * Nota: Para Supabase, usamos una BD única.
- * Para arquitectura multi-tenant con BDs separadas,
- * ejecutar este script múltiples veces con diferentes DATABASE_URLs
+ * Contiene:
+ * - 6 Roles (5 visibles + 1 oculto "Desarrollador")
+ * - 1 Usuario Desarrollador oculto con rol Desarrollador
+ * - 10 Mesas predeterminadas
+ * - Configuraciones del negocio
  */
 async function main() {
   const prisma = new PrismaClient();
-  const tenantId = 'dulcemomento';
 
   console.log('🌱 Iniciando seed de datos...');
 
   try {
     // Limpiar datos existentes (en orden inverso de dependencias)
-    await prisma.gasto.deleteMany();
-    await prisma.categoriaGasto.deleteMany();
+    await prisma.pago.deleteMany();
+    await prisma.comentario.deleteMany();
+    await prisma.ordenProducto.deleteMany();
+    await prisma.venta.deleteMany();
     await prisma.orden.deleteMany();
     await prisma.compra.deleteMany();
+    await prisma.gasto.deleteMany();
+    await prisma.caja.deleteMany();
     await prisma.proveedor.deleteMany();
+    await prisma.categoriaGasto.deleteMany();
+    await prisma.opcionModificador.deleteMany();
+    await prisma.grupoModificador.deleteMany();
+    await prisma.producto.deleteMany();
+    await prisma.subcategoria.deleteMany();
+    await prisma.categoria.deleteMany();
+    await prisma.comentarioPreestablecido.deleteMany();
+    await prisma.configuracion.deleteMany();
     await prisma.usuarioRol.deleteMany();
     await prisma.usuario.deleteMany();
     await prisma.rol.deleteMany();
-    // await prisma.permiso.deleteMany(); // ❌ Permisos son array en Rol, no modelo separado
-    await prisma.producto.deleteMany();
-    await prisma.categoria.deleteMany();
-    await prisma.mesa.deleteMany();
-    await prisma.configuracion.deleteMany();
 
     console.log('✓ Datos previos eliminados');
 
     // ============================================
-    // CREAR ROLES
+    // TODOS LOS PERMISOS DEL SISTEMA
     // ============================================
-    const adminRole = await prisma.rol.create({
-      data: {
-        nombre: 'admin',
-        descripcion: 'Administrador del sistema',
-        activo: true,
-      },
-    });
-
-    const gerenteRole = await prisma.rol.create({
-      data: {
-        nombre: 'gerente',
-        descripcion: 'Gerente del negocio',
-        activo: true,
-      },
-    });
-
-    const cameraRole = await prisma.rol.create({
-      data: {
-        nombre: 'camarero',
-        descripcion: 'Personal de servicio',
-        activo: true,
-      },
-    });
-
-    const cocinaRole = await prisma.rol.create({
-      data: {
-        nombre: 'cocina',
-        descripcion: 'Personal de cocina',
-        activo: true,
-      },
-    });
-
-    const cajaRole = await prisma.rol.create({
-      data: {
-        nombre: 'caja',
-        descripcion: 'Personal de caja',
-        activo: true,
-      },
-    });
-
-    console.log('✓ Roles creados');
-
-    // ============================================
-    // CREAR PERMISOS (como arrays de strings)
-    // ============================================
-    
-    // Definir permisos como arrays
-    const permisosAdmin = [
+    const TODOS_LOS_PERMISOS = [
       // Usuarios
       'usuarios.ver', 'usuarios.crear', 'usuarios.editar', 'usuarios.eliminar',
       // Roles
@@ -92,167 +53,139 @@ async function main() {
       'productos.ver', 'productos.crear', 'productos.editar', 'productos.eliminar',
       // Categorías
       'categorias.ver', 'categorias.crear', 'categorias.editar', 'categorias.eliminar',
-      // Mesas
-      'mesas.ver', 'mesas.crear', 'mesas.editar', 'mesas.eliminar',
-      // Órdenes
-      'ordenes.ver', 'ordenes.crear', 'ordenes.editar', 'ordenes.eliminar',
-      // Gastos
-      'gastos.ver', 'gastos.crear', 'gastos.editar', 'gastos.eliminar',
-      // Categorías de Gastos
-      'categoriasGastos.ver', 'categoriasGastos.crear', 'categoriasGastos.editar', 'categoriasGastos.eliminar',
-      // Configuración y reportes
-      'configuracion.ver', 'configuracion.editar', 'reportes.ver', 'dashboard.ver',
       // Ventas
       'ventas.ver', 'ventas.crear', 'ventas.editar', 'ventas.anular',
-    ];
-
-    const permisosGerente = [
-      'productos.ver', 'productos.crear', 'productos.editar',
-      'mesas.ver',
-      'ordenes.ver', 'ordenes.crear', 'ordenes.editar',
-      'gastos.ver', 'gastos.crear', 'gastos.editar',
-      'dashboard.ver', 'reportes.ver',
-      'ventas.ver', 'ventas.crear',
-    ];
-
-    const permisosCamarero = [
-      'mesas.ver',
-      'ordenes.ver', 'ordenes.crear', 'ordenes.editar',
+      // Pedidos
+      'pedidos.ver', 'pedidos.crear', 'pedidos.editar', 'pedidos.cerrar',
+      // Mesas
+      'mesas.ver', 'mesas.gestionar', 'mesas.transferir', 'mesas.dividir', 'mesas.modo_edicion',
+      // Cocina
+      'cocina.ver', 'cocina.preparar', 'cocina.completar',
+      // Caja
+      'caja.ver', 'caja.abrir', 'caja.cerrar',
+      // Movimientos y Gastos
+      'movimientos.ver', 'movimientos.crear',
+      'gastos.ver', 'gastos.crear', 'gastos.editar', 'gastos.eliminar',
+      // Proveedores
+      'proveedores.ver', 'proveedores.crear', 'proveedores.editar', 'proveedores.eliminar',
+      // Dashboard y Reportes
       'dashboard.ver',
-      'ventas.ver',
+      'reportes.ver', 'reportes.ventas', 'reportes.productos', 'reportes.gastos', 'reportes.exportar',
+      // Configuración
+      'configuracion.ver', 'configuracion.editar', 'configuracion.impresoras',
     ];
-
-    const permisosCocina = [
-      'ordenes.ver',
-      'productos.ver',
-    ];
-
-    const permisosCaja = [
-      'ordenes.ver',
-      'gastos.ver',
-      'dashboard.ver', 'reportes.ver',
-      'ventas.ver', 'ventas.crear',
-    ];
-
-    // Actualizar roles con permisos
-    await prisma.rol.update({
-      where: { id: adminRole.id },
-      data: { permisos: permisosAdmin }
-    });
-
-    await prisma.rol.update({
-      where: { id: gerenteRole.id },
-      data: { permisos: permisosGerente }
-    });
-
-    console.log('✓ Permisos asignados a roles');
-
 
     // ============================================
-    // CREAR USUARIOS
+    // ROL OCULTO: DESARROLLADOR (no visible para clientes)
+    // ============================================
+    const desarrolladorRole = await prisma.rol.create({
+      data: {
+        nombre: 'Desarrollador',
+        descripcion: 'Rol de sistema - acceso total para soporte técnico',
+        activo: true,
+        permisos: TODOS_LOS_PERMISOS,
+      },
+    });
+
+    console.log('✓ Rol Desarrollador creado (OCULTO para clientes)');
+
+    // ============================================
+    // ROLES VISIBLES (los que ven los clientes)
+    // ============================================
+    const adminRole = await prisma.rol.create({
+      data: {
+        nombre: 'Administrador',
+        descripcion: 'Acceso completo al sistema con todos los permisos',
+        activo: true,
+        permisos: TODOS_LOS_PERMISOS,
+      },
+    });
+
+    const gerenteRole = await prisma.rol.create({
+      data: {
+        nombre: 'Gerente',
+        descripcion: 'Gestión de operaciones y supervisión de personal',
+        activo: true,
+        permisos: [
+          'usuarios.ver', 'usuarios.editar',
+          'productos.ver',
+          'categorias.ver',
+          'ventas.ver', 'ventas.editar', 'ventas.anular',
+          'gastos.ver', 'gastos.crear', 'gastos.editar',
+          'reportes.ver', 'reportes.exportar',
+          'configuracion.ver',
+          'mesas.ver', 'mesas.gestionar', 'mesas.modo_edicion',
+          'caja.ver', 'caja.cerrar',
+        ],
+      },
+    });
+
+    const cajeroRole = await prisma.rol.create({
+      data: {
+        nombre: 'Cajero',
+        descripcion: 'Operaciones de caja y ventas',
+        activo: true,
+        permisos: [
+          'ventas.ver', 'ventas.crear',
+          'gastos.ver',
+          'productos.ver',
+          'mesas.ver',
+          'caja.ver', 'caja.abrir',
+        ],
+      },
+    });
+
+    const cocinaRole = await prisma.rol.create({
+      data: {
+        nombre: 'Cocina',
+        descripcion: 'Preparación de productos y control de orden',
+        activo: true,
+        permisos: [
+          'productos.ver',
+          'mesas.ver',
+          'cocina.ver', 'cocina.preparar', 'cocina.completar',
+        ],
+      },
+    });
+
+    const vendedorRole = await prisma.rol.create({
+      data: {
+        nombre: 'Vendedor',
+        descripcion: 'Atención al cliente y toma de órdenes',
+        activo: true,
+        permisos: [
+          'productos.ver',
+          'categorias.ver',
+          'ventas.crear', 'ventas.ver',
+          'mesas.ver', 'mesas.gestionar',
+        ],
+      },
+    });
+
+    console.log('✓ Roles visibles creados (Administrador, Gerente, Cajero, Cocina, Vendedor)');
+
+    // ============================================
+    // USUARIO DESARROLLADOR (oculto, con rol Desarrollador)
     // ============================================
     const desarrolladorUser = await prisma.usuario.create({
       data: {
         email: 'desarrollador@dulcemomento',
-        nombre: 'Desarrollador',
+        nombre: 'Alejandro',
         password: await hashPassword('Desarrollo123'),
         activo: true,
         roles: {
-          create: [{ rolId: adminRole.id }],
+          create: [{ rolId: desarrolladorRole.id }],
         },
       },
     });
 
-    console.log('✓ Usuario predeterminado creado');
-    console.log('   Email: desarrollador@dulcemomento');
-    console.log('   Contraseña: Desarrollo123');
+    console.log('✓ Usuario desarrollador creado (oculto para clientes)');
+    console.log('   📧 Email: desarrollador@dulcemomento');
+    console.log('   🔑 Contraseña: Desarrollo123');
+    console.log('   🛡️  Rol: Desarrollador (oculto)');
 
     // ============================================
-    // CREAR CATEGORÍAS DE PRODUCTOS
-    // ============================================
-    const categoria1 = await prisma.categoria.create({
-      data: {
-        nombre: 'Bebidas',
-        descripcion: 'Bebidas calientes y frías',
-        activo: true,
-      },
-    });
-
-    const categoria2 = await prisma.categoria.create({
-      data: {
-        nombre: 'Platos Principales',
-        descripcion: 'Comidas principales',
-        activo: true,
-      },
-    });
-
-    const categoria3 = await prisma.categoria.create({
-      data: {
-        nombre: 'Postres',
-        descripcion: 'Dulces y postres',
-        activo: true,
-      },
-    });
-
-    console.log('✓ Categorías de productos creadas');
-
-    // ============================================
-    // CREAR PRODUCTOS
-    // ============================================
-    await prisma.producto.create({
-      data: {
-        nombre: 'Café Espresso',
-        descripcion: 'Café espresso tradicional',
-        precio: 2.5,
-        categoriaId: categoria1.id,
-        activo: true,
-      },
-    });
-
-    await prisma.producto.create({
-      data: {
-        nombre: 'Café con Leche',
-        descripcion: 'Café con leche caliente',
-        precio: 3.5,
-        categoriaId: categoria1.id,
-        activo: true,
-      },
-    });
-
-    await prisma.producto.create({
-      data: {
-        nombre: 'Sopa del Día',
-        descripcion: 'Sopa de verduras',
-        precio: 6.0,
-        categoriaId: categoria2.id,
-        activo: true,
-      },
-    });
-
-    await prisma.producto.create({
-      data: {
-        nombre: 'Pechuga de Pollo',
-        descripcion: 'Pechuga de pollo a la mantequilla',
-        precio: 12.0,
-        categoriaId: categoria2.id,
-        activo: true,
-      },
-    });
-
-    await prisma.producto.create({
-      data: {
-        nombre: 'Tiramisú',
-        descripcion: 'Postre italiano clásico',
-        precio: 5.5,
-        categoriaId: categoria3.id,
-        activo: true,
-      },
-    });
-
-    console.log('✓ Productos creados');
-
-    // ============================================
-    // CREAR MESAS
+    // CREAR MESAS (10 mesas predeterminadas)
     // ============================================
     for (let i = 1; i <= 10; i++) {
       await prisma.mesa.create({
@@ -265,86 +198,31 @@ async function main() {
       });
     }
 
-    console.log('✓ Mesas creadas');
-
-    // ============================================
-    // CREAR CATEGORÍAS DE GASTOS
-    // ============================================
-    const gastoCategoria1 = await prisma.categoriaGasto.create({
-      data: {
-        nombre: 'Suministros',
-        descripcion: 'Suministros de cocina y servicio',
-        activo: true,
-      },
-    });
-
-    const gastoCategoria2 = await prisma.categoriaGasto.create({
-      data: {
-        nombre: 'Mantenimiento',
-        descripcion: 'Mantenimiento del local',
-        activo: true,
-      },
-    });
-
-    async function seedGastos() {
-      const gastoCategoria = await prisma.categoriaGasto.findFirst();
-      const usuario = await prisma.usuario.findFirst();
-      if (gastoCategoria && usuario) {
-        await prisma.gasto.create({
-          data: {
-            descripcion: 'Aceite de cocina 5L',
-            monto: 25.0,
-            categoriaId: gastoCategoria.id,
-            usuarioId: usuario.id,
-            activo: true,
-          },
-        });
-      }
-    }
-
-    await seedGastos();
-
-    console.log('✓ Categorías de gastos y gastos de ejemplo creados');
-
-    // ============================================
-    // CREAR CONFIGURATION
-    // ============================================
-    await prisma.configuracion.create({
-      data: {
-        clave: 'NOMBRE_NEGOCIO',
-        valor: 'Mi Restaurante Ejemplo',
-        tipo: 'string',
-      },
-    });
-
-    await prisma.configuracion.create({
-      data: {
-        clave: 'IVA',
-        valor: '19',
-        tipo: 'number',
-      },
-    });
-
-    await prisma.configuracion.create({
-      data: {
-        clave: 'NUMERO_FACTURA',
-        valor: '1001',
-        tipo: 'number',
-      },
-    });
-
-    console.log('✓ Configuraciones creadas');
+    console.log('✓ 10 Mesas predeterminadas creadas');
 
     console.log(`
-╔════════════════════════════════════════╗
-║      ✓ Seed completado exitosamente   ║
-╠════════════════════════════════════════╣
-║  Tenant ID: ${tenantId}
-║  
-║  Usuario Predeterminado:
-║  📧 desarrollador@dulcemomento
-║  🔑 Contraseña: Desarrollo123
-╚════════════════════════════════════════╝
+╔═══════════════════════════════════════════════════╗
+║       ✅ Seed completado exitosamente             ║
+╠═══════════════════════════════════════════════════╣
+║                                                   ║
+║  Roles creados:                                   ║
+║  ├── 🛡️  Desarrollador (OCULTO - soporte)        ║
+║  ├── Administrador (acceso total)                 ║
+║  ├── Gerente (supervisión)                        ║
+║  ├── Cajero (caja y ventas)                       ║
+║  ├── Cocina (preparación)                         ║
+║  └── Vendedor (atención al cliente)               ║
+║                                                   ║
+║  Usuario Desarrollador (OCULTO):                  ║
+║  📧 desarrollador@dulcemomento                    ║
+║  🔑 Desarrollo123                                 ║
+║  🛡️  Rol: Desarrollador                          ║
+║                                                   ║
+║  ⚠️  Ni el usuario ni el rol son visibles         ║
+║  ⚠️  para los clientes del sistema.               ║
+║                                                   ║
+║  10 Mesas predeterminadas listas.                 ║
+╚═══════════════════════════════════════════════════╝
     `);
   } catch (error) {
     console.error('Error en seed:', error);
