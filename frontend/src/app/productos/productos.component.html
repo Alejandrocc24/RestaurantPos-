@@ -7,32 +7,40 @@
   <!-- Barra de navegación superior -->
   <div class="tabs-container">
     <div class="tab-header">
-      <button class="tab-button" 
-              [class.active]="tabActivo === 'productos'" 
-              (click)="cambiarTab('productos')"
-              type="button">
+      <button class="tab-button" [class.active]="tabActivo === 'productos'" (click)="cambiarTab('productos')"
+        type="button">
         🍦 Productos
       </button>
-      <button class="tab-button" 
-              [class.active]="tabActivo === 'categoria'" 
-              (click)="navegarACategoriaProductos()"
-              type="button">
+      <button class="tab-button" [class.active]="tabActivo === 'categoria'" (click)="navegarACategoriaProductos()"
+        type="button">
         📂 Categoría de Productos
       </button>
-      <button class="tab-button" 
-              [class.active]="tabActivo === 'modificadores'" 
-              (click)="navegarAGruposModificadores()"
-              type="button">
+      <button class="tab-button" [class.active]="tabActivo === 'modificadores'" (click)="navegarAGruposModificadores()"
+        type="button">
         ⚙️ Grupos Modificadores
       </button>
-      <button class="tab-button comentarios-nav" 
-              [class.active]="tabActivo === 'comentarios'" 
-              (click)="navegarAGestionComentarios()"
-              type="button">
+      <button class="tab-button comentarios-nav" [class.active]="tabActivo === 'comentarios'"
+        (click)="navegarAGestionComentarios()" type="button">
         💬 Gestión de Comentarios
       </button>
     </div>
     <div class="tab-actions">
+      <div class="excel-actions">
+        <button class="btn btn-excel-export" type="button" (click)="exportarCartaExcel()" [disabled]="exportandoCarta"
+          title="Descargar carta como Excel">
+          <i class="fas" [class.fa-file-excel]="!exportandoCarta" [class.fa-spinner]="exportandoCarta"
+            [class.fa-spin]="exportandoCarta"></i>
+          {{ exportandoCarta ? '' : 'Exportar' }}
+        </button>
+        <button class="btn btn-excel-import" type="button" (click)="archivoExcelInput.click()"
+          [disabled]="importandoCarta" title="Importar carta desde Excel">
+          <i class="fas" [class.fa-file-upload]="!importandoCarta" [class.fa-spinner]="importandoCarta"
+            [class.fa-spin]="importandoCarta"></i>
+          {{ importandoCarta ? '' : 'Importar' }}
+        </button>
+        <input #archivoExcelInput type="file" accept=".xlsx,.xls" style="display:none"
+          (change)="importarCartaExcel($event)">
+      </div>
       <button class="btn btn-secondary" type="button" (click)="toggleMostrarInactivos()">
         {{ mostrarInactivos ? 'Ocultar inactivos' : 'Mostrar inactivos' }}
       </button>
@@ -50,16 +58,12 @@
     </button>
 
     <!-- Overlay para sidebar móvil -->
-    <div class="sidebar-overlay" 
-         [class.visible]="sidebarVisible && isMobile" 
-         (click)="closeSidebar()"></div>
+    <div class="sidebar-overlay" [class.visible]="sidebarVisible && isMobile" (click)="closeSidebar()"></div>
 
     <!-- Sidebar de categorías -->
-    <div class="sidebar" 
-         [class.visible]="sidebarVisible && tabActivo === 'productos'" 
-         [class.collapsed]="!sidebarVisible || tabActivo !== 'productos'"
-         [class.transitions-enabled]="sidebarInitialized"
-         *ngIf="tabActivo === 'productos'">
+    <div class="sidebar" [class.visible]="sidebarVisible && tabActivo === 'productos'"
+      [class.collapsed]="!sidebarVisible || tabActivo !== 'productos'" [class.transitions-enabled]="sidebarInitialized"
+      *ngIf="tabActivo === 'productos'">
       <div class="sidebar-header">
         <h3>Categorías</h3>
         <button class="close-sidebar-btn" (click)="closeSidebar()" *ngIf="isMobile">
@@ -68,22 +72,17 @@
       </div>
       <div class="categorias-list">
         <div *ngFor="let categoria of categorias">
-          <div 
-            class="categoria-item"
-            [class.active]="categoriaSeleccionada === categoria"
+          <div class="categoria-item" [class.active]="categoriaSeleccionada === categoria"
             (click)="filtrarPorCategoria(categoria)">
-            <span 
-              *ngIf="categoria !== 'Todas' && subcategoriasSidebar[categoria]?.length"
-              class="caret"
+            <span *ngIf="categoria !== 'Todas' && subcategoriasSidebar[categoria]?.length" class="caret"
               [class.open]="isCategoriaExpandida(categoria)"
               (click)="toggleCategoriaExpandida(categoria, $event)">▸</span>
             {{ categoria }}
           </div>
           <!-- Subcategorías controladas por expansión -->
-          <div class="subcategorias-list" *ngIf="categoria !== 'Todas' && isCategoriaExpandida(categoria) && subcategoriasSidebar[categoria]?.length">
-            <div 
-              class="subcategoria-item"
-              *ngFor="let sub of subcategoriasSidebar[categoria]"
+          <div class="subcategorias-list"
+            *ngIf="categoria !== 'Todas' && isCategoriaExpandida(categoria) && subcategoriasSidebar[categoria]?.length">
+            <div class="subcategoria-item" *ngFor="let sub of subcategoriasSidebar[categoria]"
               [class.active]="categoriaSeleccionada === categoria && subcategoriaSeleccionada === sub"
               (click)="filtrarPorSubcategoria(categoria, sub)">
               • {{ sub }}
@@ -106,18 +105,15 @@
             <i class="fas fa-bars"></i>
           </div>
         </div>
-        
+
         <div class="table-body">
           <div *ngFor="let producto of productosFiltrados; let i = index" class="table-row">
             <div class="table-cell" data-label="#">{{ i + 1 }}</div>
             <div class="table-cell" data-label="Producto">{{ producto.nombre }}</div>
             <div class="table-cell" data-label="Precio">{{ producto.precio | currencyFormat }}</div>
             <div class="table-cell" data-label="Estado">
-              <span 
-                class="status-badge" 
-                [class.active]="producto.estado === 'activo'"
-                [class.inactive]="producto.estado === 'inactivo'"
-                (click)="cambiarEstado(producto)">
+              <span class="status-badge" [class.active]="producto.estado === 'activo'"
+                [class.inactive]="producto.estado === 'inactivo'" (click)="cambiarEstado(producto)">
                 {{ producto.estado }}
               </span>
             </div>
@@ -130,7 +126,7 @@
               </button>
             </div>
           </div>
-          
+
           <!-- Mensaje cuando no hay productos -->
           <div *ngIf="productosFiltrados.length === 0" class="no-products">
             <p>No se encontraron productos</p>
@@ -141,22 +137,13 @@
   </div>
 
   <!-- Modal de Producto -->
-  <app-producto-modal
-    *ngIf="mostrarModalProducto"
-    [producto]="productoSeleccionado"
-    [esEdicion]="esEdicionProducto"
-    (cerrar)="cerrarModalProducto()"
-    (guardar)="guardarProducto($event)">
+  <app-producto-modal *ngIf="mostrarModalProducto" [producto]="productoSeleccionado" [esEdicion]="esEdicionProducto"
+    (cerrar)="cerrarModalProducto()" (guardar)="guardarProducto($event)">
   </app-producto-modal>
 
   <!-- Modal de confirmación personalizado -->
-  <app-confirm-modal
-    *ngIf="mostrarConfirmacion"
-    [titulo]="tituloConfirmacion"
-    [mensaje]="mensajeConfirmacion"
-    [textoConfirmar]="accionConfirmacion"
-    [tipo]="'danger'"
-    (confirmar)="procederAccion()"
+  <app-confirm-modal *ngIf="mostrarConfirmacion" [titulo]="tituloConfirmacion" [mensaje]="mensajeConfirmacion"
+    [textoConfirmar]="accionConfirmacion" [tipo]="'danger'" (confirmar)="procederAccion()"
     (cancelar)="cerrarConfirmacion()">
   </app-confirm-modal>
 

@@ -407,7 +407,7 @@ export class RespaldoComponent implements OnInit, OnDestroy {
     const nombres: string[] = [];
     if (this.categoriasBorrado.estadisticas) nombres.push('Ventas, Órdenes, Pagos y Cajas');
     if (this.categoriasBorrado.gastos) nombres.push('Gastos, Compras y Proveedores');
-    if (this.categoriasBorrado.carta) nombres.push('Productos, Categorías y Modificadores');
+    if (this.categoriasBorrado.carta) nombres.push('Productos, Categorías, Modificadores y Comentarios Preestablecidos');
     if (this.categoriasBorrado.usuarios) nombres.push('Usuarios (excepto el actual y desarrollador)');
     return nombres;
   }

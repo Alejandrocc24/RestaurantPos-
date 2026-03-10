@@ -5,12 +5,20 @@ import { config } from '../config/index.js';
 export class SocketService {
   private static io: Server;
 
+  private static getCorsOrigins() {
+    if (config.isDevelopment) {
+      return ['http://localhost:4200', 'http://localhost:3000', 'http://127.0.0.1:4200', 'http://127.0.0.1:3000'];
+    }
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) return '*';
+    const origins = frontendUrl.split(',').map(url => url.trim());
+    return origins.length === 1 ? origins[0] : origins;
+  }
+
   public static init(server: HttpServer) {
     this.io = new Server(server, {
       cors: {
-        origin: config.isDevelopment
-          ? ['http://localhost:4200', 'http://localhost:3000', 'http://127.0.0.1:4200', 'http://127.0.0.1:3000']
-          : process.env.FRONTEND_URL || '*',
+        origin: SocketService.getCorsOrigins(),
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],

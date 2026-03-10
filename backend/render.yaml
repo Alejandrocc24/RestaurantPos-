@@ -1,0 +1,61 @@
+databases: []
+
+services:
+  # ==============================================
+  # BACKEND - Web Service (Node.js)
+  # ==============================================
+  - type: web
+    name: restaurantpos-backend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_dulcemomento
+        sync: false
+      - key: DATABASE_URL_buenosaires
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SUPABASE_URL_dulcemomento
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY_dulcemomento
+        sync: false
+      - key: SUPABASE_URL_buenosaires
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY_buenosaires
+        sync: false
+      - key: DEV_EMAIL
+        sync: false
+
+  # ==============================================
+  # FRONTEND - Static Site (Angular)
+  # ==============================================
+  - type: web
+    name: restaurantpos-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist/heladeria-frontend/browser
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    envVars: []

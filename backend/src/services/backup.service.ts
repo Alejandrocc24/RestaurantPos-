@@ -192,6 +192,7 @@ export class BackupService {
                     await tx.producto.deleteMany();
                     await tx.subcategoria.deleteMany();
                     await tx.categoria.deleteMany();
+                    await tx.comentarioPreestablecido.deleteMany();
                     borrados.push('carta');
                 }
 

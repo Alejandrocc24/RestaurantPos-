@@ -5,11 +5,13 @@ import { ProductoModalComponent, ProductoForm } from './producto-modal.component
 import { ConfirmModalComponent } from '../shared/confirm-modal';
 import { InventarioComponent } from './inventario';
 import { ProductosService } from '../services/productos.service';
+import { CartaExcelService } from '../services/carta-excel.service';
 import { Producto } from '../types/api.models';
 import { ToastService } from '../shared/toast/toast.service';
 import { CurrencyFormatPipe } from '../shared/pipes/currency-format.pipe';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-productos',
@@ -41,6 +43,10 @@ export class ProductosComponent implements OnInit, OnDestroy {
   sidebarInitialized = false;
   isNavigatingBack = false;
   cargando = false;
+
+  // Excel import/export
+  exportandoCarta = false;
+  importandoCarta = false;
 
   categorias: string[] = ['Todas'];
   subcategoriasSidebar: Record<string, string[]> = {};
@@ -142,7 +148,8 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   constructor(
     private productosService: ProductosService,
-    private toast: ToastService
+    private toast: ToastService,
+    private cartaExcelService: CartaExcelService
   ) {
     this.checkScreenSizeOnly();
 
@@ -221,13 +228,13 @@ export class ProductosComponent implements OnInit, OnDestroy {
           const productosNormalizados = (productos || []).map((p: any) => ({
             ...p,
             categoriaId: typeof p.categoria === 'object' ? p.categoria.id : p.categoriaId,
-            categoria: typeof p.categoria === 'object' && p.categoria?.nombre 
-              ? p.categoria.nombre 
+            categoria: typeof p.categoria === 'object' && p.categoria?.nombre
+              ? p.categoria.nombre
               : p.categoria || '',
             // Convertir 'activo' (boolean) a 'estado' (string: 'activo'/'inactivo')
             estado: (typeof p.activo === 'boolean' ? p.activo : true) ? 'activo' : 'inactivo'
           }));
-          
+
           this.productos = productosNormalizados.sort((a: any, b: any) =>
             (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'accent' })
           );
@@ -481,7 +488,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
     let productosFiltrados = this.productos;
     console.log('📋 Productos antes de filtrar por categoría:', productosFiltrados.length);
-    
+
     if (this.categoriaSeleccionada !== 'Todas' && this.categoriaSeleccionada) {
       console.log('🔄 Filtrando por categoría:', this.categoriaSeleccionada);
       productosFiltrados = this.productos.filter(p => {
@@ -587,7 +594,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
   editarProducto(producto: any): void {
     this.esEdicionProducto = true;
     this.productoSeleccionado = null; // Limpiar primero
-    
+
     // Cargar el producto fresco desde el servidor para asegurar que tiene todos los datos
     this.productosService.getProductoById(producto.id)
       .pipe(takeUntil(this.destroy$))
@@ -642,6 +649,113 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   cambiarTab(tab: string): void {
     this.tabActivo = tab;
+  }
+
+  // ============ EXCEL IMPORT/EXPORT ============
+
+  exportarCartaExcel(): void {
+    this.exportandoCarta = true;
+    this.toast.info('Exportando...', 'Generando archivo Excel de la carta');
+
+    try {
+      this.cartaExcelService.exportarCarta();
+      // Dar tiempo para que la descarga inicie
+      setTimeout(() => {
+        this.exportandoCarta = false;
+        this.toast.success('Carta exportada', 'El archivo Excel se ha descargado');
+      }, 2000);
+    } catch (error) {
+      this.exportandoCarta = false;
+      this.toast.error('Error', 'No se pudo exportar la carta');
+    }
+  }
+
+  importarCartaExcel(event: any): void {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar extensión
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      this.toast.warning('Archivo inválido', 'Solo se permiten archivos Excel (.xlsx, .xls)');
+      event.target.value = '';
+      return;
+    }
+
+    Swal.fire({
+      title: 'Importar carta desde Excel',
+      html: `<p>Se importará la carta desde <strong>${file.name}</strong>.</p>
+             <p style="margin-top: 10px; font-size: 13px; color: #666;">
+               • Los productos existentes se <strong>actualizarán</strong> con los nuevos datos<br>
+               • Los productos nuevos se <strong>crearán</strong> automáticamente<br>
+               • Las categorías faltantes se crearán al vuelo
+             </p>`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, importar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.importandoCarta = true;
+        this.toast.info('Importando...', 'Procesando archivo Excel');
+
+        this.cartaExcelService.importarCarta(file)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (response) => {
+              this.importandoCarta = false;
+              event.target.value = '';
+
+              if (response.success && response.resultado) {
+                const r = response.resultado;
+                const detalles = [];
+                if (r.categoriasCreadas) detalles.push(`${r.categoriasCreadas} categorías creadas`);
+                if (r.categoriasActualizadas) detalles.push(`${r.categoriasActualizadas} categorías actualizadas`);
+                if (r.subcategoriasCreadas) detalles.push(`${r.subcategoriasCreadas} subcategorías creadas`);
+                if (r.productosCreados) detalles.push(`${r.productosCreados} productos creados`);
+                if (r.productosActualizados) detalles.push(`${r.productosActualizados} productos actualizados`);
+                if (r.gruposCreados) detalles.push(`${r.gruposCreados} grupos modificadores creados`);
+                if (r.opcionesCreadas) detalles.push(`${r.opcionesCreadas} opciones creadas`);
+                if (r.comentariosCreados) detalles.push(`${r.comentariosCreados} comentarios creados`);
+
+                let htmlContent = `<ul style="text-align: left; margin: 10px 20px;">
+                  ${detalles.map(d => `<li style="margin-bottom: 5px;">✅ ${d}</li>`).join('')}
+                </ul>`;
+
+                if (r.errores?.length) {
+                  htmlContent += `<div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; text-align: left;">
+                    <strong style="color: #856404;">⚠️ ${r.errores.length} error(es):</strong>
+                    <ul style="margin: 5px 0 0 20px; font-size: 12px; color: #856404;">
+                      ${r.errores.slice(0, 5).map(e => `<li>${e}</li>`).join('')}
+                      ${r.errores.length > 5 ? `<li>...y ${r.errores.length - 5} más</li>` : ''}
+                    </ul>
+                  </div>`;
+                }
+
+                Swal.fire({
+                  title: '✅ Importación completada',
+                  html: htmlContent,
+                  icon: 'success',
+                  confirmButtonColor: '#28a745',
+                });
+
+                // Recargar productos
+                this.cargarProductos();
+              } else {
+                this.toast.error('Error', response.error || 'Error durante la importación');
+              }
+            },
+            error: (error) => {
+              this.importandoCarta = false;
+              event.target.value = '';
+              this.toast.error('Error', error.error || 'Error al importar la carta');
+            }
+          });
+      } else {
+        event.target.value = '';
+      }
+    });
   }
 
   handleViewChange(view: string): void {
