@@ -1,14 +1,18 @@
+# =============================================
+# RestaurantPOS - Render Blueprint
+# Solo el backend se despliega en Render
+# El frontend se despliega en Vercel
+# =============================================
+
 databases: []
 
 services:
-  # ==============================================
-  # BACKEND - Web Service (Node.js)
-  # ==============================================
   - type: web
     name: restaurantpos-backend
     runtime: node
     region: oregon
     plan: free
+    branch: main
     rootDir: backend
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm start
@@ -25,6 +29,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: JWT_EXPIRES_IN
+        value: "24h"
       - key: FRONTEND_URL
         sync: false
       - key: SUPABASE_URL_dulcemomento
@@ -36,26 +42,4 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY_buenosaires
         sync: false
       - key: DEV_EMAIL
-        sync: false
-
-  # ==============================================
-  # FRONTEND - Static Site (Angular)
-  # ==============================================
-  - type: web
-    name: restaurantpos-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist/heladeria-frontend/browser
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-    envVars: []
+        value: "desarrollador@dev"
