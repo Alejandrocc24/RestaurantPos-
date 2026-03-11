@@ -141,8 +141,10 @@
           </div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="cerrarModalNuevaCategoria()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="!formNueva.form?.valid || !nuevaCategoriaModel.nombre?.trim() || nuevaCategoriaModel.nombre.trim().length < 3">Guardar</button>
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalNuevaCategoria()" [disabled]="guardando">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formNueva.form?.valid || !nuevaCategoriaModel.nombre?.trim() || nuevaCategoriaModel.nombre.trim().length < 3 || guardando">
+            {{ guardando ? 'Guardando...' : 'Guardar' }}
+          </button>
         </div>
       </form>
     </div>
@@ -196,8 +198,10 @@
           </div>
         </div>
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" (click)="cerrarModalEditarCategoria()">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="!formEdit.form?.valid || !categoriaSeleccionada?.nombre?.trim() || categoriaSeleccionada.nombre.trim().length < 3">Guardar</button>
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalEditarCategoria()" [disabled]="guardando">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!formEdit.form?.valid || !categoriaSeleccionada?.nombre?.trim() || categoriaSeleccionada.nombre.trim().length < 3 || guardando">
+            {{ guardando ? 'Guardando...' : 'Guardar' }}
+          </button>
         </div>
       </form>
     </div>
