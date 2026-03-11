@@ -357,6 +357,12 @@ export class UsuarioController {
         message: 'Usuario eliminado correctamente'
       });
     } catch (error: any) {
+      if (error.code === 'P2003') {
+        return res.status(400).json({
+          success: false,
+          message: 'No se puede eliminar el usuario porque tiene registros asociados (órdenes, ventas o gastos). Puede desactivarlo en su lugar.'
+        });
+      }
       res.status(500).json({
         success: false,
         message: error.message
