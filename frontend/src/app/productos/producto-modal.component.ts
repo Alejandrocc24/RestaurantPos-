@@ -313,7 +313,7 @@ export interface GrupoModificador {
           <button
             type="button"
             class="btn btn-primary"
-            (click)="confirmarGuardado()"
+            (click)="guardarProducto()"
             [disabled]="!esFormularioValido() || guardando">
             <span *ngIf="!guardando">Guardar</span>
             <span *ngIf="guardando">Guardando...</span>
@@ -321,17 +321,6 @@ export interface GrupoModificador {
         </div>
       </div>
     </div>
-
-    <!-- Modal de confirmación -->
-    <app-confirm-modal
-      *ngIf="mostrarConfirmacion"
-      [titulo]="tituloConfirmacion"
-      [mensaje]="mensajeConfirmacion"
-      [textoConfirmar]="'Guardar'"
-      [tipo]="'info'"
-      (confirmar)="procederGuardado()"
-      (cancelar)="cancelarConfirmacion()">
-    </app-confirm-modal>
   `,
   styles: [`
     .modal-overlay {
@@ -1329,53 +1318,7 @@ export class ProductoModalComponent implements OnInit, OnDestroy {
     return nombreValido && categoriaValida && precioValido && sinErrores;
   }
 
-  confirmarGuardado(): void {
-    // Limpiar errores previos para validar desde cero
-    this.errores = {};
 
-    // Validar nombre
-    const nombre = this.productoForm.nombre?.trim();
-    if (!nombre) {
-      this.errores['nombre'] = 'El nombre es obligatorio';
-    } else if (nombre.length < 3) {
-      this.errores['nombre'] = 'El nombre debe tener al menos 3 caracteres';
-    } else if (nombre.length > 200) {
-      this.errores['nombre'] = 'El nombre no puede exceder 200 caracteres';
-    }
-
-    // Validar categoría - campo OBLIGATORIO
-    if (!this.productoForm.categoria) {
-      this.errores['categoria'] = 'La categoría es obligatoria';
-    }
-
-    // Validar precio
-    const precio = this.getPrecioNumber();
-    if (isNaN(precio) || precio < 0) {
-      this.errores['precio'] = 'Ingresa un precio válido (mayor o igual a 0)';
-    }
-
-    // Si hay errores, no mostrar confirmación
-    if (Object.keys(this.errores).length > 0) {
-      console.warn('❌ Formulario inválido:', this.errores);
-      return;
-    }
-
-    this.tituloConfirmacion = this.esEdicion ? 'Confirmar Actualización' : 'Confirmar Creación';
-    this.mensajeConfirmacion = this.esEdicion
-      ? `¿Estás seguro de que quieres actualizar el producto "${this.productoForm.nombre}"?`
-      : `¿Estás seguro de que quieres crear el producto "${this.productoForm.nombre}"?`;
-
-    this.mostrarConfirmacion = true;
-  }
-
-  procederGuardado(): void {
-    this.mostrarConfirmacion = false;
-    this.guardarProducto();
-  }
-
-  cancelarConfirmacion(): void {
-    this.mostrarConfirmacion = false;
-  }
 
   guardarProducto(): void {
     // Limpiar errores previos para validar desde cero
