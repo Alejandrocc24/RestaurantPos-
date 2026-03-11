@@ -93,7 +93,7 @@ export class ProductoController {
    */
   static async create(req: Request, res: Response) {
     try {
-      const { nombre, descripcion, precio, categoriaId, imagen, especial, gruposModificadores, configuracionGrupos, comentarios } = req.body;
+      const { nombre, descripcion, precio, categoriaId, subcategoria, imagen, especial, gruposModificadores, configuracionGrupos, comentarios } = req.body;
 
       if (!nombre || !precio || !categoriaId) {
         return res.status(400).json({
@@ -108,6 +108,7 @@ export class ProductoController {
           descripcion,
           precio: parseFloat(precio),
           categoriaId,
+          subcategoria,
           imagen,
           especial: especial || false,
           gruposModificadores: gruposModificadores ? JSON.stringify(gruposModificadores) : '[]',
