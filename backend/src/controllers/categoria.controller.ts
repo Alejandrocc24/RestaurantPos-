@@ -77,74 +77,45 @@ export class CategoriaController {
 
             console.log('🔵 [Categoria Create] Recibido:', { nombre, descripcion, subcategorias });
 
-            if (!nombre) {
+            if (!nombre || !nombre.trim()) {
                 return res.status(400).json({
                     success: false,
                     message: 'El nombre es obligatorio'
                 });
             }
 
-            // Verificar si la categoría ya existe
-            const categoriaExistente = await req.prisma.categoria.findUnique({
-                where: { nombre: nombre.trim() }
-            });
+            const nombreLimpio = nombre.trim();
+            const dataToCreate: any = {
+                nombre: nombreLimpio,
+                descripcion: descripcion?.trim() || '',
+                activo: true
+            };
 
-            if (categoriaExistente) {
-                return res.status(409).json({
-                    success: false,
-                    message: `La categoría "${nombre}" ya existe`
-                });
-            }
-
-            // Crear categoría padre
-            const categoria = await req.prisma.categoria.create({
-                data: {
-                    nombre: nombre.trim(),
-                    descripcion: descripcion?.trim() || '',
-                    activo: true
-                }
-            });
-
-            console.log('✅ [Categoria Create] Categoría padre creada:', categoria.id);
-
-            // Crear subcategorías si existen
+            // Preparar subcategorías si existen
             if (Array.isArray(subcategorias) && subcategorias.length > 0) {
-                const subCategoriasValidas = subcategorias
-                    .filter(sub => sub && `${sub}`.trim() !== '');
-
-                console.log('📝 [Categoria Create] Subcategorías a crear:', subCategoriasValidas);
+                const subCategoriasValidas = subcategorias.filter(sub => sub && `${sub}`.trim() !== '');
 
                 if (subCategoriasValidas.length > 0) {
-                    try {
-                        await Promise.all(
-                            subCategoriasValidas.map(subNombre =>
-                                req.prisma.subcategoria.create({
-                                    data: {
-                                        nombre: `${subNombre}`.trim(),
-                                        descripcion: `Subcategoría de ${nombre}`,
-                                        categoriaId: categoria.id,
-                                        activo: true
-                                    }
-                                })
-                            )
-                        );
-                        console.log('✅ [Categoria Create] Subcategorías creadas correctamente');
-                    } catch (subError) {
-                        console.error('❌ [Categoria Create] Error creando subcategorías:', subError);
-                        throw subError;
-                    }
+                    console.log('📝 [Categoria Create] Subcategorías a crear:', subCategoriasValidas);
+                    dataToCreate.subcategorias = {
+                        create: subCategoriasValidas.map(subNombre => ({
+                            nombre: `${subNombre}`.trim(),
+                            descripcion: `Subcategoría de ${nombreLimpio}`,
+                            activo: true
+                        }))
+                    };
                 }
             }
 
-            // Obtener categoría con subcategorías incluidas
-            const categoriaConSubs = await req.prisma.categoria.findUnique({
-                where: { id: categoria.id },
+            // Crear categoría (y subcategorías si existen) en una sola transacción/operación
+            const categoriaConSubs = await req.prisma.categoria.create({
+                data: dataToCreate,
                 include: {
                     subcategorias: true
                 }
             });
 
-            console.log('✅ [Categoria Create] Respuesta final:', categoriaConSubs);
+            console.log('✅ [Categoria Create] Respuesta final (ID):', categoriaConSubs.id);
 
             res.status(201).json({
                 success: true,
@@ -171,30 +142,42 @@ export class CategoriaController {
     static async updateCategoria(req: Request, res: Response) {
         try {
             const { id } = req.params;
-            const data = req.body;
+            const data = { ...req.body };
 
-            // Si se intenta cambiar el nombre, verificar que no exista otro con ese nombre
             if (data.nombre) {
-                const categoriaExistente = await req.prisma.categoria.findFirst({
-                    where: {
-                        nombre: data.nombre.trim(),
-                        NOT: { id } // Excluir la categoría actual
-                    }
-                });
-
-                if (categoriaExistente) {
-                    return res.status(409).json({
-                        success: false,
-                        message: `La categoría "${data.nombre}" ya existe`
-                    });
-                }
-
                 data.nombre = data.nombre.trim();
+            }
+            if (data.descripcion !== undefined) {
+                data.descripcion = data.descripcion?.trim() || '';
+            }
+
+            let subcategoriasUpdate: any;
+            if (data.subcategorias !== undefined) {
+                const subCategoriasValidas = Array.isArray(data.subcategorias)
+                    ? data.subcategorias.filter((s: any) => s && `${s}`.trim() !== '')
+                    : [];
+
+                subcategoriasUpdate = {
+                    deleteMany: {}, // Delete all existing to replace them
+                };
+
+                if (subCategoriasValidas.length > 0) {
+                    subcategoriasUpdate.create = subCategoriasValidas.map((s: any) => ({
+                        nombre: `${s}`.trim(),
+                        descripcion: `Subcategoría de ${data.nombre || 'categoría'}`,
+                        activo: true
+                    }));
+                }
+                
+                delete data.subcategorias; // Eliminar para que Prisma no se queje
             }
 
             const categoria = await req.prisma.categoria.update({
                 where: { id },
-                data,
+                data: {
+                    ...data,
+                    ...(subcategoriasUpdate && { subcategorias: subcategoriasUpdate })
+                },
                 include: {
                     subcategorias: true
                 }
@@ -210,7 +193,7 @@ export class CategoriaController {
             if (error.code === 'P2002') {
                 return res.status(409).json({
                     success: false,
-                    message: 'Una categoría con ese nombre ya existe'
+                    message: `La categoría ya existe`
                 });
             }
 

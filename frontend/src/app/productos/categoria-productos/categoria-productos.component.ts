@@ -26,6 +26,7 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
   mensajeConfirmacion = '';
   accionConfirmacion: 'cambiarEstado' | 'eliminar' | null = null;
   categoriaParaAccion: CategoriaProducto | null = null;
+  guardando = false;
 
   // Sistema de notificaciones (compartido por servicio)
 
@@ -99,14 +100,17 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
       this.mostrarNotificacion('⚠️ Validación', 'El nombre es obligatorio', 'warning');
       return;
     }
-    try {
-      // Validar nombre único excluyendo el propio id
-      const esUnico = await this.supabaseService.verificarNombreUnicoCategoria(nombre, categoria.id);
-      if (!esUnico) {
-        this.mostrarNotificacion('⚠️ Nombre duplicado', 'Ya existe una categoría con ese nombre', 'warning');
-        return;
-      }
+    
+    // Check locally first to save API call
+    const nombreLower = nombre.toLowerCase();
+    const esUnicoLocal = !this.categorias.some(c => c.nombre.toLowerCase() === nombreLower && c.id !== categoria.id);
+    if (!esUnicoLocal) {
+      this.mostrarNotificacion('⚠️ Nombre duplicado', 'Ya existe una categoría con ese nombre', 'warning');
+      return;
+    }
 
+    this.guardando = true;
+    try {
       // Preparar payload limpio
       const payload: any = {
         id: categoria.id,
@@ -125,8 +129,13 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
 
       // Actualizar categoría local
       const index = this.categorias.findIndex(c => c.id === categoria.id);
-      if (index !== -1) {
-        this.categorias[index] = { ...updated };
+      if (index !== -1 && updated) {
+        // Normalizar subcategorias igual que en getCategorias
+        let normalizedSubs = [];
+        if (updated.subcategorias) {
+          normalizedSubs = updated.subcategorias.map((s: any) => typeof s === 'string' ? s : s?.nombre).filter(Boolean);
+        }
+        this.categorias[index] = { ...updated, subcategorias: normalizedSubs };
       }
       this.filtrarCategorias();
 
@@ -136,6 +145,8 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
       console.error('Error actualizando categoría:', error);
       const detalle = error?.error?.error || error?.message || 'Error desconocido';
       this.mostrarNotificacion('❌ Error', `No se pudo actualizar la categoría. Detalle: ${detalle}`, 'error');
+    } finally {
+      this.guardando = false;
     }
   }
 
@@ -145,14 +156,17 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
       this.mostrarNotificacion('⚠️ Validación', 'El nombre es obligatorio', 'warning');
       return;
     }
-    try {
-      // Validar nombre único
-      const esUnico = await this.supabaseService.verificarNombreUnicoCategoria(nombre);
-      if (!esUnico) {
-        this.mostrarNotificacion('⚠️ Nombre duplicado', 'Ya existe una categoría con ese nombre', 'warning');
-        return;
-      }
+    
+    // Check locally first
+    const nombreLower = nombre.toLowerCase();
+    const esUnicoLocal = !this.categorias.some(c => c.nombre.toLowerCase() === nombreLower);
+    if (!esUnicoLocal) {
+      this.mostrarNotificacion('⚠️ Nombre duplicado', 'Ya existe una categoría con ese nombre', 'warning');
+      return;
+    }
 
+    this.guardando = true;
+    try {
       // Preparar payload limpio
       const payload: any = {
         nombre,
@@ -168,8 +182,19 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
       const nuevaCategoria = await this.supabaseService.crearCategoria(payload);
       console.log('[Categoria] Crear respuesta:', nuevaCategoria);
 
-      // Recargar la lista completa desde el servidor
-      await this.cargarCategorias();
+      // Normalizar subcategorias y añadir localmente 
+      if (nuevaCategoria) {
+        let normalizedSubs = [];
+        if (nuevaCategoria.subcategorias) {
+          normalizedSubs = nuevaCategoria.subcategorias.map((s: any) => typeof s === 'string' ? s : s?.nombre).filter(Boolean);
+        }
+        this.categorias.push({ ...nuevaCategoria, subcategorias: normalizedSubs });
+        this.categorias.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        this.filtrarCategorias();
+      } else {
+        // Fallback: reload full list
+        await this.cargarCategorias();
+      }
 
       this.cerrarModalNuevaCategoria();
       this.mostrarNotificacion('✅ Categoría creada', `Categoría ${nombre} creada exitosamente`, 'success');
@@ -177,6 +202,8 @@ export class CategoriaProductosComponent implements OnInit, OnDestroy {
       console.error('Error creando categoría:', error);
       const detalle = error?.error?.error || error?.message || 'Error desconocido';
       this.mostrarNotificacion('❌ Error', `No se pudo crear la categoría. Detalle: ${detalle}`, 'error');
+    } finally {
+      this.guardando = false;
     }
   }
 
