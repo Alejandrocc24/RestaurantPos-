@@ -57,7 +57,7 @@ git push origin main
 | **Branch**         | `main`                                                 |
 | **Root Directory** | `backend`                                              |
 | **Runtime**        | `Node`                                                 |
-| **Build Command**  | `npm install && npx prisma generate && npm run build`  |
+| **Build Command**  | `npm install --include=dev && npx prisma generate && npm run build`  |
 | **Start Command**  | `npm start`                                            |
 | **Instance Type**  | `Free` (o `Starter $7/mes` para evitar suspensiones)   |
 
