@@ -169,18 +169,7 @@ export class VentaController {
       const { mesa_id, usuario_id, orden_id, total, estado, metodo_pago, fecha } =
         req.body;
 
-      // Verificar que la venta existe
-      const ventaExistente = await req.prisma.venta.findUnique({
-        where: { id },
-      });
-
-      if (!ventaExistente) {
-        return res.status(404).json({
-          success: false,
-          message: 'Venta no encontrada',
-        });
-      }
-
+      // Prisma lanzará P2025 si no existe, ahorrando un round-trip
       const venta = await req.prisma.venta.update({
         where: { id },
         data: {
@@ -206,6 +195,9 @@ export class VentaController {
         data: venta,
       });
     } catch (error: any) {
+      if (error.code === 'P2025') {
+        return res.status(404).json({ success: false, message: 'Venta no encontrada' });
+      }
       res.status(500).json({
         success: false,
         message: error.message,
@@ -221,18 +213,7 @@ export class VentaController {
     try {
       const { id } = req.params;
 
-      // Verificar que la venta existe
-      const ventaExistente = await req.prisma.venta.findUnique({
-        where: { id },
-      });
-
-      if (!ventaExistente) {
-        return res.status(404).json({
-          success: false,
-          message: 'Venta no encontrada',
-        });
-      }
-
+      // Prisma lanzará P2025 si no existe, ahorrando un round-trip
       await req.prisma.venta.delete({
         where: { id },
       });
@@ -245,6 +226,9 @@ export class VentaController {
         data: null,
       });
     } catch (error: any) {
+      if (error.code === 'P2025') {
+        return res.status(404).json({ success: false, message: 'Venta no encontrada' });
+      }
       res.status(500).json({
         success: false,
         message: error.message,

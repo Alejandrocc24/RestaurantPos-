@@ -415,7 +415,7 @@
                   </div>
                   <div class="grupo-items-pedido-horizontal">
                     <span class="modificador-pedido" *ngFor="let mod of grupo.modificadores">
-                      {{ mod.nombre || mod }}
+                      {{ mod.nombre || mod }} <ng-container *ngIf="grupo.cobrarPrecio && mod.precio > 0">(+${{ formatearMoneda(mod.precio) }})</ng-container>
                     </span>
                   </div>
                 </div>
@@ -592,7 +592,7 @@
                 <div class="modificador-icono">🍨</div>
                 <div class="modificador-info">
                   <div class="modificador-nombre">{{ modificador.nombre }}</div>
-                  <div class="modificador-precio">+${{ formatearMoneda(modificador.precio) }}</div>
+                  <div class="modificador-precio" *ngIf="pasosModificadores[pasoActual]?.cobrarPrecio">+${{ formatearMoneda(modificador.precio) }}</div>
                 </div>
 
                 <!-- Controles de cantidad -->
@@ -663,7 +663,7 @@
                 <div class="resumen-grupo-titulo">{{ paso.grupoNombre }}:</div>
                 <div class="resumen-grupo-items">
                   <span *ngFor="let modificador of modificadoresSeleccionados[paso.grupoId]" class="resumen-item">
-                    {{ modificador.nombre }} (+${{ formatearMoneda(modificador.precio) }})
+                    {{ modificador.nombre }} <ng-container *ngIf="paso.cobrarPrecio && modificador.precio > 0">(+${{ formatearMoneda(modificador.precio) }})</ng-container>
                   </span>
                   <span *ngIf="!modificadoresSeleccionados[paso.grupoId] || modificadoresSeleccionados[paso.grupoId].length === 0" class="resumen-vacio">
                     Ninguno seleccionado

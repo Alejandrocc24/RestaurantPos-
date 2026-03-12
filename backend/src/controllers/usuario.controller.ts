@@ -7,50 +7,50 @@ export class UsuarioController {
     try {
       const { skip, take, search } = req.query;
 
-      // Verificar si el usuario actual es el desarrollador
-      const currentUser = await req.prisma.usuario.findUnique({
-        where: { id: req.userId },
-        select: { email: true }
-      });
-      const isDevUser = currentUser?.email === config.devEmail;
-
-      const where: any = {};
-
-      // Ocultar usuario desarrollador solo para clientes (no para el propio dev)
-      if (!isDevUser) {
-        where.email = { not: config.devEmail };
-      }
-
-      if (search) {
-        where.OR = [
-          { nombre: { contains: String(search), mode: 'insensitive' } },
-          { email: { contains: String(search), mode: 'insensitive' } }
-        ];
-      }
-
-      const usuarios = await req.prisma.usuario.findMany({
-        where,
-        skip: skip ? Number(skip) : undefined,
-        take: take ? Number(take) : undefined,
-        orderBy: { nombre: 'asc' },
-        select: {
-          id: true,
-          email: true,
-          nombre: true,
-          activo: true,
-          createdAt: true,
-          roles: {
-            select: {
-              rol: {
-                select: {
-                  id: true,
-                  nombre: true
+      // Ejecutar ambas consultas en paralelo
+      const [currentUser, allUsuarios] = await Promise.all([
+        req.prisma.usuario.findUnique({
+          where: { id: req.userId },
+          select: { email: true }
+        }),
+        req.prisma.usuario.findMany({
+          skip: skip ? Number(skip) : undefined,
+          take: take ? Number(take) : undefined,
+          orderBy: { nombre: 'asc' },
+          select: {
+            id: true,
+            email: true,
+            nombre: true,
+            activo: true,
+            createdAt: true,
+            roles: {
+              select: {
+                rol: {
+                  select: {
+                    id: true,
+                    nombre: true
+                  }
                 }
               }
             }
           }
-        }
-      });
+        })
+      ]);
+
+      const isDevUser = currentUser?.email === config.devEmail;
+
+      // Filtrar en memoria (más rápido que 2 queries separadas)
+      let usuarios = allUsuarios;
+      if (!isDevUser) {
+        usuarios = usuarios.filter((u: any) => u.email !== config.devEmail);
+      }
+      if (search) {
+        const searchLower = String(search).toLowerCase();
+        usuarios = usuarios.filter((u: any) =>
+          u.nombre?.toLowerCase().includes(searchLower) ||
+          u.email?.toLowerCase().includes(searchLower)
+        );
+      }
 
       // Agregar campo 'rol' simplificado para el frontend
       const usuariosConRol = usuarios.map((u: any) => ({
@@ -223,87 +223,48 @@ export class UsuarioController {
       const { id } = req.params;
       const { nombre, activo, password, rol, roles } = req.body;
 
-      // Verificar que el usuario existe
-      const existe = await req.prisma.usuario.findUnique({
-        where: { id }
-      });
+      // Todo en una sola transacción
+      const usuario = await req.prisma.$transaction(async (tx: any) => {
+        // Verificar que el usuario existe
+        const existe = await tx.usuario.findUnique({ where: { id } });
+        if (!existe) throw new Error('NOT_FOUND');
 
-      if (!existe) {
-        return res.status(404).json({
-          success: false,
-          message: 'Usuario no encontrado'
-        });
-      }
+        // Proteger usuario desarrollador
+        if (existe.email === config.devEmail && req.userId !== existe.id) {
+          throw new Error('FORBIDDEN');
+        }
 
-      // Proteger usuario desarrollador: solo el propio dev puede editarse
-      if (existe.email === config.devEmail && req.userId !== existe.id) {
-        return res.status(403).json({
-          success: false,
-          message: 'No tienes permisos para editar este usuario'
-        });
-      }
+        const updateData: any = { nombre, activo };
+        if (password) {
+          updateData.password = await hashPassword(password);
+        }
 
-      // Preparar data a actualizar
-      const updateData: any = {
-        nombre,
-        activo
-      };
+        // Resolver roles
+        let rolesToAssign: string[] = [];
+        if (roles && Array.isArray(roles)) {
+          rolesToAssign = roles;
+        } else if (rol) {
+          const rolObj = await tx.rol.findFirst({
+            where: { nombre: { mode: 'insensitive', equals: rol } }
+          });
+          if (rolObj) rolesToAssign = [rolObj.id];
+        }
 
-      // Hash la contraseña si se proporciona
-      if (password) {
-        updateData.password = await hashPassword(password);
-      }
+        if (rolesToAssign.length > 0) {
+          await tx.usuarioRol.deleteMany({ where: { usuarioId: id } });
+          updateData.roles = {
+            create: rolesToAssign.map((rolId: string) => ({ rolId }))
+          };
+        }
 
-      // Si se actualizar los roles, primero eliminar los existentes
-      let rolesToAssign = [];
-      if (roles && Array.isArray(roles)) {
-        rolesToAssign = roles;
-      } else if (rol) {
-        // Buscar el rol de manera case-insensitive
-        const rolObj = await req.prisma.rol.findFirst({
-          where: {
-            nombre: {
-              mode: 'insensitive',
-              equals: rol
-            }
+        return tx.usuario.update({
+          where: { id },
+          data: updateData,
+          select: {
+            id: true, email: true, nombre: true, activo: true, createdAt: true,
+            roles: { select: { rol: { select: { id: true, nombre: true } } } }
           }
         });
-        if (rolObj) {
-          rolesToAssign = [rolObj.id];
-        }
-      }
-
-      if (rolesToAssign.length > 0) {
-        await req.prisma.usuarioRol.deleteMany({
-          where: { usuarioId: id }
-        });
-        updateData.roles = {
-          create: rolesToAssign.map((rolId: string) => ({
-            rolId
-          }))
-        };
-      }
-
-      const usuario = await req.prisma.usuario.update({
-        where: { id },
-        data: updateData,
-        select: {
-          id: true,
-          email: true,
-          nombre: true,
-          activo: true,
-          createdAt: true,
-          roles: {
-            select: {
-              rol: {
-                select: {
-                  id: true,
-                  nombre: true
-                }
-              }
-            }
-          }
-        }
       });
 
       // Agregar campo 'rol' simplificado para el frontend
@@ -317,6 +278,12 @@ export class UsuarioController {
         data: usuarioConRol
       });
     } catch (error: any) {
+      if (error.message === 'NOT_FOUND') {
+        return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+      }
+      if (error.message === 'FORBIDDEN') {
+        return res.status(403).json({ success: false, message: 'No tienes permisos para editar este usuario' });
+      }
       res.status(500).json({
         success: false,
         message: error.message

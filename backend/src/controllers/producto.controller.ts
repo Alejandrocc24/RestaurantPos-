@@ -217,24 +217,13 @@ export class ProductoController {
     try {
       const { id } = req.params;
 
-      // Primero, desconectar el producto de todos los grupos modificadores
-      await req.prisma.grupoModificador.updateMany({
-        where: {
-          productos: {
-            some: { id }
-          }
-        },
-        data: {
-          productos: {
-            disconnect: { id }
-          }
-        }
-      });
-
-      // Luego marcar el producto como inactivo
+      // Desconectar de grupos modificadores y marcar como inactivo en una sola transacción
       await req.prisma.producto.update({
         where: { id },
-        data: { activo: false },
+        data: { 
+          activo: false,
+          modificadores: { set: [] } 
+        },
       });
 
       res.json({

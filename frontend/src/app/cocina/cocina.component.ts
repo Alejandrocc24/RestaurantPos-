@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { interval, Subscription, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, switchMap } from 'rxjs/operators';
 import { PermissionsService } from '../services/permissions.service';
 import { VentasService } from '../services/ventas.service';
 import { ApiService } from '../services/api.service';
@@ -55,6 +55,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
   private timerSubscription?: Subscription;
   private destroy$ = new Subject<void>();
+  private loadOrders$ = new Subject<void>();
   tiempoActual = new Date();
   private tickCount = 0;
 
@@ -77,6 +78,60 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.cargarFiltrosGuardados();
+    
+    // Configurar la carga de pedidos con switchMap para evitar race conditions
+    this.loadOrders$.pipe(
+      takeUntil(this.destroy$),
+      switchMap(() => this.ventasService.getOrdenes(0, 100, true))
+    ).subscribe({
+      next: (ordenes: any) => {
+        if (ordenes && Array.isArray(ordenes)) {
+          // ✅ Preservar tiempoCreacion de órdenes existentes
+          const ordenesExistentesMap = new Map<number, Orden>();
+          this.ordenes.forEach(orden => {
+            ordenesExistentesMap.set(orden.id, orden);
+          });
+
+          // Mapear nuevas órdenes
+          const nuevasOrdenes = ordenes.map((pedido: any) => {
+            const ordenMapeada = this.mapearPedidoAOrden(pedido);
+            const ordenExistente = ordenesExistentesMap.get(ordenMapeada.id);
+
+            if (ordenExistente) {
+              if (ordenExistente.tiempoCreacion instanceof Date) {
+                ordenMapeada.tiempoCreacion = ordenExistente.tiempoCreacion;
+              }
+              // Preservar estado optimista si está en transición
+              if (ordenExistente.enTransicion) {
+                ordenMapeada.estado = ordenExistente.estado;
+                ordenMapeada.enTransicion = true;
+              }
+              this.preservarYDetectarProductosNuevos(ordenExistente, ordenMapeada);
+            } else {
+              this.marcarTodosComoRecientes(ordenMapeada);
+            }
+            return ordenMapeada;
+          });
+
+          if (this.primeraCargatermined) {
+            const tieneNueva = nuevasOrdenes.some((o: Orden) => !this.ordenesConocidas.has(o.id));
+            if (tieneNueva) {
+              this.reproducirSonidoNuevaOrden();
+            }
+          }
+
+          nuevasOrdenes.forEach((o: Orden) => this.ordenesConocidas.add(o.id));
+          this.primeraCargatermined = true;
+
+          this.ordenes = nuevasOrdenes;
+          this.aplicarFiltros();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error cargando pedidos:', error);
+      }
+    });
+
     this.cargarPedidos();
     this.aplicarFiltros();
 
@@ -92,6 +147,9 @@ export class CocinaComponent implements OnInit, OnDestroy {
     this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.ngZone.run(() => this.cargarPedidos());
     });
+    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
+      this.ngZone.run(() => this.cargarPedidos());
+    });
     this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
       this.ngZone.run(() => this.cargarPedidos());
     });
@@ -99,7 +157,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
       this.ngZone.run(() => this.cargarPedidos());
     });
 
-    // Fallback de recarga cada 30 segundos en lugar de 3 (ya que tenemos WebSockets)
+    // Fallback de recarga
     this.ngZone.runOutsideAngular(() => {
       this.timerSubscription!.add(interval(30000).subscribe(() => {
         this.ngZone.run(() => {
@@ -167,58 +225,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
   }
 
   cargarPedidos() {
-    this.ventasService.getOrdenes(0, 100, true)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (ordenes: any) => {
-          if (ordenes && Array.isArray(ordenes)) {
-            // ✅ Preservar tiempoCreacion de órdenes existentes para evitar reinicio del tiempo
-            const ordenesExistentesMap = new Map<number, Orden>();
-            this.ordenes.forEach(orden => {
-              ordenesExistentesMap.set(orden.id, orden);
-            });
-
-            // Mapear nuevas órdenes
-            const nuevasOrdenes = ordenes.map((pedido: any) => {
-              const ordenMapeada = this.mapearPedidoAOrden(pedido);
-              // Si la orden ya existe, preservar su tiempoCreacion original
-              const ordenExistente = ordenesExistentesMap.get(ordenMapeada.id);
-              if (ordenExistente && ordenExistente.tiempoCreacion instanceof Date) {
-                ordenMapeada.tiempoCreacion = ordenExistente.tiempoCreacion;
-                // Preservar estado optimista si está en transición
-                if ((ordenExistente as any).enTransicion) {
-                  ordenMapeada.estado = ordenExistente.estado;
-                  (ordenMapeada as any).enTransicion = true;
-                }
-                // Preservar estado de productos recientes y detectar nuevos
-                this.preservarYDetectarProductosNuevos(ordenExistente, ordenMapeada);
-              } else {
-                // Nueva orden, marcar todos los productos como recientes
-                this.marcarTodosComoRecientes(ordenMapeada);
-              }
-              return ordenMapeada;
-            });
-
-            // Detectar órdenes NUEVAS (no conocidas antes) para reproducir sonido
-            if (this.primeraCargatermined) {
-              const tieneNueva = nuevasOrdenes.some((o: Orden) => !this.ordenesConocidas.has(o.id));
-              if (tieneNueva) {
-                this.reproducirSonidoNuevaOrden();
-              }
-            }
-
-            // Actualizar conjunto de IDs conocidos
-            nuevasOrdenes.forEach((o: Orden) => this.ordenesConocidas.add(o.id));
-            this.primeraCargatermined = true;
-
-            this.ordenes = nuevasOrdenes;
-            this.aplicarFiltros();
-          }
-        },
-        error: (error: any) => {
-          console.error('Error cargando pedidos:', error);
-        }
-      });
+    this.loadOrders$.next();
   }
 
   mapearPedidoAOrden(pedido: any): Orden {
@@ -246,12 +253,36 @@ export class CocinaComponent implements OnInit, OnDestroy {
     // Procesar items (el backend puede enviar 'productos' o 'items')
     const itemsSource = pedido.productos || pedido.items;
     const itemsRaw = Array.isArray(itemsSource) ? itemsSource : [];
-    const items: ItemOrden[] = itemsRaw.map((item: any) => {
+    
+    // Filtrar los productos que ya fueron preparados anteriormente en esta misma mesa
+    const itemsParaCocina = itemsRaw.filter((item: any) => {
+      const itemEstado = item.estado ? item.estado.toUpperCase() : '';
+      const pedidoEstado = pedido.estado ? pedido.estado.toUpperCase() : '';
+      
+      const itemCompletado = itemEstado === 'COMPLETADA' || itemEstado === 'COMPLETADO';
+      const ordenCompletada = pedidoEstado === 'COMPLETADA' || pedidoEstado === 'COMPLETADO';
+      
+      // Mostrar el ítem si la orden entera acaba de ser completada,
+      // o si la orden está activa y este ítem ES NUEVO (no fue preparado en una ronda pasada)
+      return ordenCompletada || !itemCompletado;
+    });
+
+    const items: ItemOrden[] = itemsParaCocina.map((item: any) => {
       // Procesar modificadores - estructura: [{grupoId, grupoNombre, modificadores: [{nombre, precio}]}]
       let gruposModificadores: GrupoModificador[] = [];
 
-      if (Array.isArray(item.modificadores)) {
-        item.modificadores.forEach((grupo: any) => {
+      let rawModificadores = item.modificadores;
+      // Parsear modificadores si vienen como string JSON (desde Prisma TEXT column)
+      if (typeof rawModificadores === 'string') {
+        try {
+          rawModificadores = JSON.parse(rawModificadores);
+        } catch (e) {
+          rawModificadores = [];
+        }
+      }
+
+      if (Array.isArray(rawModificadores)) {
+        rawModificadores.forEach((grupo: any) => {
           if (typeof grupo === 'string') {
             // Si es string directo, crear un grupo genérico
             gruposModificadores.push({
@@ -454,17 +485,41 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
     this.apiService.actualizarEstadoPedido(orden.id, nuevoEstado).subscribe({
       next: (response: any) => {
+        // Encontrar la instancia más reciente de la orden
+        const ordenActual = this.ordenes.find(o => o.id === orden.id);
+        
+        if (ordenActual) {
+          ordenActual.enTransicion = false;
+          if (!response.success) {
+            ordenActual.estado = estadoAnterior;
+          }
+        }
+        
+        // También actualizar la ref original por si acaso
         orden.enTransicion = false;
         if (!response.success) {
           orden.estado = estadoAnterior;
-          this.aplicarFiltros();
         }
+        
+        this.aplicarFiltros();
+        // Recargar pedidos forzosamente descartando viejas peticiones en vuelo
+        this.loadOrders$.next();
       },
       error: (error: any) => {
         console.error('Error actualizando estado:', error);
+        
+        // Encontrar la instancia más reciente de la orden
+        const ordenActual = this.ordenes.find(o => o.id === orden.id);
+        
+        if (ordenActual) {
+          ordenActual.enTransicion = false;
+          ordenActual.estado = estadoAnterior;
+        }
+        
         orden.enTransicion = false;
         orden.estado = estadoAnterior;
         this.aplicarFiltros();
+        this.loadOrders$.next();
       }
     });
   }

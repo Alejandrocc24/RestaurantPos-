@@ -9,8 +9,9 @@ import { CartaExcelService } from '../services/carta-excel.service';
 import { Producto } from '../types/api.models';
 import { ToastService } from '../shared/toast/toast.service';
 import { CurrencyFormatPipe } from '../shared/pipes/currency-format.pipe';
-import { Subject } from 'rxjs';
+import { Subject, forkJoin } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { CategoriaService } from '../services/categoria.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -148,6 +149,7 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   constructor(
     private productosService: ProductosService,
+    private categoriaService: CategoriaService,
     private toast: ToastService,
     private cartaExcelService: CartaExcelService
   ) {
@@ -220,10 +222,17 @@ export class ProductosComponent implements OnInit, OnDestroy {
 
   cargarProductos(): void {
     this.cargando = true;
-    this.productosService.getProductos(0, 500)
+    
+    forkJoin({
+      productos: this.productosService.getProductos(0, 500),
+      categoriasDb: this.categoriaService.getCategorias(0, 500)
+    })
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (productos) => {
+        next: (result) => {
+          const productos = result.productos;
+          const categoriasDb = result.categoriasDb;
+          
           // Normalizar categoria y estado: si viene como objeto, extraer el nombre/valor
           const productosNormalizados = (productos || []).map((p: any) => ({
             ...p,
@@ -239,24 +248,42 @@ export class ProductosComponent implements OnInit, OnDestroy {
             (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'accent' })
           );
           console.log('✅ Productos cargados:', this.productos.length);
-          console.log('📦 Productos:', this.productos);
-          this.cargarCategoriasSidebar();
+          console.log('✅ Categorías DB cargadas:', categoriasDb.length);
+          this.cargarCategoriasSidebar(categoriasDb);
           this.filtrarProductos();
           this.cargando = false;
         },
         error: (error) => {
-          console.error('❌ Error cargando productos:', error);
+          console.error('❌ Error cargando productos y categorías:', error);
           this.toast.error('Error al cargar productos');
           this.cargando = false;
         }
       });
   }
 
-  private cargarCategoriasSidebar(): void {
-    // Extraer categorías de los productos cargados
+  private cargarCategoriasSidebar(categoriasDb: any[] = []): void {
     const categoriasSet = new Set<string>();
     const subcategoriasPorCategoria: Record<string, Set<string>> = {};
 
+    // Primero extraer categorías completas desde la DB
+    categoriasDb.forEach((cat: any) => {
+      const nombreCat = cat.nombre;
+      if (nombreCat) {
+        categoriasSet.add(nombreCat);
+        if (!subcategoriasPorCategoria[nombreCat]) {
+          subcategoriasPorCategoria[nombreCat] = new Set();
+        }
+        if (cat.subcategorias && Array.isArray(cat.subcategorias)) {
+          cat.subcategorias.forEach((sub: any) => {
+            if (sub.nombre) {
+              subcategoriasPorCategoria[nombreCat].add(sub.nombre);
+            }
+          });
+        }
+      }
+    });
+
+    // Luego respaldar con los propios productos (por seguridad)
     this.productos.forEach(p => {
       if (p.categoria) {
         categoriasSet.add(p.categoria);

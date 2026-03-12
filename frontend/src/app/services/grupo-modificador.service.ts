@@ -50,7 +50,7 @@ export class GrupoModificadorService {
       modificadores: g.opciones ? g.opciones.map((m: any) => ({
         id: m.id,
         nombre: m.nombre,
-        precio: m.precioAdicional ?? 0,
+        precio: Number(m.precioAdicional ?? m.precio_adicional ?? m.precio ?? 0) || 0,
         estado: m.activo ? 'activo' : 'inactivo',
         categoria: null
       })) : []
