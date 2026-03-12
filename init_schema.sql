@@ -166,6 +166,7 @@ CREATE TABLE "OrdenProducto" (
     "estado" TEXT NOT NULL DEFAULT 'pendiente',
     "notas" TEXT,
     "comentario" TEXT,
+    "modificadores" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "OrdenProducto_pkey" PRIMARY KEY ("id")

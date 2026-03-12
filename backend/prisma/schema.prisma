@@ -261,6 +261,7 @@ model OrdenProducto {
   estado       String   @default("pendiente")
   notas        String?
   comentario   String?  // Comentarios del producto (preestablecidos + personalizado combinados)
+  modificadores String? // JSON array de modificadores seleccionados [{grupoId, grupoNombre, modificadores: [{nombre, precio}]}]
   
   orden        Orden    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
   producto     Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)

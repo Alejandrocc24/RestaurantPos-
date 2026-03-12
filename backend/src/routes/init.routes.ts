@@ -20,7 +20,8 @@ router.get('/', async (req: Request, res: Response) => {
         );
 
         const data = result[0]?.data;
-        console.log(`✅ [SP] Datos iniciales cargados en ${Date.now() - t0}ms | Mesas: ${data?.mesas?.length} | Productos: ${data?.productos?.length} | Categorías: ${data?.categorias?.length} | Grupos: ${data?.gruposModificadores?.length}`);
+        const gruposLen = data?.gruposModificadores?.length || data?.grupos_modificadores?.length;
+        console.log(`✅ [SP] Datos iniciales cargados en ${Date.now() - t0}ms | Mesas: ${data?.mesas?.length} | Productos: ${data?.productos?.length} | Categorías: ${data?.categorias?.length} | Grupos: ${gruposLen}`);
 
         res.json({
             success: true,

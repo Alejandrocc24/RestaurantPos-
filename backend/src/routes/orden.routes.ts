@@ -14,6 +14,7 @@ router.patch('/:ordenId/cantidades', OrdenController.updateCantidades); // Actua
 router.get('/mesa/:mesaId/activa', OrdenController.getActiveForMesa); // Obtener orden activa de una mesa
 router.get('/mesa/:mesaId', OrdenController.getByMesa); // Obtener todas las órdenes de una mesa
 router.post('/ocultar-cocina', OrdenController.ocultarPedidosCocina); // Ocultar órdenes en cocina
+router.post('/transferir', OrdenController.transferirProductos); // Transferir productos entre mesas
 router.post('/mesa/:mesaId', OrdenController.createForMesa); // Crear orden para una mesa específica
 
 // Rutas genéricas después (menor especificidad)

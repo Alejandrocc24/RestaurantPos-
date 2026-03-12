@@ -362,8 +362,9 @@ export class MesasComponent implements OnInit, OnDestroy {
         }
 
         // Procesar grupos modificadores
-        if (data.gruposModificadores && data.gruposModificadores.length > 0) {
-          this.gruposModificadores = data.gruposModificadores.map((g: any) => ({
+        const gruposFuente = data.gruposModificadores || data.grupos_modificadores;
+        if (gruposFuente && gruposFuente.length > 0) {
+          this.gruposModificadores = gruposFuente.map((g: any) => ({
             id: g.id,
             nombre: g.nombre,
             obligatorio: g.requerido || false,
@@ -371,9 +372,12 @@ export class MesasComponent implements OnInit, OnDestroy {
             modificadores: (g.opciones || []).map((op: any) => ({
               id: op.id,
               nombre: op.nombre,
-              precioAdicional: op.precioAdicional || 0,
-              productoId: op.productoId || null,
-              producto: op.producto || null
+              precio: Number(op.precioAdicional || op.precio_adicional || op.precio) || 0,
+              precioAdicional: Number(op.precioAdicional || op.precio_adicional || op.precio) || 0,
+              productoId: op.productoId || op.producto_id || null,
+              producto: op.producto || null,
+              estado: op.estado || (op.activo !== false ? 'activo' : 'inactivo'),
+              activo: op.activo !== false
             }))
           }));
         } else {
@@ -1334,22 +1338,35 @@ export class MesasComponent implements OnInit, OnDestroy {
 
       // Guardar referencia al ID de la mesa antes de cualquier modificación
       const mesaId = this.mesaSeleccionadaInfo.id;
+      const pedidoId = producto.pedidoId;
+
+      if (!pedidoId) {
+        this.toast.error('Error', 'No se pudo identificar el pedido a modificar');
+        return;
+      }
+
+      // Preparar el producto para ser eliminado en el backend (cantidad a 0)
+      const productosAActualizar = [{
+        detalleId: producto.detalleId,
+        productoId: producto.productoId || producto.id,
+        cantidad: 0,
+        precioUnitario: producto.precio
+      }];
+
+      // Enviar solicitud de actualización de cantidades al backend
+      const resultado = await this.supabaseService.actualizarCantidadesProductos(pedidoId, productosAActualizar, false);
 
       // Eliminar producto del array local
       this.mesaSeleccionadaInfo.productos.splice(index, 1);
-
-      // Recalcular total
       this.mesaSeleccionadaInfo.totalCuenta = this.calcularTotalMesa(this.mesaSeleccionadaInfo);
 
-      // Si no quedan productos, liberar la mesa
-      if (this.mesaSeleccionadaInfo.productos.length === 0) {
-        console.log('📭 No quedan productos, liberando mesa...');
-        await this.supabaseService.actualizarMesa(mesaId, {
-          estado: 'disponible'
-        });
+      // Actualizar en el array principal de mesas localmente
+      const indexMesa = this.mesas.findIndex(m => m.id === mesaId);
 
-        // Actualizar en el array principal de mesas ANTES de cerrar el modal
-        const indexMesa = this.mesas.findIndex(m => m.id === mesaId);
+      // Si el pedido se cerró (no quedan productos), liberamos la mesa localmente
+      // El backend ya lo manejó en la base de datos a través de actualizar_cantidades_orden
+      if (resultado && resultado.pedidoCerrado) {
+        console.log('📭 No quedan productos, liberando mesa...');
         if (indexMesa !== -1) {
           this.mesas[indexMesa].estado = 'disponible';
           delete this.mesas[indexMesa].tiempoOcupacion;
@@ -1363,32 +1380,10 @@ export class MesasComponent implements OnInit, OnDestroy {
         this.toast.success('Producto eliminado', 'Mesa liberada (sin productos)');
         this.cerrarModalInfoMesa();
       } else {
-        // Actualizar pedido en el backend
-        const items = this.mesaSeleccionadaInfo.productos.map(p => ({
-          productoId: p.productoId ?? p.id,
-          cantidad: p.cantidad,
-          precioUnitario: p.precio,
-          subtotal: p.subtotal,
-          notas: p.notas || null,
-          comentario: p.comentario || null,
-          personalizacion: p.personalizacion || null,
-          modificadores: p.modificadores || []
-        }));
-
-        const payload = {
-          usuarioId: 1,
-          notas: null,
-          items: items
-        };
-
-        await this.supabaseService.guardarPedidoMesa(mesaId, payload);
-
-        // Actualizar en el array principal de mesas
-        const indexMesa = this.mesas.findIndex(m => m.id === mesaId);
+        // La mesa sigue ocupada, solo guardamos el estado local
         if (indexMesa !== -1) {
           this.mesas[indexMesa] = { ...this.mesaSeleccionadaInfo };
         }
-
         this.aplicarFiltros();
         this.toast.success('Producto eliminado', `${producto.nombre} eliminado del pedido`);
       }
@@ -1887,22 +1882,26 @@ export class MesasComponent implements OnInit, OnDestroy {
       console.log('    Grupos del producto:', producto.gruposModificadores);
 
       this.pasosModificadores = producto.configuracionGrupos.map(config => {
-        const grupo = this.gruposModificadores.find(g => g.id === config.grupoId);
+        const cGrupoId = config.grupoId || config.grupo_id;
+        const cMinSelecciones = config.minSelecciones !== undefined ? config.minSelecciones : config.min_selecciones;
+        const cMaxSelecciones = config.maxSelecciones !== undefined ? config.maxSelecciones : config.max_selecciones;
+
+        const grupo = this.gruposModificadores.find(g => g.id === cGrupoId);
         if (grupo) {
-          console.log(`    📦 Paso creado: ${grupo.nombre} (min: ${config.minSelecciones}, max: ${config.maxSelecciones}, cobra: ${grupo.cobrarPrecio ? 'SÍ' : 'NO'}, modificadores: ${grupo.modificadores?.length || 0})`);
+          console.log(`    📦 Paso creado: ${grupo.nombre} (min: ${cMinSelecciones}, max: ${cMaxSelecciones}, cobra: ${grupo.cobrarPrecio ? 'SÍ' : 'NO'}, modificadores: ${grupo.modificadores?.length || 0})`);
           return {
             titulo: grupo.nombre,
             descripcion: grupo.descripcion,
             grupoId: grupo.id,
             grupoNombre: grupo.nombre,
-            modificadores: (grupo.modificadores || []).filter(m => m.estado === 'activo'),
-            maxSelecciones: config.maxSelecciones,
-            minSelecciones: config.minSelecciones,
+            modificadores: (grupo.modificadores || []).filter(m => m.estado === 'activo' || (m as any).activo === true || (m as any).activo === undefined), // fallback para que salgan todos si la prop cambio
+            maxSelecciones: cMaxSelecciones,
+            minSelecciones: cMinSelecciones,
             obligatorio: grupo.obligatorio,
             cobrarPrecio: grupo.cobrarPrecio || false
           };
         } else {
-          console.warn(`    ⚠️ Grupo ${config.grupoId} no encontrado en gruposModificadores. Grupos disponibles: ${this.gruposModificadores.map(g => g.id).join(', ')}`);
+          console.warn(`    ⚠️ Grupo ${cGrupoId} no encontrado en gruposModificadores. Grupos disponibles: ${this.gruposModificadores.map(g => g.id).join(', ')}`);
         }
         return null;
       }).filter(paso => paso !== null) as PasoModificador[];
@@ -2144,6 +2143,7 @@ export class MesasComponent implements OnInit, OnDestroy {
             const grupoModificadores = {
               grupoId: paso.grupoId,
               grupoNombre: paso.grupoNombre,
+              cobrarPrecio: paso.cobrarPrecio || false,
               modificadores: seleccionados
             };
             modificadores.push(grupoModificadores);
@@ -2724,8 +2724,9 @@ export class MesasComponent implements OnInit, OnDestroy {
     try {
       const respuesta = await this.supabaseService.transferirProductosMesa(payload);
 
-      const dataDestino = respuesta?.destino;
-      const dataOrigen = respuesta?.origen;
+      const data = respuesta?.data || respuesta;
+      const dataDestino = data?.destino;
+      const dataOrigen = data?.origen;
 
       if (dataDestino?.pedido) {
         const productosDestino = this.mapearProductosPedidoDesdeBackend(dataDestino.pedido.items || []);

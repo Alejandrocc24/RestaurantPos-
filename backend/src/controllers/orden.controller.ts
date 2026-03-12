@@ -177,64 +177,53 @@ export class OrdenController {
         });
       }
 
-      // Crear la orden
-      const orden = await req.prisma.orden.create({
-        data: {
-          mesaId: mesaId || null,
-          usuarioId,
-          estado: 'PENDIENTE',
-          total: 0,
-          // Los productos se agregarán después
-        },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
+      const t0 = Date.now();
+
+      // Todo en una sola transacción interactiva (1 round-trip)
+      const ordenActualizada = await req.prisma.$transaction(async (tx: any) => {
+        // Crear la orden
+        const orden = await tx.orden.create({
+          data: {
+            mesaId: mesaId || null,
+            usuarioId,
+            estado: 'PENDIENTE',
+            total: 0,
           },
-          pagos: true,
-        },
-      });
-
-      // Si hay productos, agregarlos a la orden
-      if (productos && Array.isArray(productos)) {
-        const productosData = productos.map((prod: any) => ({
-          ordenId: orden.id,
-          productoId: prod.productoId,
-          cantidad: prod.cantidad || 1,
-          precioUnitario: prod.precioUnitario || 0,
-          subtotal: (prod.cantidad || 1) * (prod.precioUnitario || 0),
-          notas: prod.notas || null,
-        }));
-
-        await req.prisma.ordenProducto.createMany({
-          data: productosData
         });
 
-        // Recalcular el total de la orden
-        const ordenConfig = await req.prisma.ordenProducto.findMany({
-          where: { ordenId: orden.id },
-        });
+        // Si hay productos, agregarlos y calcular total
+        if (productos && Array.isArray(productos) && productos.length > 0) {
+          const productosData = productos.map((prod: any) => ({
+            ordenId: orden.id,
+            productoId: prod.productoId,
+            cantidad: prod.cantidad || 1,
+            precioUnitario: prod.precioUnitario || 0,
+            subtotal: (prod.cantidad || 1) * (prod.precioUnitario || 0),
+            notas: prod.notas || null,
+          }));
 
-        const total = ordenConfig.reduce((acc: number, op: any) => acc + op.subtotal, 0);
-        await req.prisma.orden.update({
+          await tx.ordenProducto.createMany({ data: productosData });
+
+          const total = productosData.reduce((acc: number, op: any) => acc + op.subtotal, 0);
+          await tx.orden.update({
+            where: { id: orden.id },
+            data: { total },
+          });
+        }
+
+        // Obtener la orden completa
+        return tx.orden.findUnique({
           where: { id: orden.id },
-          data: { total },
-        });
-      }
-
-      // Obtener la orden completa actualizada
-      const ordenActualizada = await req.prisma.orden.findUnique({
-        where: { id: orden.id },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
+          include: {
+            mesa: true,
+            usuario: { select: { id: true, nombre: true, email: true } },
+            productos: { include: { producto: true } },
+            pagos: true,
           },
-          pagos: true,
-        },
+        });
       });
+
+      console.log(`✅ Orden creada en ${Date.now() - t0}ms`);
 
       SocketService.emitGlobal('ordenCreada', ordenActualizada);
 
@@ -268,21 +257,32 @@ export class OrdenController {
         });
       }
 
-      const orden = await req.prisma.orden.update({
-        where: { id },
-        data: {
-          ...(estado && { estado }),
-          ...(descuento !== undefined && { descuento }),
-          ...(propina !== undefined && { propina }),
-        },
-        include: {
-          mesa: true,
-          usuario: { select: { id: true, nombre: true, email: true } },
-          productos: {
-            include: { producto: true },
+      // Si la cocina marca la orden como COMPLETADA, marcar todos sus productos activos como COMPLETADA
+      // y actualizar la orden en una sola transacción
+      const orden = await req.prisma.$transaction(async (tx: any) => {
+        if (estado === 'COMPLETADA') {
+          await tx.ordenProducto.updateMany({
+            where: { ordenId: id, estado: { notIn: ['COMPLETADA', 'completado'] } },
+            data: { estado: 'COMPLETADA' },
+          });
+        }
+
+        return tx.orden.update({
+          where: { id },
+          data: {
+            ...(estado && { estado }),
+            ...(descuento !== undefined && { descuento }),
+            ...(propina !== undefined && { propina }),
           },
-          pagos: true,
-        },
+          include: {
+            mesa: true,
+            usuario: { select: { id: true, nombre: true, email: true } },
+            productos: {
+              include: { producto: true },
+            },
+            pagos: true,
+          },
+        });
       });
 
       SocketService.emitGlobal('ordenActualizada', orden);
@@ -477,6 +477,58 @@ export class OrdenController {
       res.status(500).json({
         success: false,
         message: error.message || 'Error al ocultar órdenes',
+      });
+    }
+  }
+
+  /**
+   * POST /api/ordenes/transferir
+   * Transferir productos de una mesa a otra
+   */
+  static async transferirProductos(req: Request, res: Response) {
+    try {
+      const { mesaOrigenId, mesaDestinoId, productos } = req.body;
+      const usuarioId = req.userId;
+
+      if (!mesaOrigenId || !mesaDestinoId || !productos || !Array.isArray(productos) || productos.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'mesaOrigenId, mesaDestinoId y productos son requeridos',
+        });
+      }
+
+      if (!usuarioId) {
+        return res.status(400).json({ success: false, message: 'usuarioId no encontrado en el token' });
+      }
+
+      const detalleIds = productos.map((p: any) => p.detalleId).filter(Boolean);
+
+      console.log(`🔄 [SP] Transfiriendo ${detalleIds.length} producto(s) de mesa ${mesaOrigenId} a mesa ${mesaDestinoId}`);
+      const t0 = Date.now();
+
+      const result: any[] = await req.prisma.$queryRawUnsafe(
+        `SELECT transferir_productos_mesa($1, $2, $3, $4::jsonb) as data`,
+        mesaOrigenId,
+        mesaDestinoId,
+        usuarioId,
+        JSON.stringify(detalleIds)
+      );
+
+      const data = result[0]?.data;
+      console.log(`✅ [SP] Transferencia completada en ${Date.now() - t0}ms`);
+
+      SocketService.emitGlobal('ordenMesaActualizada', { mesaOrigenId, mesaDestinoId });
+
+      res.json({
+        success: true,
+        message: 'Productos transferidos exitosamente',
+        data,
+      });
+    } catch (error: any) {
+      console.error('Error transfiriendo productos:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Error al transferir productos',
       });
     }
   }
