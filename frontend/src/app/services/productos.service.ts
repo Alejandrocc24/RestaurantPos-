@@ -41,7 +41,7 @@ export class ProductosService {
    * Obtener productos activos (útil para menú)
    */
   getProductosActivos(): Observable<Producto[]> {
-    return this.getProductos();
+    return this.getProductos(0, 2000);
   }
 
   /**
