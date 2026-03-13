@@ -735,8 +735,12 @@
       <div class="resumen-cuenta">
         <h4>📋 Resumen de la Cuenta</h4>
         <div class="total-general">
-          <span class="total-label">Total de la cuenta:</span>
-          <span class="total-valor">${{ formatearMoneda(totalCuenta) }}</span>
+          <span class="total-label">Total a cobrar:</span>
+          <span class="total-valor">${{ formatearMoneda(subtotalProductos) }}</span>
+        </div>
+        <div class="total-referencia" *ngIf="subtotalProductos !== totalCuenta">
+          <span class="referencia-label">Total original de la mesa:</span>
+          <span class="referencia-valor">${{ formatearMoneda(totalCuenta) }}</span>
         </div>
       </div>
       
@@ -750,7 +754,7 @@
               <div class="producto-cobro-detalles">
                 <span class="cantidad">Cantidad total: {{ producto.cantidad }}</span>
                 <span class="precio-unitario">Precio: ${{ formatearMoneda(producto.precio) }}</span>
-                <span class="subtotal">Subtotal: ${{ formatearMoneda(producto.subtotal) }}</span>
+                <span class="subtotal">Subtotal: ${{ formatearMoneda((cantidadesCobro[producto.detalleId ?? producto.id] || 0) * producto.precio) }}</span>
               </div>
               <div class="producto-cobro-personalizacion" *ngIf="producto.personalizacion">
                 <small>✨ {{ producto.personalizacion }}</small>
@@ -763,23 +767,23 @@
                 <div class="cantidad-buttons">
                   <button type="button" 
                           class="btn-cantidad" 
-                          (click)="decrementarCantidadCobro(producto.id)"
-                          [disabled]="(cantidadesCobro[producto.id] || 0) === 0">
+                          (click)="decrementarCantidadCobro(producto.detalleId ?? producto.id)"
+                          [disabled]="(cantidadesCobro[producto.detalleId ?? producto.id] || 0) === 0">
                     −
                   </button>
-                  <span class="cantidad-valor">{{ cantidadesCobro[producto.id] || 0 }}</span>
+                  <span class="cantidad-valor">{{ cantidadesCobro[producto.detalleId ?? producto.id] || 0 }}</span>
                   <button type="button" 
                           class="btn-cantidad" 
-                          (click)="incrementarCantidadCobro(producto.id)"
-                          [disabled]="(cantidadesCobro[producto.id] || 0) >= producto.cantidad">
+                          (click)="incrementarCantidadCobro(producto.detalleId ?? producto.id)"
+                          [disabled]="(cantidadesCobro[producto.detalleId ?? producto.id] || 0) >= producto.cantidad">
                     +
                   </button>
                 </div>
               </div>
               <label class="checkbox-cobro">
                 <input type="checkbox" 
-                       [checked]="productosCobro[producto.id]"
-                       (change)="toggleProductoCobro(producto.id)">
+                       [checked]="productosCobro[producto.detalleId ?? producto.id]"
+                       (change)="toggleProductoCobro(producto.detalleId ?? producto.id)">
                 <span class="checkmark"></span>
                 <span class="checkbox-text">Seleccionar</span>
               </label>
@@ -791,7 +795,7 @@
       <!-- Resumen del cobro -->
       <div class="resumen-cobro">
         <div class="subtotal-cobro">
-          <span class="subtotal-label">Subtotal a cobrar:</span>
+          <span class="subtotal-label">Total a cobrar:</span>
           <span class="subtotal-valor">${{ formatearMoneda(subtotalProductos) }}</span>
         </div>
       </div>

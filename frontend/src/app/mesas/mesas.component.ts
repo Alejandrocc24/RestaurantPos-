@@ -161,8 +161,8 @@ export class MesasComponent implements OnInit, OnDestroy {
 
   // Variables para el modal de cierre de cuenta
   mostrarModalCierreCuenta = false;
-  productosCobro: { [key: number]: boolean } = {};
-  cantidadesCobro: { [key: number]: number } = {}; // Nueva: cantidades a cobrar por producto
+  productosCobro: { [key: string]: boolean } = {};
+  cantidadesCobro: { [key: string]: number } = {}; // Nueva: cantidades a cobrar por producto (clave = detalleId)
   denominacionRecibida = 0;
   denominacionManual = 0;
   cambioCalculado = 0;
@@ -2314,8 +2314,9 @@ export class MesasComponent implements OnInit, OnDestroy {
       this.productosCobro = {};
       this.cantidadesCobro = {};
       this.mesaSeleccionadaInfo.productos.forEach(producto => {
-        this.productosCobro[producto.id] = true; // Marcar todos como seleccionados por defecto
-        this.cantidadesCobro[producto.id] = producto.cantidad; // Cantidad completa por defecto
+        const key = producto.detalleId ?? producto.id;
+        this.productosCobro[key] = true; // Marcar todos como seleccionados por defecto
+        this.cantidadesCobro[key] = producto.cantidad; // Cantidad completa por defecto
       });
 
       // Calcular subtotal con todos seleccionados
@@ -2327,19 +2328,22 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleProductoCobro(productoId: number): void {
-    this.productosCobro[productoId] = !this.productosCobro[productoId];
+  toggleProductoCobro(key: string | number): void {
+    this.productosCobro[key] = !this.productosCobro[key];
 
     // Si se deselecciona, poner cantidad en 0; si se selecciona, restaurar cantidad original
-    if (!this.productosCobro[productoId]) {
-      this.cantidadesCobro[productoId] = 0;
+    if (!this.productosCobro[key]) {
+      this.cantidadesCobro[key] = 0;
     } else {
-      const producto = this.mesaSeleccionadaInfo?.productos?.find(p => p.id === productoId);
+      const producto = this.mesaSeleccionadaInfo?.productos?.find(p => (p.detalleId ?? p.id) === key);
       if (producto) {
-        this.cantidadesCobro[productoId] = producto.cantidad;
+        this.cantidadesCobro[key] = producto.cantidad;
       }
     }
 
+    // Crear nuevas referencias para forzar la detección de cambios de Angular
+    this.productosCobro = { ...this.productosCobro };
+    this.cantidadesCobro = { ...this.cantidadesCobro };
     this.calcularSubtotalProductos();
   }
 
@@ -2347,9 +2351,13 @@ export class MesasComponent implements OnInit, OnDestroy {
     if (!this.mesaSeleccionadaInfo?.productos) return;
 
     this.subtotalProductos = this.mesaSeleccionadaInfo.productos
-      .filter(producto => this.productosCobro[producto.id])
+      .filter(producto => {
+        const key = producto.detalleId ?? producto.id;
+        return this.productosCobro[key];
+      })
       .reduce((total, producto) => {
-        const cantidadACobrar = this.cantidadesCobro[producto.id] || 0;
+        const key = producto.detalleId ?? producto.id;
+        const cantidadACobrar = this.cantidadesCobro[key] || 0;
         const precioUnitario = producto.precio;
         return total + (cantidadACobrar * precioUnitario);
       }, 0);
@@ -2362,25 +2370,31 @@ export class MesasComponent implements OnInit, OnDestroy {
   }
 
   // Métodos para manejar cantidades individuales
-  incrementarCantidadCobro(productoId: number): void {
-    const producto = this.mesaSeleccionadaInfo?.productos?.find(p => p.id === productoId);
+  incrementarCantidadCobro(key: string | number): void {
+    const producto = this.mesaSeleccionadaInfo?.productos?.find(p => (p.detalleId ?? p.id) === key);
     if (!producto) return;
 
-    const cantidadActual = this.cantidadesCobro[productoId] || 0;
+    const cantidadActual = this.cantidadesCobro[key] || 0;
     if (cantidadActual < producto.cantidad) {
-      this.cantidadesCobro[productoId] = cantidadActual + 1;
-      this.productosCobro[productoId] = true; // Asegurar que esté seleccionado
+      this.cantidadesCobro[key] = cantidadActual + 1;
+      this.productosCobro[key] = true; // Asegurar que esté seleccionado
+      // Crear nuevas referencias para forzar la detección de cambios de Angular
+      this.cantidadesCobro = { ...this.cantidadesCobro };
+      this.productosCobro = { ...this.productosCobro };
       this.calcularSubtotalProductos();
     }
   }
 
-  decrementarCantidadCobro(productoId: number): void {
-    const cantidadActual = this.cantidadesCobro[productoId] || 0;
+  decrementarCantidadCobro(key: string | number): void {
+    const cantidadActual = this.cantidadesCobro[key] || 0;
     if (cantidadActual > 0) {
-      this.cantidadesCobro[productoId] = cantidadActual - 1;
-      if (this.cantidadesCobro[productoId] === 0) {
-        this.productosCobro[productoId] = false; // Deseleccionar si llega a 0
+      this.cantidadesCobro[key] = cantidadActual - 1;
+      if (this.cantidadesCobro[key] === 0) {
+        this.productosCobro[key] = false; // Deseleccionar si llega a 0
       }
+      // Crear nuevas referencias para forzar la detección de cambios de Angular
+      this.cantidadesCobro = { ...this.cantidadesCobro };
+      this.productosCobro = { ...this.productosCobro };
       this.calcularSubtotalProductos();
     }
   }
@@ -2425,18 +2439,16 @@ export class MesasComponent implements OnInit, OnDestroy {
   async confirmarCierreCuenta(): Promise<void> {
     if (!this.mesaSeleccionadaInfo) return;
 
-    // ✅ VALIDACIÓN CRÍTICA: Paralelizamos la petición de caja con la del pedido activo para ahorrar 500ms
-    let cajaAbierta: any;
-    let pedidoActivo: any;
+    // Obtener el pedidoId directamente de los productos ya cargados (evita llamada lenta al backend)
+    const pedidoId = this.mesaSeleccionadaInfo.productos?.[0]?.pedidoId;
+    if (!pedidoId) {
+      this.toast.error('Error', 'No se encontró un pedido activo para esta mesa');
+      return;
+    }
 
+    // Solo validamos la caja (rápido, ~400ms)
     try {
-      const [cajaAbiertaRes, pedidoActivoRes] = await Promise.all([
-        this.supabaseService.obtenerCajaAbierta(),
-        this.supabaseService.obtenerPedidoActivoMesa(this.mesaSeleccionadaInfo.id)
-      ]);
-
-      cajaAbierta = cajaAbiertaRes;
-      pedidoActivo = pedidoActivoRes;
+      const cajaAbierta = await this.supabaseService.obtenerCajaAbierta();
 
       if (!cajaAbierta) {
         await Swal.fire({
@@ -2460,8 +2472,8 @@ export class MesasComponent implements OnInit, OnDestroy {
         return;
       }
     } catch (error) {
-      console.error('Error verificando estado inicial para cobro:', error);
-      this.toast.error('Error', 'No se pudo verificar el estado de la caja o pedido');
+      console.error('Error verificando estado de la caja:', error);
+      this.toast.error('Error', 'No se pudo verificar el estado de la caja');
       return;
     }
 
@@ -2476,7 +2488,8 @@ export class MesasComponent implements OnInit, OnDestroy {
     if (productosSeleccionados.length === 0) {
       if (this.mesaSeleccionadaInfo.productos) {
         this.mesaSeleccionadaInfo.productos.forEach(producto => {
-          this.productosCobro[producto.id] = true;
+          const key = producto.detalleId ?? producto.id;
+          this.productosCobro[key] = true;
         });
         this.subtotalProductos = this.totalCuenta;
       }
@@ -2489,14 +2502,11 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
 
     try {
-      if (!pedidoActivo || !pedidoActivo.id) {
-        this.toast.error('Error', 'No se encontró un pedido activo para esta mesa');
-        return;
-      }
 
       // Preparar productos con cantidades actualizadas
       const productosActualizados = this.mesaSeleccionadaInfo.productos?.map(producto => {
-        const cantidadCobrada = this.productosCobro[producto.id] ? (this.cantidadesCobro[producto.id] || 0) : 0;
+        const key = producto.detalleId ?? producto.id;
+        const cantidadCobrada = this.productosCobro[key] ? (this.cantidadesCobro[key] || 0) : 0;
         const cantidadRestante = producto.cantidad - cantidadCobrada;
 
         return {
@@ -2519,14 +2529,19 @@ export class MesasComponent implements OnInit, OnDestroy {
       const now = new Date();
       const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
       const cantidadProductosCobrados = this.mesaSeleccionadaInfo.productos?.reduce((sum: number, producto: any) => {
-        const cantidadCobrada = this.productosCobro[producto.id] ? (this.cantidadesCobro[producto.id] || producto.cantidad || 1) : 0;
+        const key = producto.detalleId ?? producto.id;
+        const cantidadCobrada = this.productosCobro[key] ? (this.cantidadesCobro[key] || producto.cantidad || 1) : 0;
         return sum + cantidadCobrada;
       }, 0) || 0;
 
       const productosSnapshot = (this.mesaSeleccionadaInfo.productos || [])
-        .filter((producto: any) => this.productosCobro[producto.id])
+        .filter((producto: any) => {
+          const key = producto.detalleId ?? producto.id;
+          return this.productosCobro[key];
+        })
         .map((producto: any) => {
-          const cantidadCobrada = this.cantidadesCobro[producto.id] || producto.cantidad || 1;
+          const key = producto.detalleId ?? producto.id;
+          const cantidadCobrada = this.cantidadesCobro[key] || producto.cantidad || 1;
           return {
             nombre: producto.nombre,
             cantidad: cantidadCobrada,
@@ -2543,7 +2558,7 @@ export class MesasComponent implements OnInit, OnDestroy {
         estado: 'completada',
         metodo_pago: this.metodoPago,
         fecha: localISOTime,
-        orden_id: pedidoActivo.id,
+        orden_id: pedidoId,
         cantidad_productos: cantidadProductosCobrados,
         productos_json: productosSnapshot
       };
@@ -2551,7 +2566,7 @@ export class MesasComponent implements OnInit, OnDestroy {
       // Paralelizamos las llamadas al backend (ambas escrituras a nivel base de datos)
       console.log('➡️ Enviando requerimientos paralelos a Base de Datos (cantidades y ventas)...');
       const [resultado] = await Promise.all([
-        this.supabaseService.actualizarCantidadesProductos(pedidoActivo.id, productosActualizados, true),
+        this.supabaseService.actualizarCantidadesProductos(pedidoId, productosActualizados, true),
         this.supabaseService.crearVenta(venta)
       ]);
       console.log('✅ Resultado actualización completado:', resultado);
