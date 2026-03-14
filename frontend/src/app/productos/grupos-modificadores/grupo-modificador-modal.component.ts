@@ -85,6 +85,7 @@ export class GrupoModificadorModalComponent implements OnInit {
         // Convertir productos a modificadores
         const list: Modificador[] = productos.map(producto => ({
           id: typeof producto.id === 'string' && !isNaN(Number(producto.id)) ? Number(producto.id) : producto.id,
+          productoId: String(producto.id),
           nombre: producto.nombre,
           precio: producto.precio,
           estado: (producto.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo'

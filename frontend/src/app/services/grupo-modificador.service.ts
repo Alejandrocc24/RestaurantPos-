@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 
 export interface Modificador {
   id: string | number;
+  productoId?: string | null;
   nombre: string;
   precio: number;
   estado: 'activo' | 'inactivo';
@@ -49,10 +50,11 @@ export class GrupoModificadorService {
       cobrarPrecio: g.cobrarPrecio ?? g.cobrar_precio ?? false,
       modificadores: g.opciones ? g.opciones.map((m: any) => ({
         id: m.id,
+        productoId: m.productoId ?? m.producto_id ?? null,
         nombre: m.nombre,
         precio: Number(m.precioAdicional ?? m.precio_adicional ?? m.precio ?? 0) || 0,
         estado: m.activo ? 'activo' : 'inactivo',
-        categoria: null
+        categoria: m.categoria ?? null
       })) : []
     };
   }
@@ -74,10 +76,12 @@ export class GrupoModificadorService {
     // Mapear modificadores a 'opciones' esperado por el backend (Prisma)
     // IMPORTANTE: Esto reemplaza todas las opciones existentes
     if (grupo.modificadores && Array.isArray(grupo.modificadores) && grupo.modificadores.length > 0) {
-      dbGrupo.opciones = grupo.modificadores.map((m: Modificador) => ({
+      dbGrupo.opciones = grupo.modificadores.map((m: Modificador & { productoId?: string | null }) => ({
         nombre: m.nombre.trim(),
         precioAdicional: typeof (m.precio) === 'number' ? m.precio : Number(m.precio) || 0,
-        activo: m.estado === 'activo'
+        activo: m.estado === 'activo',
+        productoId: m.productoId ?? null,
+        categoria: m.categoria ?? null
       }));
     } else {
       // Si no hay modificadores, incluir array vacío para reemplazar opciones existentes

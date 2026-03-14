@@ -10,6 +10,15 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.cocina-container:fullscreen {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 0;
+  margin: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow-y: auto;
+}
+
 /* Header de la pantalla de cocina */
 .cocina-header {
   display: flex;
@@ -583,6 +592,17 @@
   color: #333;
 }
 
+.item-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.item-header-row .item-controles-estado {
+  margin-top: 0;
+}
+
 
 /* Contenedor de grupos de modificadores */
 .grupos-modificadores {
@@ -650,11 +670,12 @@
   gap: 5px;
   margin-top: 5px;
   color: #666;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
 .notas-icon {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
 }
 
 .item-comentario {
@@ -663,7 +684,96 @@
   gap: 5px;
   margin-top: 5px;
   color: #17a2b8;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.comentario-icon {
+  font-size: 1.2rem;
+}
+
+/* Controles de estado por producto */
+.item-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.item-controles-estado {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: 12px;
+}
+
+.btn-item-avance {
+  padding: 4px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  min-width: 60px;
+}
+
+.btn-item-avance:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-avance-pendiente {
+  background-color: #ffebee;
+  color: #d32f2f;
+  border: 1px solid #ffcdd2;
+}
+
+.btn-avance-pendiente:not(:disabled):hover {
+  background-color: #d32f2f;
+  color: white;
+  transform: scale(1.05);
+}
+
+.btn-avance-encurso {
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: 1px solid #ffe0b2;
+}
+
+.btn-avance-encurso:not(:disabled):hover {
+  background-color: #f57c00;
+  color: white;
+  transform: scale(1.05);
+}
+
+.btn-avance-completado {
+  background-color: #e8f5e9;
+  color: #388e3c;
+  border: 1px solid #c8e6c9;
+}
+
+/* Boton full screen */
+.btn-fullscreen {
+  background: transparent;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-left: 15px;
+  padding: 4px 10px;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
+}
+
+.btn-fullscreen:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: white;
 }
 
 .comentario-icon {
@@ -694,7 +804,8 @@
 
 .notas-texto {
   color: #bf360c;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+  font-weight: 500;
   line-height: 1.4;
 }
 
@@ -920,8 +1031,11 @@
   }
 
   .header-center {
-    display: none;
-    /* Ocultar hora en móvil */
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 5px;
   }
 
   .header-right {

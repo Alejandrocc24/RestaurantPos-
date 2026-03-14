@@ -337,11 +337,17 @@ export class MesasComponent implements OnInit, OnDestroy {
               } catch (e) { configuracionGrupos = undefined; }
             }
             let comentarios: string[] = [];
-            if (p.comentarios && Array.isArray(p.comentarios)) {
-              if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'object' && p.comentarios[0].texto) {
-                comentarios = p.comentarios.map((c: any) => c.texto);
-              } else if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'string') {
-                comentarios = p.comentarios;
+            let comFuente = p.comentarios;
+            if (typeof comFuente === 'string' && comFuente.trim().startsWith('[')) {
+              try {
+                comFuente = JSON.parse(comFuente);
+              } catch (e) { }
+            }
+            if (comFuente && Array.isArray(comFuente)) {
+              if (comFuente.length > 0 && typeof comFuente[0] === 'object' && comFuente[0].texto) {
+                comentarios = comFuente.map((c: any) => c.texto);
+              } else if (comFuente.length > 0 && typeof comFuente[0] === 'string') {
+                comentarios = comFuente;
               }
             }
             return {
@@ -377,7 +383,8 @@ export class MesasComponent implements OnInit, OnDestroy {
               productoId: op.productoId || op.producto_id || null,
               producto: op.producto || null,
               estado: op.estado || (op.activo !== false ? 'activo' : 'inactivo'),
-              activo: op.activo !== false
+              activo: op.activo !== false,
+              categoria: op.categoria || null
             }))
           }));
         } else {
@@ -1894,7 +1901,16 @@ export class MesasComponent implements OnInit, OnDestroy {
             descripcion: grupo.descripcion,
             grupoId: grupo.id,
             grupoNombre: grupo.nombre,
-            modificadores: (grupo.modificadores || []).filter(m => m.estado === 'activo' || (m as any).activo === true || (m as any).activo === undefined), // fallback para que salgan todos si la prop cambio
+            modificadores: (grupo.modificadores || []).filter(m => {
+              const isModActive = m.estado === 'activo' || (m as any).activo === true || (m as any).activo === undefined;
+              let isProdActive = true;
+              if (m.productoId) {
+                // If it's linked to a product, ensure the product is in the active products list
+                const prodSource = this.productos.find(p => String(p.id) === String(m.productoId));
+                if (!prodSource) isProdActive = false;
+              }
+              return isModActive && isProdActive;
+            }),
             maxSelecciones: cMaxSelecciones,
             minSelecciones: cMinSelecciones,
             obligatorio: grupo.obligatorio,

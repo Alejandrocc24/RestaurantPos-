@@ -301,6 +301,73 @@ export class OrdenController {
   }
 
   /**
+   * PATCH /api/ordenes/:ordenId/item/:itemId/estado
+   * Actualiza el estado de un producto específico en una orden
+   */
+  static async updateItemEstado(req: Request, res: Response) {
+    try {
+      const { ordenId, itemId } = req.params;
+      const { estado } = req.body;
+
+      const orden = await req.prisma.$transaction(async (tx: any) => {
+        await tx.ordenProducto.update({
+          where: { id: itemId },
+          data: { estado }
+        });
+
+        // Verificar si todos los productos están completados
+        const productosTotales = await tx.ordenProducto.count({
+          where: { ordenId }
+        });
+        
+        const productosCompletados = await tx.ordenProducto.count({
+          where: { 
+            ordenId, 
+            estado: { in: ['COMPLETADA', 'completado', 'COMPLETADO'] } 
+          }
+        });
+
+        // Si todos los productos están completados, completar la orden automáticamente
+        if (productosTotales > 0 && productosTotales === productosCompletados) {
+          await tx.orden.update({
+            where: { id: ordenId },
+            data: { estado: 'COMPLETADA' }
+          });
+        } else if (estado === 'EN_CURSO' || estado === 'EN_PROGRESO') {
+          // Si al menos un producto está en curso, la orden está en curso
+          await tx.orden.update({
+            where: { id: ordenId },
+            data: { estado: 'EN_CURSO' }
+          });
+        }
+
+        return tx.orden.findUnique({
+          where: { id: ordenId },
+          include: {
+            mesa: true,
+            usuario: { select: { id: true, nombre: true, email: true } },
+            productos: { include: { producto: true } },
+            pagos: true,
+          },
+        });
+      });
+
+      SocketService.emitGlobal('ordenActualizada', orden);
+
+      res.json({
+        success: true,
+        message: 'Estado de producto actualizado',
+        data: orden,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  /**
    * DELETE /api/ordenes/:id
    * Eliminar una orden
    */

@@ -1565,8 +1565,24 @@ export class VentasComponent implements OnInit, OnDestroy {
     return '$' + valorRedondeado.toLocaleString('es-CO');
   }
 
-  formatearFecha(fecha: string): string {
-    return new Date(fecha).toLocaleDateString('es-CO', {
+  formatearFecha(fecha: string | Date): string {
+    if (!fecha) return 'N/A';
+    
+    let dateStr = typeof fecha === 'string' ? fecha : fecha.toISOString();
+    
+    // Si la fecha viene de la BD como string "2024-03-13 21:44:40" sin la 'T'
+    if (dateStr.includes(' ') && !dateStr.includes('T')) {
+      dateStr = dateStr.replace(' ', 'T');
+    }
+    
+    // Si el backend envía la fecha con 'Z' (UTC) pero en realidad Postgres
+    // guardó la hora local exacta, al quitar la 'Z' forzamos a que el
+    // navegador lo parsee directamente como hora local, corrigiendo así el desfase.
+    if (dateStr.endsWith('Z')) {
+      dateStr = dateStr.slice(0, -1);
+    }
+
+    return new Date(dateStr).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

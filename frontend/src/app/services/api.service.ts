@@ -133,6 +133,16 @@ export class ApiService {
     return this.updateOrden(id.toString(), { estado: backendEstado as any });
   }
 
+  actualizarEstadoItemPedido(ordenId: number | string, itemId: number | string, estado: string): Observable<ApiResponse<Orden>> {
+    let backendEstado = estado.toUpperCase();
+    if (backendEstado === 'EN_PROGRESO') backendEstado = 'EN_CURSO';
+    if (backendEstado === 'COMPLETADO') backendEstado = 'COMPLETADA';
+
+    return this.withHandling(
+      this.http.patch<ApiResponse<Orden>>(`${this.baseUrl}/ordenes/${ordenId}/item/${itemId}/estado`, { estado: backendEstado })
+    );
+  }
+
   ocultarPedidosCocina(ids: number[]): Observable<ApiResponse<any>> {
     // Si no existe endpoint batch, esto es un placeholder.
     // Idealmente el backend debería soportarlo.
