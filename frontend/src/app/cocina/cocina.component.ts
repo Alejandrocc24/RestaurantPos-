@@ -142,20 +142,18 @@ export class CocinaComponent implements OnInit, OnDestroy {
     });
 
     // Suscripciones a WebSockets para tiempo real
-    this.socketService.listen('ordenCreada').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
+    // Nota: listen() ya ejecuta dentro de NgZone automáticamente
+    this.socketService.listen('ordenCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ventaCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+
+    // Cuando el socket se reconecta, recargar todo
+    this.socketService.onReconnect$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      console.log('🔄 [Cocina] Socket reconectado, recargando pedidos...');
+      this.cargarPedidos();
     });
 
     // Fallback de recarga

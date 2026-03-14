@@ -303,6 +303,10 @@ export class ApiService {
     return this.withHandling(this.http.patch(`${this.baseUrl}/ordenes/${pedidoId}/cantidades?esCobro=${esCobro}`, { productos })).toPromise() as Promise<any>;
   }
 
+  cobrarMesaCompleta(payload: any): Promise<any> {
+    return this.withHandling(this.http.post(`${this.baseUrl}/ventas/cobrar`, payload)).toPromise() as Promise<any>;
+  }
+
   transferirProductosMesa(payload: any): Promise<any> {
     return this.withHandling(this.http.post(`${this.baseUrl}/ordenes/transferir`, payload)).toPromise() as Promise<any>;
   }

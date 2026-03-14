@@ -110,6 +110,12 @@ export class SupabaseService {
     return resp; // Se requiere resp completo porque ahí viene pedidoCerrado
   }
 
+  async cobrarMesaCompleta(payload: any) {
+    const resp = await this.api.cobrarMesaCompleta(payload);
+    if (!resp?.success) throw new Error(resp?.message || resp?.error || 'Error procesando el cobro completo');
+    return resp;
+  }
+
   async transferirProductosMesa(payload: any) {
     const resp = await this.api.transferirProductosMesa(payload);
     if (!resp?.success) throw new Error(resp?.error || 'Error al transferir productos de mesa');
@@ -623,7 +629,7 @@ export class SupabaseService {
       const ventasAll = ventasResp.data || [];
 
       // Mapear catálogo de productos para obtener categoría (ya que el JSON guardado antes podía no tenerla)
-      const { data: productosCatalog } = await firstValueFrom(this.api.getData('productos')).catch(() => ({ data: [] }));
+      const { data: productosCatalog } = await firstValueFrom(this.api.getData('productos?take=10000')).catch(() => ({ data: [] }));
       const categoriasPorDefecto: Record<string, string> = {};
       (productosCatalog || []).forEach((p: any) => {
         if (p.nombre) {

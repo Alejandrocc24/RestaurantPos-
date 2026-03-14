@@ -424,7 +424,10 @@ export class OrdenController {
       const ordenActualizada = result[0]?.data;
       console.log(`✅ [SP] Orden procesada en ${Date.now() - t0}ms. Total: ${ordenActualizada?.total}`);
 
+      // Emitir evento de orden actualizada (para cocina y productos de mesa)
       SocketService.emitGlobal('ordenMesaActualizada', ordenActualizada);
+      // También emitir mesaActualizada porque el SP cambia el estado de la mesa a OCUPADA
+      SocketService.emitGlobal('mesaActualizada', { id: mesaId, estado: 'OCUPADA' });
 
       res.json({
         success: true,
@@ -585,6 +588,9 @@ export class OrdenController {
       console.log(`✅ [SP] Transferencia completada en ${Date.now() - t0}ms`);
 
       SocketService.emitGlobal('ordenMesaActualizada', { mesaOrigenId, mesaDestinoId });
+      // Both tables may have changed state (origin freed, destination occupied)
+      SocketService.emitGlobal('mesaActualizada', { id: mesaOrigenId });
+      SocketService.emitGlobal('mesaActualizada', { id: mesaDestinoId });
 
       res.json({
         success: true,
