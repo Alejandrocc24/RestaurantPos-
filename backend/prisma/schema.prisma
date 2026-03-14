@@ -140,6 +140,7 @@ model OpcionModificador {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   productoId      String?
+  categoria       String?
   grupo           GrupoModificador @relation(fields: [grupoId], references: [id], onDelete: Cascade)
   producto        Producto?        @relation(fields: [productoId], references: [id])
 

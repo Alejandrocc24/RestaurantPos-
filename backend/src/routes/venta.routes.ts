@@ -9,6 +9,7 @@ router.use(authMiddleware, ensurePrismaMiddleware);
 
 // Rutas específicas primero
 router.get('/hoy', VentaController.getHoy);
+router.post('/cobrar', VentaController.cobrarMesa);
 
 // Rutas genéricas
 router.get('/', VentaController.getAll);

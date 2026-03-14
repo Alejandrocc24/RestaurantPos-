@@ -2,7 +2,11 @@
   <!-- Header de la pantalla de cocina -->
   <div class="cocina-header">
     <div class="header-left">
-      <h1>👨‍🍳 Pantalla de Cocina</h1>
+      <h1>👨‍🍳 Pantalla de Cocina
+        <button class="btn-fullscreen" (click)="toggleFullScreen()" title="Alternar Pantalla Completa">
+          ⛶
+        </button>
+      </h1>
     </div>
 
     <div class="header-center">
@@ -128,11 +132,34 @@
       <!-- Items de la orden -->
       <div class="orden-items">
         <div *ngFor="let item of orden.items" class="item-orden">
+          
           <div class="item-cantidad">{{ item.cantidad }}x</div>
           <div class="item-info">
-            <div class="item-nombre">
-              {{ item.nombre }}
-              <span *ngIf="item.esReciente" class="nuevo-badge">¡NUEVO!</span>
+            <div class="item-header-row">
+              <div class="item-nombre">
+                {{ item.nombre }}
+                <span *ngIf="item.esReciente" class="nuevo-badge">¡NUEVO!</span>
+              </div>
+              
+              <!-- Controles por producto individual (Lado derecho) -->
+              <div class="item-controles-estado" *ngIf="orden.estado !== 'completado'">
+                 <button *ngIf="!item.estado || item.estado === 'pendiente'" 
+                         class="btn-item-avance btn-avance-pendiente" 
+                         title="Iniciar preparación"
+                         (click)="puedePreparar() ? cambiarEstadoItem(item, orden, 'EN_CURSO') : null"
+                         [disabled]="!puedePreparar()">▶</button>
+                         
+                 <button *ngIf="item.estado === 'EN_CURSO' || item.estado === 'en_progreso'" 
+                         class="btn-item-avance btn-avance-encurso" 
+                         title="Marcar como listo"
+                         (click)="puedeCompletar() ? cambiarEstadoItem(item, orden, 'COMPLETADA') : null"
+                         [disabled]="!puedeCompletar()">⏭</button>
+
+                 <button *ngIf="item.estado === 'COMPLETADA' || item.estado === 'completado'" 
+                         class="btn-item-avance btn-avance-completado" 
+                         title="Listo"
+                         disabled>✔️</button>
+              </div>
             </div>
 
             <!-- Grupos de Modificadores -->
@@ -156,6 +183,8 @@
               <span class="comentario-icon">💬</span>
               <span class="comentario-texto">{{ item.comentario }}</span>
             </div>
+
+            <!-- Omitimos el div viejo de controles aquí abajo -->
           </div>
         </div>
       </div>

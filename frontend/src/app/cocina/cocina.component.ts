@@ -38,6 +38,7 @@ interface ItemOrden {
   tiempoMarcadoReciente?: Date; // Timestamp de cuando se marcó como reciente
   tiempoPreparacion?: number; // Tiempo de preparación en minutos
   tiempoCreacionItem?: Date; // Tiempo de creación del item para calcular tiempo transcurrido
+  estado?: string; // Estado de preparación del producto
 }
 
 @Component({
@@ -141,20 +142,18 @@ export class CocinaComponent implements OnInit, OnDestroy {
     });
 
     // Suscripciones a WebSockets para tiempo real
-    this.socketService.listen('ordenCreada').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
-    });
-    this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => {
-      this.ngZone.run(() => this.cargarPedidos());
+    // Nota: listen() ya ejecuta dentro de NgZone automáticamente
+    this.socketService.listen('ordenCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+    this.socketService.listen('ventaCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarPedidos());
+
+    // Cuando el socket se reconecta, recargar todo
+    this.socketService.onReconnect$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      console.log('🔄 [Cocina] Socket reconectado, recargando pedidos...');
+      this.cargarPedidos();
     });
 
     // Fallback de recarga
@@ -178,7 +177,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Reproduce un doble beep de notificación usando Web Audio API (sin archivos externos) */
+  /** Reproduce un triple beep fuerte de notificación usando Web Audio API (sin archivos externos) */
   private reproducirSonidoNuevaOrden(): void {
     try {
       if (!this.audioCtx) {
@@ -186,30 +185,46 @@ export class CocinaComponent implements OnInit, OnDestroy {
       }
       const ctx = this.audioCtx;
 
-      const tocarBeep = (inicioSegundos: number, frecuencia: number, duracion: number) => {
+      const tocarBeep = (inicioSegundos: number, frecuencia: number, duracion: number, volumen: number) => {
         const oscillator = ctx.createOscillator();
         const gainNode = ctx.createGain();
 
         oscillator.connect(gainNode);
         gainNode.connect(ctx.destination);
 
-        oscillator.type = 'sine';
+        // Usar onda cuadrada o diente de sierra para un sonido más "alarma" y estridente
+        oscillator.type = 'square';
         oscillator.frequency.setValueAtTime(frecuencia, ctx.currentTime + inicioSegundos);
 
+        // Envolvente de volumen más agudo (ataque rápido)
         gainNode.gain.setValueAtTime(0, ctx.currentTime + inicioSegundos);
-        gainNode.gain.linearRampToValueAtTime(0.4, ctx.currentTime + inicioSegundos + 0.02);
+        gainNode.gain.linearRampToValueAtTime(volumen, ctx.currentTime + inicioSegundos + 0.05);
         gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + inicioSegundos + duracion);
 
         oscillator.start(ctx.currentTime + inicioSegundos);
-        oscillator.stop(ctx.currentTime + inicioSegundos + duracion + 0.05);
+        oscillator.stop(ctx.currentTime + inicioSegundos + duracion + 0.1);
       };
 
-      // Doble beep: tono alto (880Hz) + tono medio (660Hz)
-      tocarBeep(0, 880, 0.15);  // primer beep
-      tocarBeep(0.22, 660, 0.25);  // segundo beep más largo
+      // Triple beep de volumen alto para alertar sobre nueva comanda
+      tocarBeep(0.0, 880, 0.2, 1.0);  
+      tocarBeep(0.3, 880, 0.2, 1.0);  
+      tocarBeep(0.6, 1100, 0.4, 1.0);  
     } catch (err) {
-      // Si el navegador bloquea el audio, ignorar silenciosamente
       console.warn('No se pudo reproducir sonido de notificación:', err);
+    }
+  }
+
+  toggleFullScreen() {
+    const container = document.querySelector('.cocina-container') as HTMLElement;
+    if (!document.fullscreenElement) {
+      const target = container || document.documentElement;
+      target.requestFullscreen().catch((err: any) => {
+        console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
     }
   }
 
@@ -324,7 +339,8 @@ export class CocinaComponent implements OnInit, OnDestroy {
         esReciente: false, // Inicializar como false, se marcará después
         tiempoMarcadoReciente: undefined,
         tiempoPreparacion: item.producto?.tiempoPreparacion || item.producto?.tiempo_preparacion || item.tiempoPreparacion || undefined,
-        tiempoCreacionItem: item.tiempoCreacion ? new Date(item.tiempoCreacion) : tiempoCreacion
+        tiempoCreacionItem: item.tiempoCreacion ? new Date(item.tiempoCreacion) : tiempoCreacion,
+        estado: item.estado || 'pendiente'
       };
     });
 
@@ -520,6 +536,33 @@ export class CocinaComponent implements OnInit, OnDestroy {
         orden.estado = estadoAnterior;
         this.aplicarFiltros();
         this.loadOrders$.next();
+      }
+    });
+  }
+
+  cambiarEstadoItem(item: ItemOrden, orden: Orden, nuevoEstado: string) {
+    if (nuevoEstado === 'EN_CURSO' && !this.puedePreparar()) {
+      return;
+    }
+    if (nuevoEstado === 'COMPLETADA' && !this.puedeCompletar()) {
+      return;
+    }
+
+    const estadoAnterior = item.estado;
+    item.estado = nuevoEstado;
+
+    this.apiService.actualizarEstadoItemPedido(orden.id, item.id, nuevoEstado).subscribe({
+      next: (response: any) => {
+        if (!response.success && item.estado) {
+          item.estado = estadoAnterior;
+        } else {
+          // Evaluar si recargamos o reflejamos la orden completa que retorna el server
+          this.loadOrders$.next();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error actualizando estado del producto:', error);
+        if (item.estado) item.estado = estadoAnterior;
       }
     });
   }

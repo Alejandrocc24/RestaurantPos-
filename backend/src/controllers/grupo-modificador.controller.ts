@@ -93,6 +93,7 @@ export class GrupoModificadorController {
                             nombre: op.nombre,
                             precioAdicional: op.precioAdicional || 0,
                             productoId: op.productoId || null,  // Ahora soporta relación con producto
+                            categoria: op.categoria || null,
                             activo: true
                         }))
                     } : undefined
@@ -136,6 +137,7 @@ export class GrupoModificadorController {
                         nombre: op.nombre,
                         precioAdicional: op.precioAdicional || 0,
                         productoId: op.productoId || null,  // Ahora soporta relación con producto
+                        categoria: op.categoria || null,
                         activo: typeof op.activo === 'boolean' ? op.activo : true
                     }))
                 };

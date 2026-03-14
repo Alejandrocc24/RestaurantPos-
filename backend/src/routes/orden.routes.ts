@@ -10,6 +10,7 @@ router.use(authMiddleware, ensurePrismaMiddleware);
 
 // NOTA: Las rutas específicas deben ir SIEMPRE antes de las genéricas para que Express las matchee correctamente
 // Rutas con segments específicos primero (mayor a menor especificidad)
+router.patch('/:ordenId/item/:itemId/estado', OrdenController.updateItemEstado); // Actualizar estado de un ítem particular
 router.patch('/:ordenId/cantidades', OrdenController.updateCantidades); // Actualizar cantidades para cierre de cuenta
 router.get('/mesa/:mesaId/activa', OrdenController.getActiveForMesa); // Obtener orden activa de una mesa
 router.get('/mesa/:mesaId', OrdenController.getByMesa); // Obtener todas las órdenes de una mesa

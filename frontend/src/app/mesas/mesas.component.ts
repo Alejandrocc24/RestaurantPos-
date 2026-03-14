@@ -277,10 +277,24 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.verificarPermisos();
 
     // Suscripciones WebSocket para actualizar mesas y productos en tiempo real
+    // MESA events: recargar solo la lista de mesas (estados)
     this.socketService.listen('mesaCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesas());
     this.socketService.listen('mesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesas());
     this.socketService.listen('mesaEliminada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesas());
-    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarProductosMesasOcupadas());
+
+    // ORDEN events: recargar mesas + productos (el estado de la mesa puede cambiar a OCUPADA)
+    this.socketService.listen('ordenMesaActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
+    this.socketService.listen('ordenCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
+    this.socketService.listen('ordenActualizada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
+    this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
+    this.socketService.listen('ventaCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
+    this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarProductosMesasOcupadas());
+
+    // Cuando el socket se reconecta (ej. pérdida temporal de red), recargar todo
+    this.socketService.onReconnect$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+      console.log('🔄 [Mesas] Socket reconectado, recargando datos...');
+      this.cargarMesasYProductos();
+    });
 
     try {
       console.log('🚀 Cargando datos iniciales con endpoint combo...');
@@ -337,11 +351,17 @@ export class MesasComponent implements OnInit, OnDestroy {
               } catch (e) { configuracionGrupos = undefined; }
             }
             let comentarios: string[] = [];
-            if (p.comentarios && Array.isArray(p.comentarios)) {
-              if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'object' && p.comentarios[0].texto) {
-                comentarios = p.comentarios.map((c: any) => c.texto);
-              } else if (p.comentarios.length > 0 && typeof p.comentarios[0] === 'string') {
-                comentarios = p.comentarios;
+            let comFuente = p.comentarios;
+            if (typeof comFuente === 'string' && comFuente.trim().startsWith('[')) {
+              try {
+                comFuente = JSON.parse(comFuente);
+              } catch (e) { }
+            }
+            if (comFuente && Array.isArray(comFuente)) {
+              if (comFuente.length > 0 && typeof comFuente[0] === 'object' && comFuente[0].texto) {
+                comentarios = comFuente.map((c: any) => c.texto);
+              } else if (comFuente.length > 0 && typeof comFuente[0] === 'string') {
+                comentarios = comFuente;
               }
             }
             return {
@@ -377,7 +397,8 @@ export class MesasComponent implements OnInit, OnDestroy {
               productoId: op.productoId || op.producto_id || null,
               producto: op.producto || null,
               estado: op.estado || (op.activo !== false ? 'activo' : 'inactivo'),
-              activo: op.activo !== false
+              activo: op.activo !== false,
+              categoria: op.categoria || null
             }))
           }));
         } else {
@@ -486,6 +507,10 @@ export class MesasComponent implements OnInit, OnDestroy {
           mesa.productos = productos;
           mesa.totalCuenta = pedidoActivo.total || 0;
           console.log(`✅ Mesa ${mesa.numero}: ${productos.length} producto(s) cargado(s)`);
+        } else {
+          // Si no hay pedido activo, limpiar productos de la mesa
+          mesa.productos = undefined;
+          mesa.totalCuenta = undefined;
         }
       } catch (error: any) {
         console.warn(`⚠️ No se pudieron cargar productos de mesa ${mesa.numero}:`, error.message);
@@ -494,6 +519,20 @@ export class MesasComponent implements OnInit, OnDestroy {
 
     this.aplicarFiltros();
     console.log(`✅ Carga de productos completada`);
+  }
+
+  /**
+   * Recarga las mesas (para obtener estados actualizados) Y luego sus productos.
+   * Este es el método principal que debe usarse cuando una orden cambia,
+   * ya que el estado de la mesa puede haber cambiado de DISPONIBLE a OCUPADA.
+   */
+  private async cargarMesasYProductos(): Promise<void> {
+    try {
+      await this.cargarMesas();
+      // cargarMesas ya llama a cargarProductosMesasOcupadas internamente
+    } catch (error) {
+      console.error('❌ Error recargando mesas y productos:', error);
+    }
   }
 
   /** @deprecated Usar cargarProductosMesasOcupadas en su lugar */
@@ -1894,7 +1933,16 @@ export class MesasComponent implements OnInit, OnDestroy {
             descripcion: grupo.descripcion,
             grupoId: grupo.id,
             grupoNombre: grupo.nombre,
-            modificadores: (grupo.modificadores || []).filter(m => m.estado === 'activo' || (m as any).activo === true || (m as any).activo === undefined), // fallback para que salgan todos si la prop cambio
+            modificadores: (grupo.modificadores || []).filter(m => {
+              const isModActive = m.estado === 'activo' || (m as any).activo === true || (m as any).activo === undefined;
+              let isProdActive = true;
+              if (m.productoId) {
+                // If it's linked to a product, ensure the product is in the active products list
+                const prodSource = this.productos.find(p => String(p.id) === String(m.productoId));
+                if (!prodSource) isProdActive = false;
+              }
+              return isModActive && isProdActive;
+            }),
             maxSelecciones: cMaxSelecciones,
             minSelecciones: cMinSelecciones,
             obligatorio: grupo.obligatorio,
@@ -2446,37 +2494,6 @@ export class MesasComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Solo validamos la caja (rápido, ~400ms)
-    try {
-      const cajaAbierta = await this.supabaseService.obtenerCajaAbierta();
-
-      if (!cajaAbierta) {
-        await Swal.fire({
-          title: '⚠️ Caja Cerrada',
-          html: `
-             <div style="text-align: center;">
-               <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
-               <p style="font-size: 1.1rem; color: #495057; margin-bottom: 0.5rem;">
-                 <strong>No se puede procesar la venta</strong>
-               </p>
-               <p style="font-size: 0.9rem; color: #6c757d;">
-                 Debe abrir la caja antes de realizar ventas.<br>
-                 Dirígete al módulo de <strong>Ventas</strong> para abrir la caja.
-               </p>
-             </div>
-           `,
-          icon: 'warning',
-          confirmButtonColor: '#dc3545',
-          confirmButtonText: 'Entendido'
-        });
-        return;
-      }
-    } catch (error) {
-      console.error('Error verificando estado de la caja:', error);
-      this.toast.error('Error', 'No se pudo verificar el estado de la caja');
-      return;
-    }
-
     // Validar método de pago efectivo solo si hay denominación ingresada
     if (this.metodoPago === 'efectivo' && this.denominacionRecibida > 0 && this.cambioCalculado < 0) {
       this.toast.error('Error', 'La denominación recibida es insuficiente');
@@ -2518,7 +2535,7 @@ export class MesasComponent implements OnInit, OnDestroy {
         };
       }) || [];
 
-      console.log('📤 Actualizando cantidades en pedido:', productosActualizados);
+      console.log('📤 Preparando cobro de pedido...', productosActualizados);
 
       // Obtener usuario autenticado
       const usuarioActual = this.authService.getUser();
@@ -2526,8 +2543,6 @@ export class MesasComponent implements OnInit, OnDestroy {
         throw new Error('No hay usuario autenticado');
       }
 
-      const now = new Date();
-      const localISOTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString();
       const cantidadProductosCobrados = this.mesaSeleccionadaInfo.productos?.reduce((sum: number, producto: any) => {
         const key = producto.detalleId ?? producto.id;
         const cantidadCobrada = this.productosCobro[key] ? (this.cantidadesCobro[key] || producto.cantidad || 1) : 0;
@@ -2551,25 +2566,21 @@ export class MesasComponent implements OnInit, OnDestroy {
           };
         });
 
-      const venta = {
+      const payloadCobro = {
         mesa_id: this.mesaSeleccionadaInfo.id,
         usuario_id: usuarioActual.id,
+        orden_id: pedidoId,
         total: this.subtotalProductos,
         estado: 'completada',
         metodo_pago: this.metodoPago,
-        fecha: localISOTime,
-        orden_id: pedidoId,
         cantidad_productos: cantidadProductosCobrados,
-        productos_json: productosSnapshot
+        productos_json: productosSnapshot,
+        productosActualizados: productosActualizados
       };
 
-      // Paralelizamos las llamadas al backend (ambas escrituras a nivel base de datos)
-      console.log('➡️ Enviando requerimientos paralelos a Base de Datos (cantidades y ventas)...');
-      const [resultado] = await Promise.all([
-        this.supabaseService.actualizarCantidadesProductos(pedidoId, productosActualizados, true),
-        this.supabaseService.crearVenta(venta)
-      ]);
-      console.log('✅ Resultado actualización completado:', resultado);
+      console.log('➡️ Enviando requerimiento UNIFICADO a Base de Datos de forma síncrona...');
+      const resultado = await this.supabaseService.cobrarMesaCompleta(payloadCobro);
+      console.log('✅ Resultado unificado completado:', resultado);
 
       // Si el pedido se cerró completamente (no quedan productos)
       if (resultado.pedidoCerrado) {
@@ -2607,9 +2618,20 @@ export class MesasComponent implements OnInit, OnDestroy {
         this.toast.success('Cobro parcial', `Se cobraron productos por $${this.formatearMoneda(this.subtotalProductos)}. Quedan ${resultado.productosRestantes} productos`);
         this.cerrarModalCierreCuenta();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al cerrar cuenta:', error);
-      this.toast.error('Error', 'No se pudo procesar el cierre de cuenta');
+      // Validar si el error viene por caja cerrada manejado en el backend
+      if (error && error.message && error.message.includes('caja')) {
+         await Swal.fire({
+          title: '⚠️ Caja Cerrada',
+          html: `<div style="text-align: center;"><div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div><p style="font-size: 1.1rem; color: #495057; margin-bottom: 0.5rem;"><strong>No se puede procesar la venta</strong></p><p style="font-size: 0.9rem; color: #6c757d;">Debe abrir la caja antes de realizar ventas.<br>Dirígete al módulo de <strong>Ventas</strong> para abrir la caja.</p></div>`,
+          icon: 'warning',
+          confirmButtonColor: '#dc3545',
+          confirmButtonText: 'Entendido'
+        });
+      } else {
+        this.toast.error('Error', error.message || 'No se pudo procesar el cierre de cuenta');
+      }
     }
   }
 

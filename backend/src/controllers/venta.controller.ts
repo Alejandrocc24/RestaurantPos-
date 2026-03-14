@@ -144,6 +144,10 @@ export class VentaController {
       console.log(`✅ [SP] Venta creada en ${Date.now() - t0}ms:`, venta?.id);
 
       SocketService.emitGlobal('ventaCreada', venta);
+      // Si la venta está asociada a una mesa, notificar que la mesa cambió (se libera)
+      if (mesa_id) {
+        SocketService.emitGlobal('mesaActualizada', { id: mesa_id, estado: 'DISPONIBLE' });
+      }
 
       res.status(201).json({
         success: true,
@@ -274,6 +278,106 @@ export class VentaController {
         success: false,
         message: error.message,
       });
+    }
+  }
+  /**
+   * POST /api/ventas/cobrar
+   * Endpoint de alto rendimiento para validar caja, actualizar cantidades y crear venta en una sola llamada de red.
+   */
+  static async cobrarMesa(req: Request, res: Response) {
+    try {
+      const { 
+        mesa_id, 
+        usuario_id, 
+        orden_id, 
+        total, 
+        metodo_pago, 
+        productos_json, 
+        cantidad_productos, 
+        productosActualizados 
+      } = req.body;
+
+      if (!req.prisma) {
+        return res.status(500).json({ success: false, message: 'Prisma client no inicializado' });
+      }
+
+      // 1. Verificación en milisegundos de caja
+      const tStart = Date.now();
+      const cajaAbierta = await req.prisma.caja.findFirst({
+        where: { estado: 'abierta' }
+      });
+
+      if (!cajaAbierta) {
+        return res.status(400).json({ 
+          success: false, 
+          error_code: 'CAJA_CERRADA',
+          message: 'Debes abrir la caja antes de poder registrar un cobro.' 
+        });
+      }
+
+      const esCobroTotal = productosActualizados && productosActualizados.length > 0 && productosActualizados.every((p: any) => p.cantidad === 0);
+
+      let ordenData = null;
+      let pedidoCerrado = false;
+      let productosRestantes = 0;
+
+      // 2. Modificar mesa/orden
+      if (esCobroTotal) {
+        const result: any[] = await req.prisma.$queryRawUnsafe(
+          `SELECT cobrar_orden_total($1) as data`,
+          orden_id
+        );
+        ordenData = result[0]?.data;
+        pedidoCerrado = true;
+      } else {
+        const result: any[] = await req.prisma.$queryRawUnsafe(
+          `SELECT actualizar_cantidades_orden($1, $2::jsonb) as data`,
+          orden_id,
+          JSON.stringify(productosActualizados)
+        );
+        ordenData = result[0]?.data;
+        pedidoCerrado = ordenData?.pedidoCerrado || false;
+        productosRestantes = ordenData?.productosRestantes || 0;
+      }
+
+      // 3. Crear venta
+      const resultVenta: any[] = await req.prisma.$queryRawUnsafe(
+        `SELECT crear_venta($1::text, $2::text, $3::text, $4::float8, $5::text, $6::text, $7::timestamp, $8::int, $9::text) as data`,
+        mesa_id || null,
+        usuario_id,
+        orden_id || null,
+        parseFloat(total),
+        'completada',
+        metodo_pago,
+        new Date(), // usar fecha en el backend
+        parseInt(cantidad_productos) || 0,
+        productos_json ? JSON.stringify(productos_json) : null
+      );
+      
+      const ventaData = resultVenta[0]?.data;
+      console.log(`✅ [VentaController] Todo el ciclo de cobro completado en ${Date.now() - tStart}ms`);
+
+      // 4. Emitir eventos sincrónicos
+      SocketService.emitGlobal('cantidadesOrdenActualizadas', ordenData);
+      SocketService.emitGlobal('ventaCreada', ventaData);
+      
+      if (pedidoCerrado && mesa_id) {
+        SocketService.emitGlobal('mesaActualizada', { id: mesa_id, estado: 'DISPONIBLE' });
+      }
+
+      // Respuesta rápida y consolidada
+      return res.status(200).json({
+        success: true,
+        message: 'Cuenta cerrada/cobrada exitosamente.',
+        pedidoCerrado,
+        productosRestantes,
+        pedido: ordenData,
+        data: ventaData // retornar la venta procesada a nivel componente
+      });
+
+    } catch (error: any) {
+      console.error('❌ [VentaController.cobrarMesa] Error:', error.message);
+      return res.status(500).json({ success: false, message: error.message });
     }
   }
 }

@@ -456,12 +456,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // Obtener todas las ventas
-      const todasVentas = await this.supabaseService.getVentas();
-      console.log('📊 Total ventas en BD:', todasVentas.length);
-      console.log('📊 Muestra de ventas:', todasVentas.slice(0, 3));
-
-      // Filtrar ventas de esta caja
+      // Filtrar ventas de esta caja usando el backend directamente
       const fechaAperturaDate = new Date(fechaApertura);
       const fechaCierreDate = new Date(fechaCierre);
 
@@ -469,29 +464,21 @@ export class VentasComponent implements OnInit, OnDestroy {
       console.log('  Desde:', fechaAperturaDate.toISOString());
       console.log('  Hasta:', fechaCierreDate.toISOString());
 
-      const ventasCaja = todasVentas.filter((v: any) => {
-        if (!v.fecha) {
-          console.warn('⚠️ Venta sin fecha:', v);
-          return false;
-        }
+      // Llamar al backend pidiendo solo las ventas de ese rango de fechas
+      // Extraer solo la fecha YYYY-MM-DD para la consulta del servicio
+      const aperturaYYYYMMDD = fechaAperturaDate.toISOString().split('T')[0];
+      const cierreYYYYMMDD = fechaCierreDate.toISOString().split('T')[0];
+      let todasVentasRango = await this.supabaseService.getVentas(aperturaYYYYMMDD, cierreYYYYMMDD);
+      
+      console.log('📊 Total ventas recuperadas del rango:', todasVentasRango.length);
 
+      const ventasCaja = todasVentasRango.filter((v: any) => {
+        if (!v.fecha) return false;
         const fechaVenta = new Date(v.fecha);
-        const cumple = fechaVenta >= fechaAperturaDate && fechaVenta <= fechaCierreDate;
-
-        console.log(`Venta ${v.id}: ${fechaVenta.toISOString()} - En rango: ${cumple}`);
-
-        if (cumple) {
-          console.log('✅ Venta incluida:', {
-            id: v.id,
-            fecha: fechaVenta.toISOString(),
-            total: v.total
-          });
-        }
-
-        return cumple;
+        return fechaVenta >= fechaAperturaDate && fechaVenta <= fechaCierreDate;
       });
 
-      console.log('✅ Ventas filtradas para esta caja:', ventasCaja.length);
+      console.log('✅ Ventas exactas para esta caja:', ventasCaja.length);
 
       // Calcular totales por método de pago
       let pagosEfectivo = 0;
@@ -1565,8 +1552,24 @@ export class VentasComponent implements OnInit, OnDestroy {
     return '$' + valorRedondeado.toLocaleString('es-CO');
   }
 
-  formatearFecha(fecha: string): string {
-    return new Date(fecha).toLocaleDateString('es-CO', {
+  formatearFecha(fecha: string | Date): string {
+    if (!fecha) return 'N/A';
+    
+    let dateStr = typeof fecha === 'string' ? fecha : fecha.toISOString();
+    
+    // Si la fecha viene de la BD como string "2024-03-13 21:44:40" sin la 'T'
+    if (dateStr.includes(' ') && !dateStr.includes('T')) {
+      dateStr = dateStr.replace(' ', 'T');
+    }
+    
+    // Si el backend envía la fecha con 'Z' (UTC) pero en realidad Postgres
+    // guardó la hora local exacta, al quitar la 'Z' forzamos a que el
+    // navegador lo parsee directamente como hora local, corrigiendo así el desfase.
+    if (dateStr.endsWith('Z')) {
+      dateStr = dateStr.slice(0, -1);
+    }
+
+    return new Date(dateStr).toLocaleDateString('es-CO', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
