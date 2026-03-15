@@ -23,22 +23,21 @@ export class GastoController {
       const skip = parseInt(req.query.skip as string) || 0;
       const take = parseInt(req.query.take as string) || 50;
       const { categoriaId, fechaInicio, fechaFin } = req.query;
+      const timezoneOffset = parseInt(req.query.timezoneOffset as string) || 0;
 
       // Construir filtro de fecha
       const where: any = { activo: true };
       if (fechaInicio || fechaFin) {
         where.fecha = {};
         if (fechaInicio) {
-          // Convertir string YYYY-MM-DD a Date sin asumir UTC
-          const [year, month, day] = (fechaInicio as string).split('-').map(x => parseInt(x, 10));
-          const inicioDate = new Date(year, month - 1, day);
-          where.fecha.gte = inicioDate;
+          // Adjust fechaInicio (YYYY-MM-DD) to UTC based on client's timezoneOffset
+          const startUtc = new Date(fechaInicio + 'T00:00:00.000Z');
+          where.fecha.gte = new Date(startUtc.getTime() + (timezoneOffset * 60000));
         }
         if (fechaFin) {
-          // Convertir string YYYY-MM-DD a Date sin asumir UTC, y sumar un día completo
-          const [year, month, day] = (fechaFin as string).split('-').map(x => parseInt(x, 10));
-          const finDate = new Date(year, month - 1, day, 23, 59, 59, 999);
-          where.fecha.lte = finDate;
+          // Adjust fechaFin (YYYY-MM-DD) to UTC based on client's timezoneOffset
+          const endUtc = new Date(fechaFin + 'T23:59:59.999Z');
+          where.fecha.lte = new Date(endUtc.getTime() + (timezoneOffset * 60000));
         }
       }
       if (categoriaId) where.categoriaId = categoriaId;
