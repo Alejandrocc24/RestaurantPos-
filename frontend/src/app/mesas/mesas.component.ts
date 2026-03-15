@@ -41,6 +41,7 @@ interface ProductoPedido {
   cantidad: number;
   subtotal: number;
   notas?: string;
+  horaProgramada?: string; // Hora específica para este producto
   comentario?: string; // Separado en comentariosPreestablecidos + comentarioPersonalizado
   comentariosPreestablecidos?: string[]; // Array de comentarios preestablecidos/rápidos
   comentarioPersonalizado?: string; // Comentario personalizado del usuario
@@ -132,6 +133,7 @@ export class MesasComponent implements OnInit, OnDestroy {
   pedidoActual: ProductoPedido[] = [];
   productosExistentesMesa: ProductoPedido[] = []; // Nueva variable para productos existentes
   notasPedido = '';
+  horaProgramadaPedido: string | null = null;
   categoriaSeleccionada = 'bebidas';
 
   // Nuevas variables para el sistema avanzado
@@ -1655,6 +1657,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
 
     this.notasPedido = '';
+    this.horaProgramadaPedido = null;
     this.categoriaSeleccionada = this.categoriasProductos[0]?.id || 'bebidas';
     this.subcategoriaSeleccionada = '';
     this.subcategorias = [];
@@ -1671,6 +1674,16 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.pedidoActual = [];
     this.productosExistentesMesa = []; // Limpiar productos existentes
     this.notasPedido = '';
+    this.horaProgramadaPedido = null;
+  }
+
+  onBackdropClickPedido(): void {
+    // Si hay productos en el pedido actual, advertir o no cerrar para evitar perder lo comandado
+    if (this.pedidoActual && this.pedidoActual.length > 0) {
+      this.toast.info('Pedido en curso', 'Usa los botones para confirmar o cancelar el pedido.');
+      return;
+    }
+    this.cerrarModalPedido();
   }
 
   get productosPorCategoria(): Producto[] {
@@ -1691,6 +1704,7 @@ export class MesasComponent implements OnInit, OnDestroy {
         cantidad: 1,
         subtotal: producto.precio,
         notas: '',
+        horaProgramada: '',
         comentario: '',
         comentariosPreestablecidos: [],
         comentarioPersonalizado: ''
@@ -1773,21 +1787,31 @@ export class MesasComponent implements OnInit, OnDestroy {
             : item.comentarioPersonalizado;
         }
 
+        let notasItem = item.notas || '';
+        if (item.horaProgramada) {
+          notasItem = `[PROGRAMADO ${item.horaProgramada}] ${notasItem}`.trim();
+        }
+
         return {
           productoId: item.productoId ?? item.id,
           cantidad: item.cantidad,
           precioUnitario: item.precio,
           subtotal: item.subtotal,
-          notas: item.notas || this.notasPedido || null,
+          notas: notasItem || null,
           comentario: comentarioFinal || null,
           personalizacion: item.personalizacion || null,
           modificadores: item.modificadores || []
         };
       });
 
+      let notasGenerales = this.notasPedido || '';
+      if (this.horaProgramadaPedido) {
+        notasGenerales = `[PROGRAMADO ${this.horaProgramadaPedido}] ${notasGenerales}`.trim();
+      }
+
       const payload = {
         usuarioId: 1, // ID del usuario actual
-        notas: this.notasPedido || null,
+        notas: notasGenerales || null,
         items: items
       };
 

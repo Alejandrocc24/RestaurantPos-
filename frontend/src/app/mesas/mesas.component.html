@@ -289,7 +289,7 @@
 </div>
 
 <!-- Modal para iniciar pedido -->
-<div *ngIf="mostrarModalPedido" class="modal-overlay" (click)="cerrarModalPedido()">
+<div *ngIf="mostrarModalPedido" class="modal-overlay modal-overlay-pedido" (click)="onBackdropClickPedido()">
   <div class="modal-content modal-pedido" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>📝 {{ mesaSeleccionadaInfo?.estado === 'disponible' ? 'Nuevo Pedido' : 'Agregar Productos' }} - Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
@@ -482,6 +482,19 @@
                     class="comentario-input"
                     maxlength="100">
                 </div>
+                
+                <!-- Hora programada por item -->
+                <div class="hora-programada-item" style="margin-top: 8px;">
+                  <div class="comentario-header">
+                    <label>🕒 Programar este producto:</label>
+                  </div>
+                  <input 
+                    type="time" 
+                    [(ngModel)]="item.horaProgramada" 
+                    class="comentario-input" 
+                    style="background-color: #fdfdfd; border-color: #ff9800; border-width: 1px; color: #333;"
+                    title="Se mostrará en cocina 5 mins antes">
+                </div>
               </div>
             </div>
             
@@ -510,6 +523,19 @@
           [(ngModel)]="notasPedido" 
           placeholder="Agregar notas especiales, modificaciones, etc."
           rows="3"></textarea>
+      </div>
+      
+      <!-- Programar Pedido -->
+      <div class="notas-pedido" style="margin-top: 10px;">
+        <label for="hora-programada">🕒 Programar pedido completo para (HH:MM):</label>
+        <div style="display: flex; flex-direction: column; gap: 5px; margin-top: 5px;">
+          <input 
+            type="time" 
+            id="hora-programada" 
+            [(ngModel)]="horaProgramadaPedido" 
+            style="padding: 10px; border: 1px solid #ff9800; border-radius: 8px; font-size: 1rem; color: #333; max-width: 200px; background-color: #fff9f0;">
+          <small style="color: #6c757d; font-style: italic;">La comanda aparecerá en cocina 5 minutos antes de la hora acordada.</small>
+        </div>
       </div>
     </div>
     

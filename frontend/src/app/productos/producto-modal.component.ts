@@ -34,7 +34,7 @@ export interface GrupoModificador {
 @Component({
   selector: 'app-producto-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmModalComponent],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="modal-overlay" (click)="cerrarModal()">
       <div class="modal-content" (click)="$event.stopPropagation()">

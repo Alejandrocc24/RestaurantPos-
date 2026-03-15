@@ -2,24 +2,32 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export const config = {
   // Server
-  port: parseInt(process.env.PORT || '3000'),
+  port: parseInt(process.env.PORT || '3001'),
   nodeEnv: process.env.NODE_ENV || 'development',
-  apiUrl: process.env.API_URL || 'http://localhost:3000',
+  apiUrl: process.env.API_URL || 'http://localhost:3001',
 
   // JWT
-  jwtSecret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+  jwtSecret: isProd 
+    ? (process.env.PROD_JWT_SECRET || 'prod-secret-missing') 
+    : (process.env.DEV_JWT_SECRET || 'dev-secret-key-2026'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
   refreshJwtExpiresIn: process.env.REFRESH_JWT_EXPIRES_IN || '7d',
 
   // Database
-  databaseUrl: process.env.DATABASE_URL || '',
-  adminDatabaseUrl: process.env.ADMIN_DATABASE_URL || '',
+  databaseUrl: isProd 
+    ? (process.env.PROD_DATABASE_URL || '') 
+    : (process.env.DEV_DATABASE_URL || ''),
+  adminDatabaseUrl: isProd
+    ? (process.env.PROD_DATABASE_URL || '') // Fallback a la misma si no hay admin separada
+    : (process.env.DEV_DATABASE_URL || ''),
 
   // Features
-  isProduction: process.env.NODE_ENV === 'production',
-  isDevelopment: process.env.NODE_ENV === 'development',
+  isProduction: isProd,
+  isDevelopment: !isProd,
 
   // Sistema Desarrollador (oculto para clientes)
   // El usuario y rol de desarrollador pueden hacer login pero NO aparecen en listados,

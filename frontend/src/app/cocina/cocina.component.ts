@@ -100,7 +100,11 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
             if (ordenExistente) {
               if (ordenExistente.tiempoCreacion instanceof Date) {
-                ordenMapeada.tiempoCreacion = ordenExistente.tiempoCreacion;
+                // Preservar la fecha original solo si la diferencia es mínima (evitar brincos si falta createdAt).
+                // Pero si hay un salto grande (ej. orden reabierta con nuevos ítems), usar la nueva.
+                if (Math.abs(ordenMapeada.tiempoCreacion.getTime() - ordenExistente.tiempoCreacion.getTime()) < 5000) {
+                  ordenMapeada.tiempoCreacion = ordenExistente.tiempoCreacion;
+                }
               }
               // Preservar estado optimista si está en transición
               if (ordenExistente.enTransicion) {
@@ -279,7 +283,31 @@ export class CocinaComponent implements OnInit, OnDestroy {
       
       // Mostrar el ítem si la orden entera acaba de ser completada,
       // o si la orden está activa y este ítem ES NUEVO (no fue preparado en una ronda pasada)
-      return ordenCompletada || !itemCompletado;
+      const mostrarPorEstado = ordenCompletada || !itemCompletado;
+      if (!mostrarPorEstado) return false;
+
+      // Lógica para pedidos/items programados
+      const regexHora = /\[PROGRAMADO (\d{2}:\d{2})\]/i;
+      const matchItem = (item.notas || '').match(regexHora);
+      const matchPedido = (pedido.notas || '').match(regexHora);
+      const programadoStr = matchItem ? matchItem[1] : (matchPedido ? matchPedido[1] : null);
+
+      if (programadoStr) {
+        const ahora = new Date();
+        const [horas, minutos] = programadoStr.split(':').map(Number);
+        const fechaComanda = new Date();
+        fechaComanda.setHours(horas, minutos, 0, 0);
+
+        // Mostrar en cocina 5 minutos antes
+        const tiempoMuestraCocina = new Date(fechaComanda.getTime() - 5 * 60000);
+
+        // Si la hora actual es antes del tiempo de muestra, no enviarlo a la cocina todavía
+        if (ahora < tiempoMuestraCocina) {
+          return false;
+        }
+      }
+
+      return true;
     });
 
     const items: ItemOrden[] = itemsParaCocina.map((item: any) => {
@@ -343,6 +371,16 @@ export class CocinaComponent implements OnInit, OnDestroy {
         estado: item.estado || 'pendiente'
       };
     });
+
+    // Ajustar tiempoCreacion de la orden para que coincida con el item pendiente MÁS ANTIGUO.
+    // Si todos los items originales se completaron y se añadieron nuevos, esto desplazará 
+    // la orden al final de la cola (respetando el nuevo turno de la comanda).
+    if (items.length > 0) {
+      const minTiempoItem = Math.min(...items.map(i => i.tiempoCreacionItem ? i.tiempoCreacionItem.getTime() : tiempoCreacion.getTime()));
+      if (!isNaN(minTiempoItem) && minTiempoItem > 0) {
+        tiempoCreacion = new Date(minTiempoItem);
+      }
+    }
 
     // Calcular tiempo estimado: usar el tiempo máximo de preparación de los productos
     // Si ningún producto tiene tiempo definido, no mostrar tiempo estimado
@@ -411,6 +449,11 @@ export class CocinaComponent implements OnInit, OnDestroy {
     this.ordenesFiltradas = this.ordenes.filter(orden => {
       // Si fue ocultada explicitly de la cocina, no mostrarla
       if (orden.visibleCocina === false) {
+        return false;
+      }
+
+      // Evitar que aparezca la orden vacía en cocina (ej. si todos sus items están programados para después)
+      if (!orden.items || orden.items.length === 0) {
         return false;
       }
 

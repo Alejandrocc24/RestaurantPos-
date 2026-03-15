@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductoModalComponent, ProductoForm } from './producto-modal.component';
 import { ConfirmModalComponent } from '../shared/confirm-modal';
-import { InventarioComponent } from './inventario';
 import { ProductosService } from '../services/productos.service';
 import { CartaExcelService } from '../services/carta-excel.service';
 import { Producto } from '../types/api.models';
@@ -24,7 +23,6 @@ import Swal from 'sweetalert2';
     FormsModule,
     ProductoModalComponent,
     ConfirmModalComponent,
-    InventarioComponent,
     CurrencyFormatPipe
   ]
 })
