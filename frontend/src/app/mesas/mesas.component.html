@@ -91,7 +91,7 @@
 </div>
 
 <!-- Modal para crear/editar mesa -->
-<div *ngIf="mostrarModalNuevaMesa" class="modal-overlay" (click)="cerrarModalNuevaMesa()">
+<div *ngIf="mostrarModalNuevaMesa" class="modal-overlay">
   <div class="modal-content" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>{{ editandoMesa ? 'Editar Mesa' : 'Agregar Nueva Mesa' }}</h3>
@@ -129,7 +129,7 @@
 </div>
 
 <!-- Modal de confirmación para eliminar mesa -->
-<div *ngIf="mostrarModalConfirmacion" class="modal-overlay" (click)="cerrarModalConfirmacion()">
+<div *ngIf="mostrarModalConfirmacion" class="modal-overlay">
   <div class="modal-content modal-confirmacion" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>🗑️ Confirmar Eliminación</h3>
@@ -155,7 +155,7 @@
 </div>
 
 <!-- Modal de información de mesa -->
-<div *ngIf="mostrarModalInfoMesa" class="modal-overlay" (click)="cerrarModalInfoMesa()">
+<div *ngIf="mostrarModalInfoMesa" class="modal-overlay">
   <div class="modal-content modal-info-mesa" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>🪑 Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
@@ -289,7 +289,7 @@
 </div>
 
 <!-- Modal para iniciar pedido -->
-<div *ngIf="mostrarModalPedido" class="modal-overlay modal-overlay-pedido" (click)="onBackdropClickPedido()">
+<div *ngIf="mostrarModalPedido" class="modal-overlay modal-overlay-pedido">
   <div class="modal-content modal-pedido" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>📝 {{ mesaSeleccionadaInfo?.estado === 'disponible' ? 'Nuevo Pedido' : 'Agregar Productos' }} - Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
@@ -552,7 +552,7 @@
 </div>
 
 <!-- Modal para productos especiales (paso a paso) -->
-<div *ngIf="mostrarModalEspecial" class="modal-overlay" (click)="cerrarModalEspecial()">
+<div *ngIf="mostrarModalEspecial" class="modal-overlay">
   <div class="modal-content modal-especial" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>⭐ {{ productoEspecial?.nombre }}</h3>
@@ -749,7 +749,7 @@
 </div>
 
 <!-- Modal para cierre de cuenta -->
-<div *ngIf="mostrarModalCierreCuenta" class="modal-overlay" (click)="cerrarModalCierreCuenta()">
+<div *ngIf="mostrarModalCierreCuenta" class="modal-overlay">
   <div class="modal-content modal-cierre-cuenta" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>💳 Cerrar Cuenta - Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>
@@ -916,7 +916,7 @@
 </div>
 
 <!-- Modal para transferir mesa -->
-<div *ngIf="mostrarModalTransferirMesa" class="modal-overlay" (click)="cerrarModalTransferirMesa()">
+<div *ngIf="mostrarModalTransferirMesa" class="modal-overlay">
   <div class="modal-content modal-transferir-mesa" (click)="$event.stopPropagation()">
     <div class="modal-header">
       <h3>🔄 Transferir Mesa {{ mesaSeleccionadaInfo?.numero }}</h3>

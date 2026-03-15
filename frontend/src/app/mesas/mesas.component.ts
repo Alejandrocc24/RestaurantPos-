@@ -1677,14 +1677,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.horaProgramadaPedido = null;
   }
 
-  onBackdropClickPedido(): void {
-    // Si hay productos en el pedido actual, advertir o no cerrar para evitar perder lo comandado
-    if (this.pedidoActual && this.pedidoActual.length > 0) {
-      this.toast.info('Pedido en curso', 'Usa los botones para confirmar o cancelar el pedido.');
-      return;
-    }
-    this.cerrarModalPedido();
-  }
+
 
   get productosPorCategoria(): Producto[] {
     return this.productos.filter(p => p.categoria === this.categoriaSeleccionada);
