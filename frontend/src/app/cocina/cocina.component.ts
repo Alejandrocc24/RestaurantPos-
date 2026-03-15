@@ -10,8 +10,8 @@ import { SocketService } from '../services/socket.service';
 
 
 interface Orden {
-  id: number;
-  numeroMesa: number;
+  id: any;
+  numeroMesa: any;
   items: ItemOrden[];
   estado: 'pendiente' | 'en_progreso' | 'completado';
   tiempoCreacion: Date;
@@ -79,7 +79,7 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.cargarFiltrosGuardados();
-    
+
     // Configurar la carga de pedidos con switchMap para evitar race conditions
     this.loadOrders$.pipe(
       takeUntil(this.destroy$),
@@ -210,9 +210,9 @@ export class CocinaComponent implements OnInit, OnDestroy {
       };
 
       // Triple beep de volumen alto para alertar sobre nueva comanda
-      tocarBeep(0.0, 880, 0.2, 1.0);  
-      tocarBeep(0.3, 880, 0.2, 1.0);  
-      tocarBeep(0.6, 1100, 0.4, 1.0);  
+      tocarBeep(0.0, 880, 0.2, 1.0);
+      tocarBeep(0.3, 880, 0.2, 1.0);
+      tocarBeep(0.6, 1100, 0.4, 1.0);
     } catch (err) {
       console.warn('No se pudo reproducir sonido de notificación:', err);
     }
@@ -248,23 +248,15 @@ export class CocinaComponent implements OnInit, OnDestroy {
   }
 
   mapearPedidoAOrden(pedido: any): Orden {
-    // ✅ El backend Prisma envía 'createdAt' (no 'fecha')
+    // ✅ Normalización de fechas para evitar desfases UTC
     let tiempoCreacion: Date;
     const fechaRaw = pedido.createdAt || pedido.fecha;
     if (fechaRaw) {
-      if (typeof fechaRaw === 'string') {
-        tiempoCreacion = new Date(fechaRaw);
-      } else if (fechaRaw instanceof Date) {
-        tiempoCreacion = fechaRaw;
-      } else {
-        tiempoCreacion = new Date(fechaRaw);
-      }
-
-      // Validar fecha
-      if (isNaN(tiempoCreacion.getTime())) {
-        console.warn('Fecha inválida recibida:', fechaRaw, 'usando fecha actual');
-        tiempoCreacion = new Date();
-      }
+      let dateStr = typeof fechaRaw === 'string' ? fechaRaw : new Date(fechaRaw).toISOString();
+      if (dateStr.includes(' ') && !dateStr.includes('T')) dateStr = dateStr.replace(' ', 'T');
+      if (!dateStr.includes('Z') && !dateStr.includes('+')) dateStr += 'Z';
+      tiempoCreacion = new Date(dateStr);
+      if (isNaN(tiempoCreacion.getTime())) tiempoCreacion = new Date();
     } else {
       tiempoCreacion = new Date();
     }
@@ -272,15 +264,15 @@ export class CocinaComponent implements OnInit, OnDestroy {
     // Procesar items (el backend puede enviar 'productos' o 'items')
     const itemsSource = pedido.productos || pedido.items;
     const itemsRaw = Array.isArray(itemsSource) ? itemsSource : [];
-    
+
     // Filtrar los productos que ya fueron preparados anteriormente en esta misma mesa
     const itemsParaCocina = itemsRaw.filter((item: any) => {
       const itemEstado = item.estado ? item.estado.toUpperCase() : '';
       const pedidoEstado = pedido.estado ? pedido.estado.toUpperCase() : '';
-      
+
       const itemCompletado = itemEstado === 'COMPLETADA' || itemEstado === 'COMPLETADO';
       const ordenCompletada = pedidoEstado === 'COMPLETADA' || pedidoEstado === 'COMPLETADO';
-      
+
       // Mostrar el ítem si la orden entera acaba de ser completada,
       // o si la orden está activa y este ítem ES NUEVO (no fue preparado en una ronda pasada)
       const mostrarPorEstado = ordenCompletada || !itemCompletado;
@@ -372,13 +364,16 @@ export class CocinaComponent implements OnInit, OnDestroy {
       };
     });
 
-    // Ajustar tiempoCreacion de la orden para que coincida con el item pendiente MÁS RECIENTE.
-    // Si se añadieron nuevos productos, esto desplazará la orden al final de la cola
-    // (respetando el nuevo turno de la comanda según el último ítem agregado).
+    // ✅ REFINAMIENTO DE TURNO: Si se añadieron nuevos productos, la orden debe
+    // reflejar el tiempo del producto más reciente para ir al final de la cola.
     if (items.length > 0) {
-      const maxTiempoItem = Math.max(...items.map(i => i.tiempoCreacionItem ? i.tiempoCreacionItem.getTime() : tiempoCreacion.getTime()));
-      if (!isNaN(maxTiempoItem) && maxTiempoItem > 0) {
-        tiempoCreacion = new Date(maxTiempoItem);
+      const times = items.map(i => i.tiempoCreacionItem ? i.tiempoCreacionItem.getTime() : 0).filter(t => t > 0);
+      if (times.length > 0) {
+        const newestTime = Math.max(...times);
+        // Si el producto más nuevo es posterior a la creación de la orden, mover el turno
+        if (newestTime > tiempoCreacion.getTime()) {
+          tiempoCreacion = new Date(newestTime);
+        }
       }
     }
 
@@ -465,13 +460,13 @@ export class CocinaComponent implements OnInit, OnDestroy {
 
     // Ordenar por tiempo de llegada (más antiguas primero)
     this.ordenesFiltradas.sort((a, b) => {
-      const tiempoA = (a.tiempoCreacion instanceof Date && !isNaN(a.tiempoCreacion.getTime())) 
-        ? a.tiempoCreacion.getTime() 
+      const tiempoA = (a.tiempoCreacion instanceof Date && !isNaN(a.tiempoCreacion.getTime()))
+        ? a.tiempoCreacion.getTime()
         : (new Date(a.tiempoCreacion).getTime() || 0);
-      const tiempoB = (b.tiempoCreacion instanceof Date && !isNaN(b.tiempoCreacion.getTime())) 
-        ? b.tiempoCreacion.getTime() 
+      const tiempoB = (b.tiempoCreacion instanceof Date && !isNaN(b.tiempoCreacion.getTime()))
+        ? b.tiempoCreacion.getTime()
         : (new Date(b.tiempoCreacion).getTime() || 0);
-      
+
       if (tiempoA !== tiempoB) {
         return tiempoA - tiempoB;
       }
@@ -554,35 +549,35 @@ export class CocinaComponent implements OnInit, OnDestroy {
       next: (response: any) => {
         // Encontrar la instancia más reciente de la orden
         const ordenActual = this.ordenes.find(o => o.id === orden.id);
-        
+
         if (ordenActual) {
           ordenActual.enTransicion = false;
           if (!response.success) {
             ordenActual.estado = estadoAnterior;
           }
         }
-        
+
         // También actualizar la ref original por si acaso
         orden.enTransicion = false;
         if (!response.success) {
           orden.estado = estadoAnterior;
         }
-        
+
         this.aplicarFiltros();
         // Recargar pedidos forzosamente descartando viejas peticiones en vuelo
         this.loadOrders$.next();
       },
       error: (error: any) => {
         console.error('Error actualizando estado:', error);
-        
+
         // Encontrar la instancia más reciente de la orden
         const ordenActual = this.ordenes.find(o => o.id === orden.id);
-        
+
         if (ordenActual) {
           ordenActual.enTransicion = false;
           ordenActual.estado = estadoAnterior;
         }
-        
+
         orden.enTransicion = false;
         orden.estado = estadoAnterior;
         this.aplicarFiltros();
