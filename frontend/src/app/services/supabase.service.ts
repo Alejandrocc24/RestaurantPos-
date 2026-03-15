@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ApiService } from './api.service';
 
@@ -321,10 +322,10 @@ export class SupabaseService {
   async getGastos(fechaInicio?: string, fechaFin?: string) {
     try {
       // ✅ FILTRADO EN SERVIDOR: Enviar fechas como parámetros para filtrado en el backend
-      const params = new HttpParams()
+      let params = new HttpParams()
         .set('timezoneOffset', new Date().getTimezoneOffset().toString());
-      if (fechaInicio) params.append('fechaInicio', fechaInicio);
-      if (fechaFin) params.append('fechaFin', fechaFin);
+      if (fechaInicio) params = params.set('fechaInicio', fechaInicio);
+      if (fechaFin) params = params.set('fechaFin', fechaFin);
 
       const gastosResp = await firstValueFrom(this.api.getData(`gastos?${params.toString()}`));
       const gastos = gastosResp.data || [];
