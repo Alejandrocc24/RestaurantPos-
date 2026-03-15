@@ -367,18 +367,18 @@ export class CocinaComponent implements OnInit, OnDestroy {
         esReciente: false, // Inicializar como false, se marcará después
         tiempoMarcadoReciente: undefined,
         tiempoPreparacion: item.producto?.tiempoPreparacion || item.producto?.tiempo_preparacion || item.tiempoPreparacion || undefined,
-        tiempoCreacionItem: item.tiempoCreacion ? new Date(item.tiempoCreacion) : tiempoCreacion,
+        tiempoCreacionItem: (item.createdAt || item.tiempoCreacion) ? new Date(item.createdAt || item.tiempoCreacion) : tiempoCreacion,
         estado: item.estado || 'pendiente'
       };
     });
 
-    // Ajustar tiempoCreacion de la orden para que coincida con el item pendiente MÁS ANTIGUO.
-    // Si todos los items originales se completaron y se añadieron nuevos, esto desplazará 
-    // la orden al final de la cola (respetando el nuevo turno de la comanda).
+    // Ajustar tiempoCreacion de la orden para que coincida con el item pendiente MÁS RECIENTE.
+    // Si se añadieron nuevos productos, esto desplazará la orden al final de la cola
+    // (respetando el nuevo turno de la comanda según el último ítem agregado).
     if (items.length > 0) {
-      const minTiempoItem = Math.min(...items.map(i => i.tiempoCreacionItem ? i.tiempoCreacionItem.getTime() : tiempoCreacion.getTime()));
-      if (!isNaN(minTiempoItem) && minTiempoItem > 0) {
-        tiempoCreacion = new Date(minTiempoItem);
+      const maxTiempoItem = Math.max(...items.map(i => i.tiempoCreacionItem ? i.tiempoCreacionItem.getTime() : tiempoCreacion.getTime()));
+      if (!isNaN(maxTiempoItem) && maxTiempoItem > 0) {
+        tiempoCreacion = new Date(maxTiempoItem);
       }
     }
 
@@ -463,12 +463,20 @@ export class CocinaComponent implements OnInit, OnDestroy {
       return this.filtrosEstado.includes(orden.estado);
     });
 
-    // Ordenar automáticamente por tiempo de llegada (más antiguas primero)
+    // Ordenar por tiempo de llegada (más antiguas primero)
     this.ordenesFiltradas.sort((a, b) => {
-      // Validar que tiempoCreacion es un Date válido
-      const tiempoA = a.tiempoCreacion instanceof Date ? a.tiempoCreacion.getTime() : 0;
-      const tiempoB = b.tiempoCreacion instanceof Date ? b.tiempoCreacion.getTime() : 0;
-      return tiempoA - tiempoB;
+      const tiempoA = (a.tiempoCreacion instanceof Date && !isNaN(a.tiempoCreacion.getTime())) 
+        ? a.tiempoCreacion.getTime() 
+        : (new Date(a.tiempoCreacion).getTime() || 0);
+      const tiempoB = (b.tiempoCreacion instanceof Date && !isNaN(b.tiempoCreacion.getTime())) 
+        ? b.tiempoCreacion.getTime() 
+        : (new Date(b.tiempoCreacion).getTime() || 0);
+      
+      if (tiempoA !== tiempoB) {
+        return tiempoA - tiempoB;
+      }
+      // Ordenamiento secundario por ID para estabilidad
+      return String(a.id).localeCompare(String(b.id));
     });
   }
 
@@ -634,12 +642,16 @@ export class CocinaComponent implements OnInit, OnDestroy {
         // Preservar estado de reciente, timestamp y tiempo de creación
         item.esReciente = itemAnterior.esReciente;
         item.tiempoMarcadoReciente = itemAnterior.tiempoMarcadoReciente;
+        // Si el ítem ya existía, usamos su tiempo de creación original
         item.tiempoCreacionItem = itemAnterior.tiempoCreacionItem;
       } else {
         // Es un producto nuevo, marcarlo como reciente con timestamp
         item.esReciente = true;
         item.tiempoMarcadoReciente = new Date();
-        item.tiempoCreacionItem = new Date();
+        // Si el backend no envió createdAt, usamos la fecha actual
+        if (!item.tiempoCreacionItem || isNaN(item.tiempoCreacionItem.getTime())) {
+          item.tiempoCreacionItem = new Date();
+        }
         console.log(`🆕 Producto nuevo agregado a orden ${ordenNueva.id}:`, { id: item.id, nombre: item.nombre });
       }
     });
