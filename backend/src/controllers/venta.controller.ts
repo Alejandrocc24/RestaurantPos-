@@ -15,13 +15,19 @@ export class VentaController {
 
       const where: any = {};
 
+      const timezoneOffset = parseInt(req.query.timezoneOffset as string) || 0;
+
       if (fechaInicio || fechaFin) {
         where.fecha = {};
         if (fechaInicio) {
-          where.fecha.gte = new Date(fechaInicio + 'T00:00:00.000Z');
+          // Adjust fechaInicio (YYYY-MM-DD) to UTC based on client's timezoneOffset
+          const startUtc = new Date(fechaInicio + 'T00:00:00.000Z');
+          where.fecha.gte = new Date(startUtc.getTime() + (timezoneOffset * 60000));
         }
         if (fechaFin) {
-          where.fecha.lte = new Date(fechaFin + 'T23:59:59.999Z');
+          // Adjust fechaFin (YYYY-MM-DD) to UTC based on client's timezoneOffset
+          const endUtc = new Date(fechaFin + 'T23:59:59.999Z');
+          where.fecha.lte = new Date(endUtc.getTime() + (timezoneOffset * 60000));
         }
         // Si hay un rango de fechas explícito, removemos el límite implícito
         take = parseInt(req.query.take as string) || undefined;
@@ -246,16 +252,34 @@ export class VentaController {
    */
   static async getHoy(req: Request, res: Response) {
     try {
-      const hoy = new Date();
-      hoy.setHours(0, 0, 0, 0);
-      const mañana = new Date(hoy);
-      mañana.setDate(mañana.getDate() + 1);
+      const timezoneOffset = parseInt(req.query.timezoneOffset as string) || 0;
+      const now = new Date(); // Actual UTC now
+      
+      // Calculate start of today in client's local time, expressed in UTC
+      // JS timezone offset is positive for West (e.g., COT -05:00 is +300)
+      // clientLocalTime = now - (offset * 60000)
+      const clientLocalNow = new Date(now.getTime() - (timezoneOffset * 60000));
+      
+      // Create a date for the start of the client's local day in UTC
+      // we use Year, Month, Day from client perspective
+      const year = clientLocalNow.getUTCFullYear();
+      const month = clientLocalNow.getUTCMonth();
+      const day = clientLocalNow.getUTCDate();
+      
+      const localStartOfDayUTC = new Date(Date.UTC(year, month, day, 0, 0, 0, 0));
+      
+      // Convert that local start back to absolute UTC
+      // AbsoluteUTC = LocalStart + offset
+      const hoyStart = new Date(localStartOfDayUTC.getTime() + (timezoneOffset * 60000));
+      const mañanaStart = new Date(hoyStart.getTime() + 24 * 60 * 60 * 1000);
+
+      console.log(`🔍 getHoy: Offset=${timezoneOffset}, now=${now.toISOString()}, hoyStart=${hoyStart.toISOString()}, mañanaStart=${mañanaStart.toISOString()}`);
 
       const ventas = await req.prisma.venta.findMany({
         where: {
           fecha: {
-            gte: hoy,
-            lt: mañana,
+            gte: hoyStart,
+            lt: mañanaStart,
           },
         },
         orderBy: { createdAt: 'desc' },

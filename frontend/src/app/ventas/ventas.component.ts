@@ -1560,13 +1560,10 @@ export class VentasComponent implements OnInit, OnDestroy {
     // Si la fecha viene de la BD como string "2024-03-13 21:44:40" sin la 'T'
     if (dateStr.includes(' ') && !dateStr.includes('T')) {
       dateStr = dateStr.replace(' ', 'T');
-    }
-    
-    // Si el backend envía la fecha con 'Z' (UTC) pero en realidad Postgres
-    // guardó la hora local exacta, al quitar la 'Z' forzamos a que el
-    // navegador lo parsee directamente como hora local, corrigiendo así el desfase.
-    if (dateStr.endsWith('Z')) {
-      dateStr = dateStr.slice(0, -1);
+      // Si no tiene 'Z' ni offset, y sabemos que viene de la BD en UTC, podríamos añadir 'Z'
+      if (!dateStr.includes('+') && !dateStr.includes('Z')) {
+        dateStr += 'Z';
+      }
     }
 
     return new Date(dateStr).toLocaleDateString('es-CO', {

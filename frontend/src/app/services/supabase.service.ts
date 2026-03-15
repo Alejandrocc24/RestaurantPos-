@@ -293,12 +293,13 @@ export class SupabaseService {
   async getVentas(fechaInicio?: string, fechaFin?: string) {
     try {
       let url = 'ventas';
+      const offset = new Date().getTimezoneOffset();
       if (fechaInicio || fechaFin) {
-        url = `ventas?take=10000`;
+        url = `ventas?take=10000&timezoneOffset=${offset}`;
         if (fechaInicio) url += `&fechaInicio=${fechaInicio}`;
         if (fechaFin) url += `&fechaFin=${fechaFin}`;
       } else {
-        url = 'ventas?take=10000';
+        url = `ventas?take=10000&timezoneOffset=${offset}`;
       }
 
       // ✅ SOLUCIÓN ROBUSTA: Usar método estándar del ApiService pasándole el querystring y que lo retorne el backend
@@ -320,12 +321,12 @@ export class SupabaseService {
   async getGastos(fechaInicio?: string, fechaFin?: string) {
     try {
       // ✅ FILTRADO EN SERVIDOR: Enviar fechas como parámetros para filtrado en el backend
-      const params = new URLSearchParams();
+      const params = new HttpParams()
+        .set('timezoneOffset', new Date().getTimezoneOffset().toString());
       if (fechaInicio) params.append('fechaInicio', fechaInicio);
       if (fechaFin) params.append('fechaFin', fechaFin);
 
-      const query = params.toString() ? `?${params.toString()}` : '';
-      const gastosResp = await firstValueFrom(this.api.getData(`gastos${query}`));
+      const gastosResp = await firstValueFrom(this.api.getData(`gastos?${params.toString()}`));
       const gastos = gastosResp.data || [];
 
       return gastos;
@@ -403,21 +404,17 @@ export class SupabaseService {
           return false;
         }
 
-        // Manejar diferentes formatos de fecha
-        let fechaVenta: string;
-        if (typeof venta.fecha === 'string') {
-          // Si es string con formato ISO, extraer solo la parte de fecha
-          fechaVenta = venta.fecha.includes('T') ? venta.fecha.split('T')[0] : venta.fecha;
-        } else if (venta.fecha instanceof Date) {
-          // Si es objeto Date, formatearlo
-          const year = venta.fecha.getFullYear();
-          const month = String(venta.fecha.getMonth() + 1).padStart(2, '0');
-          const day = String(venta.fecha.getDate()).padStart(2, '0');
-          fechaVenta = `${year}-${month}-${day}`;
-        } else {
-          console.warn('⚠️ Formato de fecha desconocido:', venta.fecha);
+        // Manejar fecha convirtiéndola siempre a Date para obtener el día local
+        const d = new Date(venta.fecha);
+        if (isNaN(d.getTime())) {
+          console.warn('⚠️ Fecha inválida:', venta.fecha);
           return false;
         }
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const fechaVenta = `${year}-${month}-${day}`;
 
         const coincide = fechaVenta === fechaLocal;
         if (!coincide) {
@@ -482,19 +479,17 @@ export class SupabaseService {
           return false;
         }
 
-        // Manejar diferentes formatos de fecha
-        let fechaVenta: string;
-        if (typeof venta.fecha === 'string') {
-          fechaVenta = venta.fecha.includes('T') ? venta.fecha.split('T')[0] : venta.fecha;
-        } else if (venta.fecha instanceof Date) {
-          const year = venta.fecha.getFullYear();
-          const month = String(venta.fecha.getMonth() + 1).padStart(2, '0');
-          const day = String(venta.fecha.getDate()).padStart(2, '0');
-          fechaVenta = `${year}-${month}-${day}`;
-        } else {
-          console.warn('⚠️ Formato de fecha desconocido:', venta.fecha);
+        // Manejar fecha convirtiéndola siempre a Date para obtener el día local
+        const d = new Date(venta.fecha);
+        if (isNaN(d.getTime())) {
+          console.warn('⚠️ Fecha inválida:', venta.fecha);
           return false;
         }
+
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const fechaVenta = `${year}-${month}-${day}`;
 
         const dentroDelRango = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
         if (!dentroDelRango) {
