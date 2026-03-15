@@ -12,22 +12,25 @@ const prismaClients = new Map<string, PrismaClient>();
  *   2. Fallback a DATABASE_URL general (para compatibilidad / desarrollo)
  */
 function resolveTenantDatabaseUrl(tenantId: string): string {
-  // 1. Buscar variable específica: DATABASE_URL_dulcemomento, DATABASE_URL_laparrilla, etc.
-  const envKey = `DATABASE_URL_${tenantId}`;
+  // Determinar prefijo según el ambiente
+  const prefix = config.isProduction ? 'PROD_' : 'DEV_';
+  
+  // 1. Buscar variable específica con prefijo: DEV_DATABASE_URL_dulcemomento o PROD_DATABASE_URL_dulcemomento
+  const envKey = `${prefix}DATABASE_URL_${tenantId}`;
   const tenantUrl = process.env[envKey];
 
   if (tenantUrl) {
-    console.log(`✅ [resolveTenantDatabaseUrl] Usando ${envKey} para tenant: ${tenantId}`);
+    console.log(`✅ [resolveTenantDatabaseUrl] Usando ${envKey} para tenant: ${tenantId} (${config.nodeEnv})`);
     return tenantUrl;
   }
 
-  // 2. Fallback a la URL general
+  // 2. Fallback a la URL general del ambiente (config ya resolvió si es DEV o PROD)
   const baseUrl = config.databaseUrl;
   if (!baseUrl) {
-    throw new Error(`No se encontró DATABASE_URL ni ${envKey}. Configura la variable de entorno para el tenant "${tenantId}".`);
+    throw new Error(`No se encontró ${prefix}DATABASE_URL ni ${envKey}. Configura el entorno "${config.nodeEnv}".`);
   }
 
-  console.log(`⚠️ [resolveTenantDatabaseUrl] No se encontró ${envKey}, usando DATABASE_URL por defecto para tenant: ${tenantId}`);
+  console.log(`⚠️ [resolveTenantDatabaseUrl] No se encontró ${envKey}, usando fallback ${prefix}DATABASE_URL para tenant: ${tenantId}`);
   return baseUrl;
 }
 
@@ -76,9 +79,11 @@ export function getPrismaClient(tenantId: string): PrismaClient {
  * Busca todas las variables DATABASE_URL_* en process.env.
  */
 export function getConfiguredTenants(): string[] {
-  const prefix = 'DATABASE_URL_';
+  const envPrefix = config.isProduction ? 'PROD_' : 'DEV_';
+  const prefix = `${envPrefix}DATABASE_URL_`;
+  
   return Object.keys(process.env)
-    .filter(key => key.startsWith(prefix) && key !== 'DATABASE_URL')
+    .filter(key => key.startsWith(prefix))
     .map(key => key.substring(prefix.length));
 }
 

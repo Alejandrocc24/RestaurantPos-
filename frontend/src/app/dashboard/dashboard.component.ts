@@ -25,7 +25,7 @@ import { VentasComponent } from '../ventas/ventas.component';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, SidebarComponent, ProductosComponent, CategoriaProductosComponent, GruposModificadoresComponent, GestionComentariosComponent, CocinaComponent, GastosComponent, ProveedoresComponent, CategoriaGastosComponent, ConfiguracionComponent, UsuariosComponent, RespaldoComponent, MesasComponent, VentasComponent, ToastContainerComponent],
+  imports: [CommonModule, SidebarComponent, ProductosComponent, CategoriaProductosComponent, GruposModificadoresComponent, GestionComentariosComponent, CocinaComponent, GastosComponent, ProveedoresComponent, CategoriaGastosComponent, ConfiguracionComponent, RespaldoComponent, MesasComponent, VentasComponent, ToastContainerComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
