@@ -398,41 +398,14 @@ export class SupabaseService {
         return { total: 0, cantidadVentas: 0, pagosEfectivo: 0, pagosTransferencia: 0, pagosTarjeta: 0 };
       }
 
-      // Filtrar ventas del día actual con manejo robusto de fechas
-      const ventasHoy = ventas.filter((venta: any) => {
-        if (!venta.fecha) {
-          console.warn('⚠️ Venta sin fecha:', venta);
-          return false;
-        }
-
-        // Manejar fecha convirtiéndola siempre a Date para obtener el día local
-        const d = new Date(venta.fecha);
-        if (isNaN(d.getTime())) {
-          console.warn('⚠️ Fecha inválida:', venta.fecha);
-          return false;
-        }
-
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const fechaVenta = `${year}-${month}-${day}`;
-
-        const coincide = fechaVenta === fechaLocal;
-        if (!coincide) {
-          console.log(`❌ Fecha no coincide: ${fechaVenta} !== ${fechaLocal}`);
-        }
-
-        return coincide;
-      });
-
-      console.log('✅ Ventas del día encontradas:', ventasHoy.length);
+      console.log('✅ Ventas del día encontradas (pre-filtradas por backend):', ventas.length);
 
       let total = 0;
       let pagosEfectivo = 0;
       let pagosTransferencia = 0;
       let pagosTarjeta = 0;
 
-      ventasHoy.forEach((v: any) => {
+      ventas.forEach((v: any) => {
         const ventaTotal = Number(v.total) || 0;
         total += ventaTotal;
 
@@ -452,7 +425,7 @@ export class SupabaseService {
       console.log('📈 Total recaudado hoy:', total);
       console.log('💵 Efectivo:', pagosEfectivo, '| 🏦 Transferencia:', pagosTransferencia, '| 💳 Tarjeta:', pagosTarjeta);
 
-      return { total, cantidadVentas: ventasHoy.length, pagosEfectivo, pagosTransferencia, pagosTarjeta };
+      return { total, cantidadVentas: ventas.length, pagosEfectivo, pagosTransferencia, pagosTarjeta };
     } catch (error) {
       console.error('❌ Error obteniendo recaudo actual:', error);
       return { total: 0, cantidadVentas: 0, pagosEfectivo: 0, pagosTransferencia: 0, pagosTarjeta: 0 };
@@ -473,41 +446,14 @@ export class SupabaseService {
         return [];
       }
 
-      // Filtrar ventas en el rango de fechas con manejo robusto
-      const ventasFiltradas = ventas.filter((venta: any) => {
-        if (!venta.fecha) {
-          console.warn('⚠️ Venta sin fecha:', venta);
-          return false;
-        }
+      console.log('✅ Ventas en el período encontradas:', ventas.length);
 
-        // Manejar fecha convirtiéndola siempre a Date para obtener el día local
-        const d = new Date(venta.fecha);
-        if (isNaN(d.getTime())) {
-          console.warn('⚠️ Fecha inválida:', venta.fecha);
-          return false;
-        }
-
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const fechaVenta = `${year}-${month}-${day}`;
-
-        const dentroDelRango = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
-        if (!dentroDelRango) {
-          console.log(`❌ Fecha fuera de rango: ${fechaVenta} no está entre ${fechaInicio} y ${fechaFin}`);
-        }
-
-        return dentroDelRango;
-      });
-
-      console.log('✅ Ventas en el período encontradas:', ventasFiltradas.length);
-
-      if (!ventasFiltradas || ventasFiltradas.length === 0) {
+      if (!ventas || ventas.length === 0) {
         return [];
       }
 
       // Mapear cada venta a una mesa cerrada individual
-      return ventasFiltradas.map((venta: any) => {
+      return ventas.map((venta: any) => {
         // La mesa viene included directamente por el backend
         const mesaVenta = venta.mesa;
         const mesaIdVenta = venta.mesaId || venta.mesa_id;
