@@ -466,8 +466,8 @@ export class VentasComponent implements OnInit, OnDestroy {
 
       // Llamar al backend pidiendo solo las ventas de ese rango de fechas
       // Extraer solo la fecha YYYY-MM-DD para la consulta del servicio
-      const aperturaYYYYMMDD = fechaAperturaDate.toISOString().split('T')[0];
-      const cierreYYYYMMDD = fechaCierreDate.toISOString().split('T')[0];
+      const aperturaYYYYMMDD = this.formatearFechaLocal(fechaAperturaDate);
+      const cierreYYYYMMDD = this.formatearFechaLocal(fechaCierreDate);
       let todasVentasRango = await this.supabaseService.getVentas(aperturaYYYYMMDD, cierreYYYYMMDD);
       
       console.log('📊 Total ventas recuperadas del rango:', todasVentasRango.length);
@@ -490,7 +490,7 @@ export class VentasComponent implements OnInit, OnDestroy {
         const total = Number(v.total) || 0;
         totalVentas += total;
 
-        const metodoPago = (v.metodo_pago || 'efectivo').toLowerCase();
+        const metodoPago = (v.metodo_pago || v.metodoPago || 'efectivo').toLowerCase();
         if (metodoPago === 'efectivo') {
           pagosEfectivo += total;
         } else if (metodoPago === 'transferencia') {
@@ -501,8 +501,8 @@ export class VentasComponent implements OnInit, OnDestroy {
       });
 
       // Obtener gastos de esta caja
-      const fechaAperturaLocal = new Date(fechaApertura).toISOString().split('T')[0];
-      const fechaCierreLocal = new Date(fechaCierre).toISOString().split('T')[0];
+      const fechaAperturaLocal = this.formatearFechaLocal(fechaAperturaDate);
+      const fechaCierreLocal = this.formatearFechaLocal(fechaCierreDate);
       const gastos = await this.supabaseService.obtenerGastos(fechaAperturaLocal, fechaCierreLocal);
 
       const gastosCaja = gastos.filter((g: any) => {

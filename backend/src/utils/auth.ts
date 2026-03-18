@@ -19,12 +19,32 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /**
+ * Helper: Calcula los segundos hasta la medianoche de una zona horaria específica (por defecto Colombia, UTC-5, offset=+300)
+ */
+function getSecondsUntilMidnightOffset(offsetMinutes = 300): number {
+  const now = new Date();
+  const clientLocalNow = new Date(now.getTime() - (offsetMinutes * 60000));
+  const year = clientLocalNow.getUTCFullYear();
+  const month = clientLocalNow.getUTCMonth();
+  const day = clientLocalNow.getUTCDate();
+  
+  // Medianoche del Siguiente día en tiempo del cliente, expresada en UTC puro
+  const localNextMidnightUTC = new Date(Date.UTC(year, month, day + 1, 0, 0, 0, 0));
+  
+  // Volver al UTC absoluto
+  const nextMidnightAbsoluteUTC = new Date(localNextMidnightUTC.getTime() + (offsetMinutes * 60000));
+  
+  return Math.max(3600, Math.floor((nextMidnightAbsoluteUTC.getTime() - now.getTime()) / 1000)); // Minimo 1 hora por seguridad
+}
+
+/**
  * Genera un JWT token
  */
 export function generateToken(payload: JwtPayload): string {
   const secret = config.jwtSecret || 'your-secret-key-change-in-production';
+  // Expiración dinámica para que caduque a la media noche (12 AM hora local)
   const options: any = {
-    expiresIn: config.jwtExpiresIn,
+    expiresIn: getSecondsUntilMidnightOffset(300), // 300 minutos = UTC-5
   };
   return jwt.sign(payload, secret, options);
 }
