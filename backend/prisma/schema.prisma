@@ -3,8 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Usuario {
@@ -20,6 +21,8 @@ model Usuario {
   ordenes      Orden[]
   roles        UsuarioRol[]
   ventas       Venta[]
+  cajaAperturas Caja[]      @relation("CajaApertura")
+  cajaCierres   Caja[]      @relation("CajaCierre")
 
   @@index([email])
   @@index([activo])
@@ -102,10 +105,10 @@ model Producto {
   imagen              String?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
-  comentarios         String?             @default("[]")
-  configuracionGrupos String?             @default("[]")
+  comentarios         Json                @default("[]")
+  configuracionGrupos Json                @default("[]")
   especial            Boolean             @default(false)
-  gruposModificadores String?             @default("[]")
+  gruposModificadores Json              @default("[]")
   opcionesModificador OpcionModificador[]
   ordenProductos      OrdenProducto[]
   categoria           Categoria           @relation(fields: [categoriaId], references: [id], onDelete: SetNull)
@@ -174,7 +177,7 @@ model Orden {
   descuento     Float           @default(0)
   propina       Float           @default(0)
   createdAt     DateTime        @default(now())
-  compledatAt   DateTime?
+  completedAt   DateTime?
   updatedAt     DateTime        @updatedAt
   notas         String?
   visibleCocina Boolean         @default(true)
@@ -191,20 +194,20 @@ model Orden {
 }
 
 model OrdenProducto {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   ordenId        String
   productoId     String
   cantidad       Int
   precioUnitario Float
   subtotal       Float
-  estado         String   @default("pendiente")
+  estado         EstadoItem    @default(PENDIENTE)
   notas          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   comentario     String?
-  modificadores  String?
-  orden          Orden    @relation(fields: [ordenId], references: [id], onDelete: Cascade)
-  producto       Producto @relation(fields: [productoId], references: [id])
+  modificadores  Json?
+  orden          Orden         @relation(fields: [ordenId], references: [id], onDelete: Cascade)
+  producto       Producto      @relation(fields: [productoId], references: [id])
 
   @@index([ordenId])
   @@index([productoId])
@@ -236,7 +239,7 @@ model Venta {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   cantidadProductos Int      @default(0)
-  productosJson     String?
+  productosJson     Json?
   mesa              Mesa?    @relation(fields: [mesaId], references: [id])
   usuario           Usuario  @relation(fields: [usuarioId], references: [id])
 
@@ -312,6 +315,8 @@ model Caja {
   activo              Boolean   @default(true)
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
+  usuarioApertura     Usuario?  @relation("CajaApertura", fields: [usuario_apertura_id], references: [id])
+  usuarioCierre       Usuario?  @relation("CajaCierre", fields: [usuario_cierre_id], references: [id])
 
   @@index([estado])
   @@index([fecha_apertura])
@@ -408,4 +413,11 @@ enum EstadoCompra {
   PENDIENTE
   COMPLETADA
   CANCELADA
+}
+
+enum EstadoItem {
+  PENDIENTE
+  EN_PREPARACION
+  LISTO
+  ENTREGADO
 }

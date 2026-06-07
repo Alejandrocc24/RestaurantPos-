@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { hashPassword, verifyPassword, generateToken, generateRefreshToken } from '../utils/auth.js';
+import { hashPassword, verifyPassword, generateToken, generateRefreshToken, hashToken } from '../utils/auth.js';
 import { isValidEmail, isValidPassword, isValidName } from '../utils/validation.js';
 
 export class AuthService {
@@ -109,30 +109,28 @@ export class AuthService {
 
     await this.prisma.usuario.update({
       where: { id: user.id },
-      data: { refreshToken },
+      data: { refreshToken: hashToken(refreshToken) },
     });
 
     console.log('✅ [AuthService.login] Token generado con tenantId:', tenantId);
 
-    // Extraer nombres de roles y permisos
+    // Extraer nombres de roles y permisos (merge de todos los roles)
     const roleNames = user.roles.map(ur => ur.rol.nombre);
     const firstRoleName = roleNames.length > 0 ? roleNames[0] : undefined;
-    
-    // Obtener permisos del primer rol (rol principal)
-    let permisos: string[] = [];
-    if (user.roles.length > 0) {
-      const firstRol = user.roles[0].rol;
-      // Los permisos están almacenados como JSON en la BD
-      if (typeof firstRol.permisos === 'string') {
-        try {
-          permisos = JSON.parse(firstRol.permisos);
-        } catch (e) {
-          permisos = [];
-        }
-      } else if (Array.isArray(firstRol.permisos)) {
-        permisos = firstRol.permisos;
+
+    // Merge de permisos de todos los roles (evitar duplicados)
+    const allPermisos = new Set<string>();
+    for (const ur of user.roles) {
+      const rolPermisos = ur.rol.permisos;
+      let parsedPermisos: string[] = [];
+      if (typeof rolPermisos === 'string') {
+        try { parsedPermisos = JSON.parse(rolPermisos); } catch (e) { parsedPermisos = []; }
+      } else if (Array.isArray(rolPermisos)) {
+        parsedPermisos = rolPermisos;
       }
+      parsedPermisos.forEach(p => allPermisos.add(p));
     }
+    const permisos = Array.from(allPermisos);
 
     return {
       accessToken: token,
@@ -171,22 +169,20 @@ export class AuthService {
 
     const roleNames = user.roles.map(ur => ur.rol.nombre);
     const firstRoleName = roleNames.length > 0 ? roleNames[0] : undefined;
-    
-    // Obtener permisos del primer rol (rol principal)
-    let permisos: string[] = [];
-    if (user.roles.length > 0) {
-      const firstRol = user.roles[0].rol;
-      // Los permisos están almacenados como JSON en la BD
-      if (typeof firstRol.permisos === 'string') {
-        try {
-          permisos = JSON.parse(firstRol.permisos);
-        } catch (e) {
-          permisos = [];
-        }
-      } else if (Array.isArray(firstRol.permisos)) {
-        permisos = firstRol.permisos;
+
+    // Merge de permisos de todos los roles (evitar duplicados)
+    const allPermisos = new Set<string>();
+    for (const ur of user.roles) {
+      const rolPermisos = ur.rol.permisos;
+      let parsedPermisos: string[] = [];
+      if (typeof rolPermisos === 'string') {
+        try { parsedPermisos = JSON.parse(rolPermisos); } catch (e) { parsedPermisos = []; }
+      } else if (Array.isArray(rolPermisos)) {
+        parsedPermisos = rolPermisos;
       }
+      parsedPermisos.forEach(p => allPermisos.add(p));
     }
+    const permisos = Array.from(allPermisos);
 
     return {
       id: user.id,

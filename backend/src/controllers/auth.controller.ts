@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service.js';
 import { config } from '../config/index.js';
-import { verifyRefreshToken, generateToken, generateRefreshToken } from '../utils/auth.js';
+import { verifyRefreshToken, generateToken, generateRefreshToken, hashToken } from '../utils/auth.js';
 
 export class AuthController {
   /**
@@ -116,7 +116,7 @@ export class AuthController {
       // Obtener usuario y comparar
       const authService = new AuthService(req.prisma);
       const user = await req.prisma.usuario.findUnique({ where: { id: userId } });
-      if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
+      if (!user || !user.refreshToken || user.refreshToken !== hashToken(refreshToken)) {
         return res.status(401).json({ success: false, message: 'Refresh token inválido' });
       }
 
@@ -125,7 +125,7 @@ export class AuthController {
       const newRefreshToken = generateRefreshToken({ userId: user.id, email: user.email, tenantId: payload.tenantId });
 
       // Guardar nuevo refresh token
-      await req.prisma.usuario.update({ where: { id: user.id }, data: { refreshToken: newRefreshToken } });
+      await req.prisma.usuario.update({ where: { id: user.id }, data: { refreshToken: hashToken(newRefreshToken) } });
 
       // Setear cookie con nuevo refresh token
       res.cookie('refreshToken', newRefreshToken, {

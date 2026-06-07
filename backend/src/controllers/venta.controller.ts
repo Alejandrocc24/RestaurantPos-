@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
 import { SocketService } from '../services/socket.service.js';
+import { toZonedTime } from 'date-fns-tz';
+
+// Función helper para obtener la fecha/hora actual en zona horaria de Colombia (COT)
+const nowCOT = () => toZonedTime(new Date(), 'America/Bogota');
 
 export class VentaController {
   /**
@@ -22,12 +26,12 @@ export class VentaController {
         if (fechaInicio) {
           // Adjust fechaInicio (YYYY-MM-DD) to UTC based on client's timezoneOffset
           const startUtc = new Date(fechaInicio + 'T00:00:00.000Z');
-          where.fecha.gte = new Date(startUtc.getTime() + (timezoneOffset * 60000));
+          where.fecha.gte = new Date(startUtc.getTime() - (timezoneOffset * 60000));
         }
         if (fechaFin) {
           // Adjust fechaFin (YYYY-MM-DD) to UTC based on client's timezoneOffset
           const endUtc = new Date(fechaFin + 'T23:59:59.999Z');
-          where.fecha.lte = new Date(endUtc.getTime() + (timezoneOffset * 60000));
+          where.fecha.lte = new Date(endUtc.getTime() - (timezoneOffset * 60000));
         }
         // Si hay un rango de fechas explícito, removemos el límite implícito
         take = parseInt(req.query.take as string) || undefined;
@@ -270,7 +274,7 @@ export class VentaController {
       
       // Convert that local start back to absolute UTC
       // AbsoluteUTC = LocalStart + offset
-      const hoyStart = new Date(localStartOfDayUTC.getTime() + (timezoneOffset * 60000));
+      const hoyStart = new Date(localStartOfDayUTC.getTime() - (timezoneOffset * 60000));
       const mañanaStart = new Date(hoyStart.getTime() + 24 * 60 * 60 * 1000);
 
       console.log(`🔍 getHoy: Offset=${timezoneOffset}, now=${now.toISOString()}, hoyStart=${hoyStart.toISOString()}, mañanaStart=${mañanaStart.toISOString()}`);
@@ -373,7 +377,7 @@ export class VentaController {
         parseFloat(total),
         'completada',
         metodo_pago,
-        new Date(), // usar fecha en el backend
+        nowCOT(), // usar fecha en Colombia (COT)
         parseInt(cantidad_productos) || 0,
         productos_json ? JSON.stringify(productos_json) : null
       );

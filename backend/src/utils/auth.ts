@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
@@ -69,4 +70,11 @@ export function verifyToken(token: string): JwtPayload {
 
 export function verifyRefreshToken(token: string): JwtPayload {
   return jwt.verify(token, config.jwtSecret) as JwtPayload;
+}
+
+/**
+ * Genera un hash SHA-256 de un token para almacenamiento seguro en BD
+ */
+export function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
 }
