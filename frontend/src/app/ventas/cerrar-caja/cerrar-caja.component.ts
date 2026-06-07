@@ -13,6 +13,7 @@ import { ModalHistoryManager } from '../../shared/utils/modal-history-manager';
   styleUrls: ['./cerrar-caja.component.css']
 })
 export class CerrarCajaComponent implements OnInit, OnDestroy {
+  @Input() cajaId: string = '';
   @Input() recaudoActual: number = 0;
   @Input() gastosHoy: number = 0;
   @Input() pagosTransferencia: number = 0;
@@ -90,7 +91,7 @@ export class CerrarCajaComponent implements OnInit, OnDestroy {
     }
 
     const cajaCerrada: Caja = {
-      id: Date.now(),
+      id: this.cajaId,
       estado: 'cerrada',
       fechaApertura: new Date().toISOString(),
       fechaCierre: new Date().toISOString(),
@@ -102,7 +103,7 @@ export class CerrarCajaComponent implements OnInit, OnDestroy {
     };
 
     (async () => {
-      await this.ventasService.cerrarCaja(cajaCerrada.id);
+      await this.ventasService.cerrarCaja(this.cajaId);
       this.cajaCerrada.emit(cajaCerrada);
       this.toast.success('Caja cerrada', 'La caja fue cerrada exitosamente');
       this.cerrarModal();
