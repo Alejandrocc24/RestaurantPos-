@@ -138,7 +138,7 @@ export class VentaController {
 
       // UN SOLO viaje de red al servidor PostgreSQL (casts explícitos para evitar mismatch de tipos)
       const result: any[] = await req.prisma.$queryRawUnsafe(
-        `SELECT crear_venta($1::text, $2::text, $3::text, $4::float8, $5::text, $6::text, $7::timestamp, $8::int, $9::text) as data`,
+        `SELECT crear_venta($1::text, $2::text, $3::text, $4::float8, $5::text, $6::text, $7::timestamp, $8::int, $9::jsonb) as data`,
         mesa_id || null,
         usuario_id,
         orden_id || null,
@@ -370,7 +370,7 @@ export class VentaController {
 
       // 3. Crear venta
       const resultVenta: any[] = await req.prisma.$queryRawUnsafe(
-        `SELECT crear_venta($1::text, $2::text, $3::text, $4::float8, $5::text, $6::text, $7::timestamp, $8::int, $9::text) as data`,
+        `SELECT crear_venta($1::text, $2::text, $3::text, $4::float8, $5::text, $6::text, $7::timestamp, $8::int, $9::jsonb) as data`,
         mesa_id || null,
         usuario_id,
         orden_id || null,

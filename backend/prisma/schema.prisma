@@ -177,7 +177,7 @@ model Orden {
   descuento     Float           @default(0)
   propina       Float           @default(0)
   createdAt     DateTime        @default(now())
-  completedAt   DateTime?
+  completedAt   DateTime?       @map("compledatAt")
   updatedAt     DateTime        @updatedAt
   notas         String?
   visibleCocina Boolean         @default(true)
