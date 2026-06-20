@@ -19,10 +19,7 @@ const httpServer = createServer(app);
 // MIDDLEWARES DE SEGURIDAD
 // ============================================
 
-// Helmet para security headers
-app.use(helmet());
-
-// CORS
+// CORS antes de Helmet para que los preflight OPTIONS respondan siempre
 app.use(
   cors({
     origin: customCorsOrigin,
@@ -31,6 +28,9 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
   })
 );
+
+// Helmet para security headers
+app.use(helmet());
 
 // Morgan para logging HTTP
 app.use(morgan('combined'));
