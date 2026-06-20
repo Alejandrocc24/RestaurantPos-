@@ -1,24 +1,15 @@
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { config } from '../config/index.js';
+import { customCorsOrigin } from '../config/cors.js';
 
 export class SocketService {
   private static io: Server;
 
-  private static getCorsOrigins() {
-    if (config.isDevelopment) {
-      return ['http://localhost:4200', 'http://localhost:3000', 'http://127.0.0.1:4200', 'http://127.0.0.1:3000'];
-    }
-    const frontendUrl = process.env.FRONTEND_URL;
-    if (!frontendUrl) return '*';
-    const origins = frontendUrl.split(',').map(url => url.trim());
-    return origins.length === 1 ? origins[0] : origins;
-  }
-
   public static init(server: HttpServer) {
     this.io = new Server(server, {
       cors: {
-        origin: SocketService.getCorsOrigins(),
+        origin: customCorsOrigin as any, // Cast to any to avoid type mismatch with socket.io types
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
