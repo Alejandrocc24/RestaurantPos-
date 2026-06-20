@@ -19,7 +19,9 @@ export class SocketService {
 
     private initSocket() {
         // Determine backend URL
-        const url = environment.apiUrl ? environment.apiUrl.replace('/api', '') : 'http://localhost:3001';
+        const env = environment as typeof environment & { socketUrl?: string };
+        const url = env.socketUrl
+            ?? (environment.apiUrl ? environment.apiUrl.replace('/api', '') : 'http://localhost:3001');
 
         this.socket = io(url, {
             withCredentials: true,
