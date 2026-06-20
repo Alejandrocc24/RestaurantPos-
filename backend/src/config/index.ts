@@ -12,7 +12,7 @@ export const config = {
 
   // JWT
   jwtSecret: isProd 
-    ? (process.env.PROD_JWT_SECRET || 'prod-secret-missing') 
+    ? (process.env.PROD_JWT_SECRET || process.env.JWT_SECRET || 'prod-secret-missing') 
     : (process.env.DEV_JWT_SECRET || 'dev-secret-key-2026'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
   refreshJwtExpiresIn: process.env.REFRESH_JWT_EXPIRES_IN || '7d',
