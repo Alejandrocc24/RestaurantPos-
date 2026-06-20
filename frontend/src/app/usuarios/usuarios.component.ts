@@ -161,7 +161,8 @@ export class UsuariosComponent implements OnInit, OnDestroy {
             },
             error: (error) => {
               console.error('Error eliminando usuario:', error);
-              this.toastService.error('Error al eliminar usuario');
+              const errorMessage = error.error?.message || 'Error al eliminar usuario';
+              this.toastService.error(errorMessage);
               this.guardando = false;
             }
           });
