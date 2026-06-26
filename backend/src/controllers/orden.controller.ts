@@ -99,7 +99,7 @@ export class OrdenController {
       const t0 = Date.now();
 
       const result: any[] = await req.prisma.$queryRawUnsafe(
-        `SELECT obtener_orden_activa_mesa($1) as data`,
+        `SELECT obtener_orden_activa_mesa($1::text) as data`,
         mesaId
       );
 
@@ -414,7 +414,7 @@ export class OrdenController {
 
       // UN SOLO viaje de red al servidor PostgreSQL
       const result: any[] = await req.prisma.$queryRawUnsafe(
-        `SELECT crear_orden_mesa($1, $2, $3, $4::jsonb) as data`,
+        `SELECT crear_orden_mesa($1::text, $2::text, $3::text, $4::jsonb) as data`,
         mesaId,
         usuarioId,
         notas || null,
@@ -468,7 +468,7 @@ export class OrdenController {
       if (esCobro && todosCero) {
         // COBRO TOTAL: UN SOLO viaje de red
         const result: any[] = await req.prisma.$queryRawUnsafe(
-          `SELECT cobrar_orden_total($1) as data`,
+          `SELECT cobrar_orden_total($1::text) as data`,
           ordenId
         );
 
@@ -489,7 +489,7 @@ export class OrdenController {
 
       // COBRO PARCIAL o edición: UN SOLO viaje de red
       const result: any[] = await req.prisma.$queryRawUnsafe(
-        `SELECT actualizar_cantidades_orden($1, $2::jsonb) as data`,
+        `SELECT actualizar_cantidades_orden($1::text, $2::jsonb) as data`,
         ordenId,
         JSON.stringify(productos)
       );
@@ -577,7 +577,7 @@ export class OrdenController {
       const t0 = Date.now();
 
       const result: any[] = await req.prisma.$queryRawUnsafe(
-        `SELECT transferir_productos_mesa($1, $2, $3, $4::jsonb) as data`,
+        `SELECT transferir_productos_mesa($1::text, $2::text, $3::text, $4::jsonb) as data`,
         mesaOrigenId,
         mesaDestinoId,
         usuarioId,

@@ -404,7 +404,7 @@ export class MesasComponent implements OnInit, OnDestroy {
             }))
           }));
         } else {
-          this.cargarGruposModificadoresEjemplo();
+          await this.cargarGruposModificadores();
         }
 
         this.aplicarFiltros();
@@ -648,6 +648,12 @@ export class MesasComponent implements OnInit, OnDestroy {
       grupos.forEach(grupo => {
         console.log(`  📦 Grupo ${grupo.id}: ${grupo.nombre} (${grupo.modificadores?.length || 0} modificadores, ${grupo.obligatorio ? 'obligatorio' : 'opcional'})`);
       });
+
+      const sinOpciones = grupos.every(g => !g.modificadores?.length);
+      if (sinOpciones) {
+        console.warn('⚠️ Grupos cargados sin opciones — recarga la página (Ctrl+Shift+R) si el modal de modificadores aparece vacío');
+        this.toast.warning('Modificadores', 'Los grupos cargaron sin opciones. Recarga la página e intenta de nuevo.');
+      }
     } catch (error: any) {
       console.error('❌ Error al cargar grupos modificadores:', error);
       console.warn('📌 Usando datos de ejemplo como fallback');
@@ -1932,17 +1938,20 @@ export class MesasComponent implements OnInit, OnDestroy {
     }
 
     // Crear pasos basados en los grupos modificadores del producto
-    if (producto.gruposModificadores && producto.configuracionGrupos && producto.gruposModificadores.length > 0) {
+    const configuracionGrupos = this.parseJsonField<any[]>(producto.configuracionGrupos, []);
+    const gruposDelProducto = this.parseJsonField<(string | number)[]>(producto.gruposModificadores, []);
+
+    if (gruposDelProducto.length > 0 && configuracionGrupos.length > 0) {
       console.log('  ✅ Producto tiene grupos modificadores configurados');
       console.log('    Grupos disponibles en memoria:', this.gruposModificadores.length);
-      console.log('    Grupos del producto:', producto.gruposModificadores);
+      console.log('    Grupos del producto:', gruposDelProducto);
 
-      this.pasosModificadores = producto.configuracionGrupos.map(config => {
+      this.pasosModificadores = configuracionGrupos.map(config => {
         const cGrupoId = config.grupoId || config.grupo_id;
         const cMinSelecciones = config.minSelecciones !== undefined ? config.minSelecciones : config.min_selecciones;
         const cMaxSelecciones = config.maxSelecciones !== undefined ? config.maxSelecciones : config.max_selecciones;
 
-        const grupo = this.gruposModificadores.find(g => g.id === cGrupoId);
+        const grupo = this.gruposModificadores.find(g => String(g.id) === String(cGrupoId));
         if (grupo) {
           console.log(`    📦 Paso creado: ${grupo.nombre} (min: ${cMinSelecciones}, max: ${cMaxSelecciones}, cobra: ${grupo.cobrarPrecio ? 'SÍ' : 'NO'}, modificadores: ${grupo.modificadores?.length || 0})`);
           return {
@@ -2881,20 +2890,32 @@ export class MesasComponent implements OnInit, OnDestroy {
     item.comentarioPersonalizado = '';
   }
 
+  private parseJsonField<T>(value: unknown, fallback: T): T {
+    if (value == null || value === '') {
+      return fallback;
+    }
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value) as T;
+      } catch {
+        return fallback;
+      }
+    }
+    return value as T;
+  }
+
   private mapearProductosPedidoDesdeBackend(items: any[]): ProductoPedido[] {
     return (items || []).map((item: any) => {
       // item puede ser un OrdenProducto del backend, que tiene la relación producto
       const nombreBase = item.producto?.nombre ?? item.nombre ?? 'Producto';
 
-      // Parsear modificadores si vienen como string JSON
+      // Parsear modificadores (string JSON, array, o doble codificado)
       let modificadores = item.modificadores ?? [];
       if (typeof modificadores === 'string') {
-        try {
-          modificadores = JSON.parse(modificadores);
-        } catch (e) {
-          console.warn('Error parseando modificadores:', e);
-          modificadores = [];
-        }
+        modificadores = this.parseJsonField<any[]>(modificadores, []);
+      }
+      if (typeof modificadores === 'string') {
+        modificadores = this.parseJsonField<any[]>(modificadores, []);
       }
 
       // Parsear comentarios desde el campo comentario del backend

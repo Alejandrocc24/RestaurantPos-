@@ -16,6 +16,13 @@ import { SocketService } from './services/socket.service.js';
 const app = express();
 const httpServer = createServer(app);
 
+// Evitar 304 con body vacío en dev (Angular reutiliza respuestas stale sin opciones)
+app.set('etag', false);
+app.use('/api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
+});
+
 // ============================================
 // MIDDLEWARES DE SEGURIDAD
 // ============================================
