@@ -162,7 +162,7 @@ Si ves eso, **el backend está funcionando** ✅
 Vercel construirá el proyecto. Cuando termine, te dará tu URL, algo como:
 
 ```
-https://restaurantpos.vercel.app
+https://restaurantpos-oficial.vercel.app/
 ```
 
 Abre esa URL — deberías ver la **pantalla de login** de RestaurantPOS ✅
@@ -197,7 +197,7 @@ apiUrl: 'https://restaurantpos-backend.onrender.com/api'
 
 ## Paso 5 — Probar todo
 
-1. Abrir la URL del frontend (ej: `https://restaurantpos.vercel.app`)
+1. Abrir la URL del frontend (ej: `https://restaurantpos-oficial.vercel.app/`)
 2. Iniciar sesión con un usuario existente
 3. Verificar que cargan las mesas, los productos, etc.
 4. Si algo falla, revisa los logs:

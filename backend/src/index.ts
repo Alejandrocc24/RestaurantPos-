@@ -6,17 +6,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import { config } from './config/index.js';
-
-// Parsear orígenes CORS para producción (soporta múltiples URLs separadas por coma)
-const getCorsOrigins = () => {
-  if (config.isDevelopment) {
-    return ['http://localhost:4200', 'http://localhost:3000', 'http://127.0.0.1:4200', 'http://127.0.0.1:3000'];
-  }
-  const frontendUrl = process.env.FRONTEND_URL;
-  if (!frontendUrl) return '*';
-  const origins = frontendUrl.split(',').map(url => url.trim());
-  return origins.length === 1 ? origins[0] : origins;
-};
+import { customCorsOrigin } from './config/cors.js';
 import { loggerMiddleware } from './middleware/request.js';
 import { errorMiddleware } from './middleware/auth.js';
 import apiRoutes from './routes/index.js';
@@ -25,6 +15,13 @@ import { SocketService } from './services/socket.service.js';
 
 const app = express();
 const httpServer = createServer(app);
+
+// Evitar 304 con body vacío en dev (Angular reutiliza respuestas stale sin opciones)
+app.set('etag', false);
+app.use('/api', (_req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  next();
+});
 
 // ============================================
 // MIDDLEWARES DE SEGURIDAD
@@ -36,7 +33,7 @@ app.use(helmet());
 // CORS
 app.use(
   cors({
-    origin: getCorsOrigins(),
+    origin: customCorsOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],

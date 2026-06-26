@@ -197,7 +197,7 @@
               </div>
               
               <!-- Mostrar personalización si existe (legacy) -->
-              <div class="producto-personalizacion" *ngIf="producto.personalizacion && !producto.modificadores">
+              <div class="producto-personalizacion" *ngIf="producto.personalizacion && (!producto.modificadores || producto.modificadores.length === 0)">
                 <small>✨ {{ producto.personalizacion }}</small>
               </div>
               

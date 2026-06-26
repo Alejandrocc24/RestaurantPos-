@@ -1,0 +1,290 @@
+-- ============================================================
+-- 1. TIPOS ENUMERADOS (Deben crearse primero)
+-- ============================================================
+
+CREATE TYPE "EstadoMesa" AS ENUM ('DISPONIBLE', 'OCUPADA', 'RESERVADA', 'FUERA_DE_SERVICIO');
+CREATE TYPE "EstadoOrden" AS ENUM ('PENDIENTE', 'EN_CURSO', 'COMPLETADA', 'CANCELADA', 'PAGADA');
+CREATE TYPE "MetodoPago" AS ENUM ('EFECTIVO', 'TARJETA', 'TRANSFERENCIA', 'CHEQUE', 'OTRO');
+CREATE TYPE "EstadoPago" AS ENUM ('PENDIENTE', 'COMPLETADO', 'CANCELADO', 'REEMBOLSADO');
+CREATE TYPE "TipoComentario" AS ENUM ('GENERAL', 'PROBLEMA', 'COMENTARIO_CLIENTE', 'NOTA_INTERNA', 'ADVERTENCIA');
+CREATE TYPE "Severidad" AS ENUM ('BAJA', 'NORMAL', 'ALTA', 'CRITICA');
+CREATE TYPE "EstadoCompra" AS ENUM ('PENDIENTE', 'COMPLETADA', 'CANCELADA');
+CREATE TYPE "EstadoItem" AS ENUM ('PENDIENTE', 'EN_PREPARACION', 'LISTO', 'ENTREGADO');
+
+-- ============================================================
+-- 2. TABLAS INDEPENDIENTES (Nivel 1)
+-- ============================================================
+
+CREATE TABLE "Rol" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT UNIQUE NOT NULL,
+    descripcion TEXT,
+    permisos TEXT[] DEFAULT ARRAY[]::TEXT[],
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "Usuario" (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    nombre TEXT NOT NULL,
+    password TEXT NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    "refreshToken" TEXT
+);
+
+CREATE TABLE "Categoria" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT UNIQUE NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "CategoriaGasto" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT UNIQUE NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "GrupoModificador" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    descripcion TEXT,
+    requerido BOOLEAN DEFAULT false,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    cobrar_precio BOOLEAN DEFAULT false
+);
+
+CREATE TABLE "Mesa" (
+    id TEXT PRIMARY KEY,
+    numero INTEGER UNIQUE NOT NULL,
+    capacidad INTEGER NOT NULL,
+    estado "EstadoMesa" DEFAULT 'DISPONIBLE',
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    posicion TEXT,
+    ubicacion TEXT
+);
+
+CREATE TABLE "Proveedor" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT UNIQUE NOT NULL,
+    contacto TEXT,
+    correo TEXT,
+    telefono TEXT,
+    direccion TEXT,
+    ciudad TEXT,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "Configuracion" (
+    id TEXT PRIMARY KEY,
+    clave TEXT UNIQUE NOT NULL,
+    valor TEXT NOT NULL,
+    tipo TEXT DEFAULT 'string',
+    descripcion TEXT,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "ComentarioPreestablecido" (
+    id TEXT PRIMARY KEY,
+    texto TEXT NOT NULL,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "Caja" (
+    id TEXT PRIMARY KEY,
+    monto_inicial DOUBLE PRECISION DEFAULT 0,
+    monto_final DOUBLE PRECISION,
+    estado TEXT DEFAULT 'abierta',
+    usuario_apertura_id TEXT,
+    usuario_cierre_id TEXT,
+    fecha_apertura TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    fecha_cierre TIMESTAMP WITHOUT TIME ZONE,
+    total_gastos DOUBLE PRECISION DEFAULT 0,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+-- ============================================================
+-- 3. TABLAS DEPENDIENTES (Nivel 2)
+-- ============================================================
+
+CREATE TABLE "UsuarioRol" (
+    id TEXT PRIMARY KEY,
+    "usuarioId" TEXT REFERENCES "Usuario"(id) ON DELETE CASCADE,
+    "rolId" TEXT REFERENCES "Rol"(id) ON DELETE CASCADE,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE("usuarioId", "rolId")
+);
+
+CREATE TABLE "Subcategoria" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    descripcion TEXT,
+    activo BOOLEAN DEFAULT true,
+    "categoriaId" TEXT REFERENCES "Categoria"(id) ON DELETE CASCADE,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    UNIQUE(nombre, "categoriaId")
+);
+
+CREATE TABLE "Producto" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    descripcion TEXT,
+    precio DOUBLE PRECISION NOT NULL,
+    "categoriaId" TEXT REFERENCES "Categoria"(id) ON DELETE SET NULL,
+    subcategoria TEXT,
+    activo BOOLEAN DEFAULT true,
+    imagen TEXT,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    comentarios TEXT DEFAULT '[]',
+    "configuracionGrupos" TEXT DEFAULT '[]',
+    especial BOOLEAN DEFAULT false,
+    "gruposModificadores" TEXT DEFAULT '[]'
+);
+
+CREATE TABLE "Orden" (
+    id TEXT PRIMARY KEY,
+    "mesaId" TEXT REFERENCES "Mesa"(id),
+    "usuarioId" TEXT REFERENCES "Usuario"(id) NOT NULL,
+    estado "EstadoOrden" DEFAULT 'PENDIENTE',
+    total DOUBLE PRECISION DEFAULT 0,
+    descuento DOUBLE PRECISION DEFAULT 0,
+    propina DOUBLE PRECISION DEFAULT 0,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "compledatAt" TIMESTAMP WITHOUT TIME ZONE,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    notas TEXT,
+    "visibleCocina" BOOLEAN DEFAULT true
+);
+
+CREATE TABLE "Gasto" (
+    id TEXT PRIMARY KEY,
+    descripcion TEXT NOT NULL,
+    monto DOUBLE PRECISION NOT NULL,
+    "categoriaId" TEXT REFERENCES "CategoriaGasto"(id) NOT NULL,
+    "usuarioId" TEXT REFERENCES "Usuario"(id) NOT NULL,
+    fecha TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    recibo TEXT,
+    observaciones TEXT,
+    salio_de_caja BOOLEAN DEFAULT true,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    "proveedorId" TEXT REFERENCES "Proveedor"(id),
+    "proveedorPersonalizado" TEXT
+);
+
+CREATE TABLE "Compra" (
+    id TEXT PRIMARY KEY,
+    "proveedorId" TEXT REFERENCES "Proveedor"(id) NOT NULL,
+    "numeroDocumento" TEXT,
+    monto DOUBLE PRECISION NOT NULL,
+    estado "EstadoCompra" DEFAULT 'COMPLETADA',
+    observaciones TEXT,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+-- ============================================================
+-- 4. TABLAS DEPENDIENTES (Nivel 3)
+-- ============================================================
+
+CREATE TABLE "OpcionModificador" (
+    id TEXT PRIMARY KEY,
+    nombre TEXT NOT NULL,
+    "precioAdicional" DOUBLE PRECISION DEFAULT 0,
+    "grupoId" TEXT REFERENCES "GrupoModificador"(id) ON DELETE CASCADE,
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    "productoId" TEXT REFERENCES "Producto"(id) ON DELETE SET NULL,
+    categoria TEXT
+);
+
+CREATE TABLE "OrdenProducto" (
+    id TEXT PRIMARY KEY,
+    "ordenId" TEXT REFERENCES "Orden"(id) ON DELETE CASCADE,
+    "productoId" TEXT REFERENCES "Producto"(id) NOT NULL,
+    cantidad INTEGER NOT NULL,
+    "precioUnitario" DOUBLE PRECISION NOT NULL,
+    subtotal DOUBLE PRECISION NOT NULL,
+    estado TEXT DEFAULT 'pendiente',
+    notas TEXT,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    comentario TEXT,
+    modificadores TEXT
+);
+
+CREATE TABLE "Pago" (
+    id TEXT PRIMARY KEY,
+    "ordenId" TEXT REFERENCES "Orden"(id) ON DELETE CASCADE,
+    monto DOUBLE PRECISION NOT NULL,
+    "metodoPago" "MetodoPago" NOT NULL,
+    referencia TEXT,
+    estado "EstadoPago" DEFAULT 'COMPLETADO',
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "Comentario" (
+    id TEXT PRIMARY KEY,
+    "ordenId" TEXT REFERENCES "Orden"(id) ON DELETE CASCADE,
+    contenido TEXT NOT NULL,
+    "tipoComentario" "TipoComentario" DEFAULT 'GENERAL',
+    severidad "Severidad" DEFAULT 'NORMAL',
+    activo BOOLEAN DEFAULT true,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE TABLE "Venta" (
+    id TEXT PRIMARY KEY,
+    "mesaId" TEXT REFERENCES "Mesa"(id),
+    "usuarioId" TEXT REFERENCES "Usuario"(id) NOT NULL,
+    "ordenId" TEXT,
+    total DOUBLE PRECISION NOT NULL,
+    estado TEXT DEFAULT 'completada',
+    "metodoPago" TEXT NOT NULL,
+    fecha TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITHOUT TIME ZONE,
+    "cantidadProductos" INTEGER DEFAULT 0,
+    "productosJson" TEXT
+);
+
+CREATE TABLE "_GrupoModificadorToProducto" (
+    "A" TEXT REFERENCES "GrupoModificador"(id) ON DELETE CASCADE,
+    "B" TEXT REFERENCES "Producto"(id) ON DELETE CASCADE,
+    PRIMARY KEY ("A", "B")
+);
+
+-- ============================================================
+-- 5. ÍNDICES (Para optimizar el rendimiento)
+-- ============================================================
+
+CREATE INDEX idx_usuario_email ON "Usuario"(email);
+CREATE INDEX idx_producto_nombre ON "Producto"(nombre);
+CREATE INDEX idx_orden_estado ON "Orden"(estado);
+CREATE INDEX idx_venta_fecha ON "Venta"(fecha);
+CREATE INDEX idx_gasto_fecha ON "Gasto"(fecha);

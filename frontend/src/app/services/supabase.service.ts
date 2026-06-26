@@ -560,12 +560,10 @@ export class SupabaseService {
 
   async obtenerEstadisticasProductos(fechaInicio: string, fechaFin: string): Promise<any[]> {
     try {
-      let url = 'ventas';
-      if (fechaInicio && fechaFin) {
-        url = `ventas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}&take=10000`;
-      } else {
-        url = `ventas?take=10000`;
-      }
+      const offset = new Date().getTimezoneOffset();
+      let url = `ventas?take=10000&timezoneOffset=${offset}`;
+      if (fechaInicio) url += `&fechaInicio=${fechaInicio}`;
+      if (fechaFin) url += `&fechaFin=${fechaFin}`;
 
       const ventasResp = await firstValueFrom(this.api.getData(url));
       const ventasAll = ventasResp.data || [];

@@ -13,6 +13,8 @@
     "start": "node dist/index.js",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:sp": "tsx src/scripts/apply-stored-procedures.ts",
+    "db:sp:all": "tsx src/scripts/apply-stored-procedures.ts -- --all",
     "db:generate": "prisma generate",
     "seed": "tsx src/scripts/seed.ts"
   },

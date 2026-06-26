@@ -6,6 +6,21 @@ import { config } from './index.js';
 const prismaClients = new Map<string, PrismaClient>();
 
 /**
+ * Supabase pooler (puerto 6543) requiere pgbouncer=true para evitar
+ * "prepared statement already exists" con Prisma.
+ */
+function ensurePgbouncerParams(url: string): string {
+  if (!url.includes('pooler.supabase.com') && !url.includes(':6543')) {
+    return url;
+  }
+  const parsed = new URL(url);
+  if (!parsed.searchParams.has('pgbouncer')) {
+    parsed.searchParams.set('pgbouncer', 'true');
+  }
+  return parsed.toString();
+}
+
+/**
  * Busca la URL de base de datos para un tenant específico.
  * Estrategia de búsqueda:
  *   1. Variable de entorno DATABASE_URL_{tenantId} (ej: DATABASE_URL_dulcemomento)
@@ -21,7 +36,7 @@ function resolveTenantDatabaseUrl(tenantId: string): string {
 
   if (tenantUrl) {
     console.log(`✅ [resolveTenantDatabaseUrl] Usando ${envKey} para tenant: ${tenantId} (${config.nodeEnv})`);
-    return tenantUrl;
+    return ensurePgbouncerParams(tenantUrl);
   }
 
   // 2. Fallback a la URL general del ambiente (config ya resolvió si es DEV o PROD)
@@ -31,7 +46,7 @@ function resolveTenantDatabaseUrl(tenantId: string): string {
   }
 
   console.log(`⚠️ [resolveTenantDatabaseUrl] No se encontró ${envKey}, usando fallback ${prefix}DATABASE_URL para tenant: ${tenantId}`);
-  return baseUrl;
+  return ensurePgbouncerParams(baseUrl);
 }
 
 /**

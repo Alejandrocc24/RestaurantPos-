@@ -94,7 +94,7 @@ export class GrupoModificadorService {
 
   // Obtener todos los grupos modificadores
   getGruposModificadores(): Observable<GrupoModificador[]> {
-    return this.http.get<any>(this.apiUrl, { headers: this.getHeaders() }).pipe(
+    return this.http.get<any>(`${this.apiUrl}?_=${Date.now()}`, { headers: this.getHeaders() }).pipe(
       map(response => {
         if (!response.success) {
           throw new Error(response.error || 'Error al obtener grupos modificadores');
