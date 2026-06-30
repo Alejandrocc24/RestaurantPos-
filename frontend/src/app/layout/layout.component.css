@@ -1,0 +1,255 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  background: var(--surface-page, #F3F4F6);
+}
+
+/* ===== Subnav (secondary bar below topnav) ===== */
+.subnav-bar {
+  background: white;
+  border-bottom: 1px solid #e1e5e9;
+  padding: 0 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  flex-shrink: 0;
+  position: sticky;
+  top: 60px;
+  z-index: 900;
+}
+
+.subnav-inner {
+  display: flex;
+  gap: 2px;
+  height: 44px;
+  align-items: center;
+}
+
+.subnav-tab {
+  padding: 0 20px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: #5a5a7a;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.subnav-tab:hover {
+  background: #f0f0f5;
+  color: #1a1a2e;
+}
+
+.subnav-tab.active {
+  background: #667eea;
+  color: white;
+}
+
+.subnav-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+/* Filter wrapper & dropdown */
+.filter-wrapper {
+  position: relative;
+}
+
+.subnav-btn-filter {
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: #5a5a7a;
+  font-size: 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.subnav-btn-filter:hover {
+  background: #f0f0f5;
+  color: #1a1a2e;
+}
+
+.subnav-btn-filter.active {
+  background: #667eea;
+  color: white;
+}
+
+.filter-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.1);
+  padding: 6px;
+  min-width: 180px;
+  z-index: 500;
+  animation: fadeIn 0.15s ease;
+}
+
+.filter-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  color: #1a1a2e;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filter-option:hover {
+  background: #f0f0f5;
+}
+
+.filter-option.active {
+  background: #eef0f5;
+  font-weight: 600;
+}
+
+.filter-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.filter-color.all {
+  background: linear-gradient(135deg, #4caf50 0%, #ff9800 50%, #9c27b0 100%);
+}
+
+.filter-color.libre { background: #4caf50; }
+.filter-color.ocupada { background: #ff9800; }
+.filter-color.cuenta { background: #9c27b0; }
+
+/* Salones "+" button */
+.subnav-btn-salones {
+  width: 34px;
+  height: 34px;
+  border: 2px solid #dee2e6;
+  background: transparent;
+  color: #5a5a7a;
+  font-size: 18px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+}
+
+.subnav-btn-salones:hover {
+  background: #f0f0f5;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+/* Nueva mesa toolbar button */
+.btn-nueva-mesa-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 34px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-nueva-mesa-toolbar:hover {
+  background: #43a047;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+}
+
+/* Edit mode button */
+.subnav-btn-edicion {
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  background: transparent;
+  color: #5a5a7a;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.subnav-btn-edicion:hover {
+  background: #f0f0f5;
+  color: #1a1a2e;
+}
+
+.subnav-btn-edicion.active {
+  background: #dc3545;
+  color: white;
+}
+
+.subnav-btn-edicion.active:hover {
+  background: #c82333;
+}
+
+@media (max-width: 768px) {
+  .subnav-bar {
+    padding: 0 12px;
+    top: 56px;
+    overflow-x: auto;
+  }
+
+  .subnav-inner {
+    gap: 0;
+    width: max-content;
+  }
+
+  .subnav-tab {
+    padding: 0 14px;
+    font-size: 12px;
+    height: 32px;
+  }
+}

@@ -1,65 +1,103 @@
-<!-- login.component.html -->
-<div class="login-container">
-  <div class="login">
-    <h1>Iniciar Sesión</h1>
-    <form (submit)="onSubmit($event)">
-      <input
-        type="email"
-        name="email"
-        placeholder="Correo (usuario@negocio)"
-        required="required"
-        [(ngModel)]="email"
-        (ngModelChange)="onEmailChange()"
-        [disabled]="isLoading"
-        class="form-control"
-      />
+<div class="login-page">
+  <div class="login-branding">
+    <div class="branding-content">
+      <div class="branding-icon">
+        <span class="branding-emoji">🍽️</span>
+      </div>
+      <h1 class="branding-title">RestaurantPOS</h1>
+      <p class="branding-subtitle">Sistema de punto de venta</p>
+      <div class="branding-features">
+        <div class="feature-item">
+          <span class="feature-check">✓</span>
+          <span>Gestión de mesas</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span>
+          <span>Ventas rápidas</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">✓</span>
+          <span>Reportes en tiempo real</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="login-form-section">
+    <div class="login-form-container">
+      <h2 class="form-heading">Iniciar sesión</h2>
+      <p class="form-subtitle">Ingresa tus credenciales para continuar</p>
 
-      <div class="password-field">
-        <input
-          [type]="showPassword ? 'text' : 'password'"
-          name="password"
-          placeholder="Contraseña"
-          required="required"
-          [(ngModel)]="password"
-          [disabled]="isLoading"
-          class="form-control"
-        />
-        <button
-          type="button"
-          class="toggle-password"
-          (click)="togglePasswordVisibility()"
-          [attr.aria-pressed]="showPassword"
-        >
-          <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+      <div class="error-message" *ngIf="errorMessage">
+        <span class="error-icon">⚠️</span>
+        <span>{{ errorMessage }}</span>
+      </div>
+
+      <form (submit)="onSubmit($event)">
+        <div class="form-field">
+          <label for="email">Usuario</label>
+          <div class="input-wrapper">
+            <span class="input-icon">👤</span>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              placeholder="correo@negocio"
+              required
+              [(ngModel)]="email"
+              (ngModelChange)="onEmailChange()"
+              [disabled]="isLoading"
+            />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label for="password">Contraseña</label>
+          <div class="input-wrapper">
+            <span class="input-icon">🔒</span>
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              name="password"
+              placeholder="••••••••"
+              required
+              [(ngModel)]="password"
+              [disabled]="isLoading"
+            />
+            <button
+              type="button"
+              class="toggle-password"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+            >
+              {{ showPassword ? '🙈' : '👁️' }}
+            </button>
+          </div>
+        </div>
+
+        <div class="dev-tenant-field" *ngIf="isDevEmail">
+          <label class="dev-label">💻 Tenant de destino</label>
+          <div class="input-wrapper">
+            <input
+              type="text"
+              name="tenantId"
+              placeholder="Ej: dulcemomento"
+              [(ngModel)]="devTenantId"
+              [disabled]="isLoading"
+            />
+          </div>
+          <small class="dev-hint">Identificador del cliente al que deseas acceder</small>
+        </div>
+
+        <button type="submit" class="submit-btn" [disabled]="isLoading">
+          <span *ngIf="!isLoading">Iniciar Sesión</span>
+          <span *ngIf="isLoading" class="loading-state">
+            <span class="spinner"></span>
+            Ingresando...
+          </span>
         </button>
-      </div>
+      </form>
 
-      <!-- Campo de tenantId solo visible para el desarrollador (@dev) -->
-      <div class="dev-tenant-field" *ngIf="isDevEmail">
-        <label class="dev-label">
-          <i class="bi bi-terminal"></i> Tenant de destino
-        </label>
-        <input
-          type="text"
-          name="tenantId"
-          placeholder="Ej: dulcemomento, laparrilla"
-          [(ngModel)]="devTenantId"
-          [disabled]="isLoading"
-          class="form-control dev-input"
-        />
-        <small class="dev-hint">
-          Ingresa el identificador del cliente al que deseas acceder
-        </small>
-      </div>
-
-      <button 
-        type="submit" 
-        class="btn btn-primary btn-block btn-large"
-        [disabled]="isLoading"
-      >
-        <span *ngIf="!isLoading">Iniciar Sesión</span>
-        <span *ngIf="isLoading">Cargando...</span>
-      </button>
-    </form>
+      <p class="form-footer">RestaurantPOS v2.0</p>
+    </div>
   </div>
 </div>

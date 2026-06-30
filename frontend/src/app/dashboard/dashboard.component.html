@@ -1,11 +1,7 @@
 <!-- dashboard.component.html -->
 <div class="dashboard-container">
   <!-- Sidebar -->
-  <app-sidebar 
-    [isVisible]="isSidebarVisible" 
-    (closeRequested)="toggleSidebar()"
-    (viewChangeRequested)="showView($event)">
-  </app-sidebar>
+  <app-topnav></app-topnav>
   
   <!-- Header Bar -->
   <header class="header" [ngClass]="{'sidebar-hidden': !isSidebarVisible}">

@@ -1,0 +1,45 @@
+<div class="app-layout">
+  <app-topnav></app-topnav>
+  <div class="subnav-bar" *ngIf="showZonaSubnav">
+    <div class="subnav-inner">
+      <button class="subnav-tab" [class.active]="zonaActiva === 'salon'" (click)="setZona('salon')">Salón</button>
+      <button class="subnav-tab" [class.active]="zonaActiva === 'terraza'" (click)="setZona('terraza')">Terraza</button>
+      <button class="subnav-tab" [class.active]="zonaActiva === 'domicilio'" (click)="setZona('domicilio')">Domicilio</button>
+      <button class="subnav-tab" [class.active]="zonaActiva === 'mostrador'" (click)="setZona('mostrador')">Mostrador</button>
+      <button class="subnav-btn-salones" *ngIf="!modoEdicion" (click)="abrirGestionarSalones()" title="Gestionar salones">
+        +
+      </button>
+      <div class="subnav-right" (click)="$event.stopPropagation()">
+        <div class="filter-wrapper" *ngIf="!modoEdicion">
+          <button class="subnav-btn-filter" [class.active]="filtroActivo !== 'todas'" (click)="toggleDropdown(); $event.stopPropagation()" title="Filtrar">
+            🔽
+          </button>
+          <div class="filter-dropdown" *ngIf="dropdownOpen" (click)="$event.stopPropagation()">
+            <button class="filter-option" [class.active]="filtroActivo === 'todas'" (click)="setFiltro('todas')">
+              <span class="filter-color all"></span> Todas
+            </button>
+            <button class="filter-option" [class.active]="filtroActivo === 'disponible'" (click)="setFiltro('disponible')">
+              <span class="filter-color libre"></span> Libres
+            </button>
+            <button class="filter-option" [class.active]="filtroActivo === 'ocupado'" (click)="setFiltro('ocupado')">
+              <span class="filter-color ocupada"></span> Ocupadas
+            </button>
+            <button class="filter-option" [class.active]="filtroActivo === 'cuenta'" (click)="setFiltro('cuenta')">
+              <span class="filter-color cuenta"></span> Cuenta pedida
+            </button>
+          </div>
+        </div>
+        <button class="btn-nueva-mesa-toolbar" *ngIf="modoEdicion" (click)="abrirNuevaMesa()" title="Nueva mesa">
+          ➕ Nueva mesa
+        </button>
+        <button class="subnav-btn-edicion" [class.active]="modoEdicion" (click)="toggleModoEdicion()" [title]="modoEdicion ? 'Salir del modo edición' : 'Modo edición'">
+          <span *ngIf="!modoEdicion">✏️</span>
+          <span *ngIf="modoEdicion">✕ Salir</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <main class="app-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

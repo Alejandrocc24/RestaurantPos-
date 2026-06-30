@@ -1,456 +1,660 @@
+/* ===== Vista de Mesas - Rediseño 2026 ===== */
 .mesas-container {
+  position: relative;
   padding: 20px;
   background: #f8f9fa;
   min-height: 100vh;
 }
 
+/* ===== Edición Banner ===== */
+.edicion-banner {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+  border: 1px solid #ffc107;
+  border-radius: 10px;
+  padding: 14px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edicion-banner-texto {
+  font-size: 14px;
+  color: #856404;
+  line-height: 1.5;
+}
+
+.edicion-banner-texto strong {
+  color: #533f03;
+}
+
 @media (max-width: 768px) {
   .mesas-container {
-    padding: 10px;
+    padding: 12px;
     overflow-x: auto;
   }
 }
 
-/* Header */
-.mesas-header {
+/* ===== Topbar ===== */
+.mesas-topbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  background: white;
-  padding: 25px;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 
-
-.header-left h1 {
-  margin: 0 0 8px 0;
-  color: #2c3e50;
-  font-size: 2rem;
+.mesas-topbar h1 {
+  font-size: 28px;
   font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
 }
 
-.header-left p {
-  margin: 0;
-  color: #7f8c8d;
-  font-size: 1rem;
+.mesas-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #667eea;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 10px;
+  min-width: 26px;
+  height: 26px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .btn-nueva-mesa {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .btn-nueva-mesa:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(102,126,234,0.35);
 }
 
-/* Botón de modo edición */
-.btn-edicion {
-  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 25px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
+/* ===== Filtros ===== */
+.mesas-filtros {
   display: flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
-/* Botón de crear mesa */
-.btn-crear-mesa-container {
-  grid-column: 1 / -1;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.btn-crear-mesa {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  border-radius: 25px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.btn-crear-mesa:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-}
-
-.btn-edicion:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
-}
-
-.btn-edicion.activo {
-  background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
-  box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
-}
-
-.btn-edicion.activo:hover {
-  box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
-}
-
-.btn-icon {
-  font-size: 1.2rem;
-}
-
-
-
-
-
-/* Grid de mesas */
-.mesas-grid {
-  display: grid;
-  grid-template-columns: repeat(8, minmax(110px, 1fr));
-  gap: 15px;
-  max-width: 100%;
-  margin: 0;
-}
-
-@media (max-width: 1200px) {
-  .mesas-grid {
-    grid-template-columns: repeat(6, minmax(110px, 1fr));
-  }
-}
-
-@media (max-width: 992px) {
-  .mesas-grid {
-    grid-template-columns: repeat(4, minmax(110px, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .mesas-grid {
-    grid-template-columns: repeat(8, 70px);
-    gap: 8px;
-    min-width: min-content;
-  }
-}
-
-@media (max-width: 576px) {
-  .mesas-grid {
-    grid-template-columns: repeat(8, 65px);
-    gap: 6px;
-    min-width: min-content;
-  }
-  
-  .mesas-grid.modo-edicion {
-    grid-template-columns: repeat(8, 65px);
-    gap: 6px;
-    min-width: min-content;
-  }
-}
-
-/* Posiciones de mesas */
-.posicion-mesa {
-  aspect-ratio: 1;
-  position: relative;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.posicion-mesa.drag-over {
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-  border: 3px dashed #667eea;
-  border-radius: 12px;
-}
-
-.posicion-mesa.ocupada {
-  cursor: default;
-}
-
-.posicion-mesa.disponible {
-  cursor: pointer;
-}
-
-.posicion-mesa.disponible:hover {
-  transform: scale(1.05);
-}
-
-/* Posición vacía */
-.posicion-vacia {
-  aspect-ratio: 1;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 3px dashed #dee2e6;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.posicion-vacia:hover {
-  border-color: #28a745;
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-  transform: scale(1.05);
-}
-
-.icono-plus {
-  font-size: 2rem;
-  color: #28a745;
-  margin-bottom: 8px;
-}
-
-.texto-posicion {
-  font-size: 0.8rem;
-  color: #6c757d;
-  text-align: center;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.texto-arrastrar {
-  font-size: 0.7rem;
-  color: #28a745;
-  text-align: center;
+.filter-pill {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1.5px solid #e1e5e9;
+  background: white;
+  font-size: 13px;
   font-weight: 500;
-  font-style: italic;
-}
-
-/* Estilo compacto para las mesas */
-.mesa-compacta {
-  aspect-ratio: 1;
-  background: white;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  color: #5a5a7a;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  border: 3px solid transparent;
-  position: relative;
+  transition: all 0.2s;
 }
 
-.mesa-compacta:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.mesa-compacta.estado-disponible {
-  background: linear-gradient(135deg, #e8f5e8 0%, #f8fff8 100%);
-  border-color: #4caf50;
-  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-}
-
-.mesa-compacta.estado-ocupado {
-  background: linear-gradient(135deg, #fff3e0 0%, #fff8f0 100%);
-  border-color: #ff9800;
-  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
-}
-
-
-
-.mesa-compacta .mesa-numero {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #2c3e50;
-  margin-bottom: 5px;
-}
-
-.mesa-compacta .mesa-estado {
-  font-size: 0.8rem;
-  color: #6c757d;
-  text-align: center;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  font-weight: 600;
-}
-
-.mesa-compacta.seleccionada {
-  transform: scale(1.05);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+.filter-pill:hover {
   border-color: #667eea;
-  border-width: 4px;
+  color: #667eea;
 }
 
-.mesa-compacta[draggable="true"] {
-  cursor: grab;
+.filter-pill.active {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
 }
 
-.mesa-compacta[draggable="true"]:active {
-  cursor: grabbing;
-}
-
-/* Botones de edición en modo edición */
-.botones-edicion {
-  position: absolute;
-  top: 5px;
-  right: 5px;
-  display: flex;
-  gap: 5px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.mesa-compacta:hover .botones-edicion {
-  opacity: 1;
-}
-
-.btn-editar-mesa,
-.btn-eliminar-mesa {
-  width: 25px;
-  height: 25px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
+/* ===== Leyenda ===== */
+.mesas-legend {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  transition: all 0.3s ease;
-}
-
-.btn-editar-mesa {
-  background: #17a2b8;
-  color: white;
-}
-
-.btn-editar-mesa:hover {
-  background: #138496;
-  transform: scale(1.1);
-}
-
-.btn-eliminar-mesa {
-  background: #dc3545;
-  color: white;
-}
-
-.btn-eliminar-mesa:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
-
-
-
-.sin-mesas {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px 20px;
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-}
-
-.sin-mesas-icon {
-  font-size: 4rem;
+  gap: 16px;
   margin-bottom: 20px;
+  font-size: 13px;
+  color: #5a5a7a;
 }
 
-.sin-mesas h3 {
-  color: #666;
-  margin-bottom: 10px;
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.sin-mesas p {
-  color: #999;
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
-/* Tarjetas de mesas */
+.legend-dot.disponible { background: #4caf50; }
+.legend-dot.ocupada { background: #ff9800; }
+.legend-dot.cuenta { background: #9c27b0; }
+.legend-dot.reservada { background: #2196f3; }
+
+/* ===== Card Grid ===== */
+.mesas-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+@media (min-width: 1200px) {
+  .mesas-card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+/* ===== Mesa Card ===== */
 .mesa-card {
   background: white;
-  border-radius: 15px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-  border-left: 5px solid #e1e5e9;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 2px solid #e1e5e9;
+  border-top: 5px solid #e1e5e9;
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  position: relative;
+  animation: fadeInUp 0.3s ease;
+  overflow: hidden;
 }
 
 .mesa-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
 
-.mesa-card.estado-disponible {
-  border-left-color: #4caf50;
-  background: linear-gradient(135deg, #f1f8e9 0%, #ffffff 100%);
+.mesa-card .card-top-border {
+  height: 5px;
+  width: 100%;
 }
 
-.mesa-card.estado-ocupado {
-  border-left-color: #ff9800;
-  background: linear-gradient(135deg, #fff8e1 0%, #ffffff 100%);
-}
-
-/* Header de la mesa */
-.mesa-header {
+.mesa-card .card-content {
+  padding: 20px 12px 24px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.mesa-numero {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.numero-icon {
-  font-size: 1.5rem;
-}
-
-.numero-texto {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #2c3e50;
-}
-
-.mesa-estado {
-  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.05);
 }
 
-.estado-icon {
-  font-size: 1rem;
+.mesa-card .card-icono {
+  font-size: 32px;
+  line-height: 1;
 }
 
-.estado-texto {
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.mesa-card .card-numero {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a2332;
 }
 
+/* Estado: Libre */
+.mesa-card.estado-libre {
+  border-color: #4caf50;
+}
+.mesa-card.estado-libre .card-top-border {
+  background: #4caf50;
+}
 
+/* Estado: Ocupada */
+.mesa-card.estado-ocupado {
+  border-color: #ff9800;
+}
+.mesa-card.estado-ocupado .card-top-border {
+  background: #ff9800;
+}
 
+/* Estado: Cuenta */
+.mesa-card.estado-cuenta {
+  border-color: #9c27b0;
+}
+.mesa-card.estado-cuenta .card-top-border {
+  background: #9c27b0;
+}
 
+/* Estado: Reservada */
+.mesa-card.estado-reservada {
+  border-color: #2196f3;
+}
+.mesa-card.estado-reservada .card-top-border {
+  background: #2196f3;
+}
 
+.mesa-card .card-actions .btn-sm.btn-pedido {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+}
+
+.mesa-card .card-actions .btn-sm.btn-pedido:hover {
+  background: linear-gradient(135deg, #f57c00, #e65100);
+}
+
+.mesa-card .card-actions .btn-sm.btn-cuenta {
+  background: linear-gradient(135deg, #9c27b0, #7b1fa2);
+  color: white;
+}
+
+.mesa-card .card-actions .btn-sm.btn-cuenta:hover {
+  background: linear-gradient(135deg, #7b1fa2, #6a1b9a);
+}
+
+/* ===== Grid vacío ===== */
+.grid-status {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: #5a5a7a;
+}
+
+.grid-status .status-icono {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.grid-status h3 {
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+/* ===== Animaciones ===== */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Position grid (modo edición) ===== */
+.mesas-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: min-content;
+  gap: 8px;
+  padding: 10px;
+  background: #f0f2f5;
+  border-radius: 12px;
+}
+
+.posicion-mesa {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  min-height: 80px;
+}
+
+.posicion-vacia {
+  aspect-ratio: 1;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.posicion-vacia:hover {
+  border-color: #28a745;
+  background: #d4edda;
+  transform: scale(1.02);
+}
+
+.posicion-vacia .icono-plus {
+  font-size: 18px;
+  color: #adb5bd;
+}
+
+/* ===== Mesa Edit Card (modo edición) ===== */
+.mesa-edit-card {
+  background: white;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+  border: 2px solid #e1e5e9;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+  animation: fadeInUp 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.mesa-edit-card .edit-card-top-border {
+  height: 4px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.mesa-edit-card .edit-card-content {
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1;
+  min-height: 70px;
+}
+
+.mesa-edit-card .edit-card-numero {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a2332;
+  line-height: 1.2;
+}
+
+.mesa-edit-card .edit-card-info {
+  display: flex;
+  gap: 4px;
+  font-size: 9px;
+  color: #6c757d;
+  flex-wrap: wrap;
+  justify-content: center;
+  line-height: 1.1;
+}
+
+.mesa-edit-card .edit-card-info span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mesa-edit-card .edit-card-acciones {
+  display: flex;
+  gap: 4px;
+  padding-top: 4px;
+  margin-top: auto;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn-accion-editar,
+.btn-accion-eliminar {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.btn-accion-editar {
+  background: #e3f2fd;
+}
+.btn-accion-editar:hover {
+  background: #bbdefb;
+}
+
+.btn-accion-eliminar {
+  background: #ffebee;
+}
+.btn-accion-eliminar:hover {
+  background: #ffcdd2;
+}
+
+/* ===== Formas geométricas ===== */
+/* Redondeado (default) */
+.mesa-edit-card {
+  border-radius: 10px;
+}
+
+/* Circular */
+.mesa-edit-card.forma-circle {
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.mesa-edit-card.forma-circle .edit-card-content {
+  aspect-ratio: 1;
+  min-height: auto;
+}
+
+.mesa-edit-card.forma-circle .edit-card-top-border {
+  display: none;
+}
+
+/* Cuadrado */
+.mesa-edit-card.forma-square {
+  border-radius: 3px;
+  aspect-ratio: 1;
+}
+
+.mesa-edit-card.forma-square .edit-card-content {
+  aspect-ratio: 1;
+  min-height: auto;
+}
+
+/* Rectángulo horizontal */
+.mesa-edit-card.forma-rectangle {
+  border-radius: 6px;
+  aspect-ratio: 1.4 / 1;
+}
+
+.mesa-edit-card.forma-rectangle .edit-card-content {
+  aspect-ratio: 1.4 / 1;
+  min-height: auto;
+}
+
+/* Hexágono */
+.mesa-edit-card.forma-hexagon {
+  border-radius: 0;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%);
+  aspect-ratio: 1;
+}
+
+.mesa-edit-card.forma-hexagon .edit-card-content {
+  aspect-ratio: 1;
+  min-height: auto;
+}
+
+.mesa-edit-card.forma-hexagon .edit-card-top-border {
+  display: none;
+}
+
+/* Diamante */
+.mesa-edit-card.forma-diamond {
+  border-radius: 0;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  aspect-ratio: 1;
+}
+
+.mesa-edit-card.forma-diamond .edit-card-content {
+  aspect-ratio: 1;
+  min-height: auto;
+}
+
+.mesa-edit-card.forma-diamond .edit-card-top-border {
+  display: none;
+}
+
+/* ===== Shape Selector en formulario ===== */
+.shape-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.shape-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 70px;
+}
+
+.shape-btn:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.shape-btn.active {
+  border-color: #667eea;
+  background: #eef0ff;
+}
+
+.shape-preview {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #1a2332;
+  display: block;
+}
+
+.shape-preview.shape-rounded {
+  border-radius: 8px;
+}
+.shape-preview.shape-circle {
+  border-radius: 50%;
+}
+.shape-preview.shape-square {
+  border-radius: 2px;
+}
+.shape-preview.shape-rectangle {
+  border-radius: 4px;
+  width: 36px;
+  height: 24px;
+}
+.shape-preview.shape-hexagon {
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  border: none;
+  background: #1a2332;
+}
+.shape-preview.shape-diamond {
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  border: none;
+  background: #1a2332;
+}
+
+.shape-label {
+  font-size: 10px;
+  color: #5a5a7a;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Estado: Libre (edit card) */
+.mesa-edit-card.estado-disponible {
+  border-color: #4caf50;
+}
+.mesa-edit-card.estado-disponible .edit-card-top-border {
+  background: #4caf50;
+}
+.mesa-edit-card.estado-disponible.forma-circle,
+.mesa-edit-card.estado-disponible.forma-hexagon,
+.mesa-edit-card.estado-disponible.forma-diamond {
+  background: linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%);
+}
+
+/* Estado: Ocupada (edit card) */
+.mesa-edit-card.estado-ocupado {
+  border-color: #ff9800;
+}
+.mesa-edit-card.estado-ocupado .edit-card-top-border {
+  background: #ff9800;
+}
+.mesa-edit-card.estado-ocupado.forma-circle,
+.mesa-edit-card.estado-ocupado.forma-hexagon,
+.mesa-edit-card.estado-ocupado.forma-diamond {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffffff 100%);
+}
+
+/* Estado: Cuenta (edit card) */
+.mesa-edit-card.estado-cuenta {
+  border-color: #9c27b0;
+}
+.mesa-edit-card.estado-cuenta .edit-card-top-border {
+  background: #9c27b0;
+}
+.mesa-edit-card.estado-cuenta.forma-circle,
+.mesa-edit-card.estado-cuenta.forma-hexagon,
+.mesa-edit-card.estado-cuenta.forma-diamond {
+  background: linear-gradient(135deg, #f3e5f5 0%, #ffffff 100%);
+}
+
+/* Estado: Reservada (edit card) */
+.mesa-edit-card.estado-reservada {
+  border-color: #2196f3;
+}
+.mesa-edit-card.estado-reservada .edit-card-top-border {
+  background: #2196f3;
+}
+.mesa-edit-card.estado-reservada.forma-circle,
+.mesa-edit-card.estado-reservada.forma-hexagon,
+.mesa-edit-card.estado-reservada.forma-diamond {
+  background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .mesas-topbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .mesas-topbar h1 {
+    font-size: 22px;
+  }
+
+  .mesas-count {
+    font-size: 12px;
+    height: 24px;
+    padding: 0 10px;
+  }
+
+  .btn-nueva-mesa {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .mesas-card-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .filter-pill {
+    font-size: 12px;
+    padding: 4px 12px;
+  }
+
+  .mesas-legend {
+    font-size: 12px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+}
 /* Modal */
 .modal-overlay {
   position: fixed;
@@ -670,6 +874,122 @@
   transform: translateY(-1px);
   box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
   background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+
+/* Modal de gestión de salones */
+.modal-salones {
+  max-width: 500px;
+}
+
+.salones-list {
+  margin-bottom: 20px;
+}
+
+.salon-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.salon-item:hover {
+  background: #e9ecef;
+}
+
+.salon-drag-handle {
+  color: #adb5bd;
+  font-size: 16px;
+  cursor: grab;
+  user-select: none;
+}
+
+.salon-nombre {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a2332;
+}
+
+.salon-mesas-count {
+  font-size: 13px;
+  color: #6c757d;
+  background: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #e1e5e9;
+}
+
+.salon-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-salon-accion {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.btn-salon-accion.btn-editar {
+  background: #e3f2fd;
+}
+.btn-salon-accion.btn-editar:hover {
+  background: #bbdefb;
+}
+
+.btn-salon-accion.btn-eliminar-salon {
+  background: #ffebee;
+}
+.btn-salon-accion.btn-eliminar-salon:hover {
+  background: #ffcdd2;
+}
+
+.nuevo-salon-form {
+  display: flex;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #e1e5e9;
+}
+
+.input-nuevo-salon {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.input-nuevo-salon:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.btn-agregar-salon {
+  padding: 12px 24px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-agregar-salon:hover {
+  background: #1e88e5;
 }
 
 /* Modal de información de mesa */
@@ -4205,4 +4525,281 @@
   background: #5568d3;
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+/* ===== Slide-in Panel ===== */
+.mesa-panel-overlay {
+  position: fixed;
+  top: 104px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 2000;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+.mesa-panel {
+  width: 400px;
+  max-width: 90vw;
+  height: 100%;
+  background: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+  animation: slideInRight 0.25s ease;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e1e5e9;
+  flex-shrink: 0;
+}
+
+.panel-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-numero {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.panel-badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.panel-badge.estado-libre { background: #e8f5e9; color: #2e7d32; }
+.panel-badge.estado-ocupada { background: #fff3e0; color: #e65100; }
+.panel-badge.estado-cuenta { background: #f3e5f5; color: #7b1fa2; }
+.panel-badge.estado-reservada { background: #e3f2fd; color: #1565c0; }
+
+.panel-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  color: #5a5a7a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.panel-close:hover {
+  background: #e0e0e0;
+  color: #1a1a2e;
+}
+
+.panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+
+.panel-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.panel-info-item {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.panel-info-item .info-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a8aa0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.panel-info-item .info-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.panel-productos h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+}
+
+.panel-lista-productos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.panel-producto-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.panel-producto-nombre {
+  font-size: 13px;
+  font-weight: 500;
+  color: #1a1a2e;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 8px;
+}
+
+.panel-producto-monto {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2e7d32;
+  flex-shrink: 0;
+}
+
+.panel-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.panel-sin-productos {
+  text-align: center;
+  padding: 40px 20px;
+  color: #8a8aa0;
+}
+
+.panel-sin-productos .sin-icono {
+  font-size: 40px;
+  margin-bottom: 8px;
+  opacity: 0.4;
+}
+
+.panel-sin-productos p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.panel-actions {
+  padding: 16px 24px;
+  border-top: 1px solid #e1e5e9;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.panel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 48px;
+  width: 100%;
+}
+
+.panel-btn-primary {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.panel-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(102,126,234,0.35);
+}
+
+.panel-btn-secondary {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+}
+
+.panel-btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255,152,0,0.35);
+}
+
+.panel-btn-outline {
+  background: white;
+  color: #5a5a7a;
+  border: 1.5px solid #e1e5e9;
+}
+
+.panel-btn-outline:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.panel-btn-danger {
+  background: #f44336;
+  color: white;
+}
+
+.panel-btn-danger:hover {
+  background: #d32f2f;
+  transform: translateY(-1px);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .mesa-panel-overlay {
+    top: 88px;
+  }
+
+  .mesa-panel {
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  .panel-info-grid {
+    grid-template-columns: 1fr;
+  }
 }

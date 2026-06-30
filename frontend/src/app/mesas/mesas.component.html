@@ -1,93 +1,155 @@
 <div class="mesas-container">
-  <!-- Header de la pantalla de mesas -->
-  <div class="mesas-header">
-    <div class="header-left">
-      <h1>🪑 Gestión de Mesas</h1>
-      <p>Administra el estado y disponibilidad de las mesas del restaurante</p>
-    </div>
-    
-    <div class="header-right" *ngIf="puedeEditarMesas">
-      <button 
-        class="btn-edicion" 
-        [class.activo]="modoEdicion"
-        (click)="toggleModoEdicion()">
-        <span class="btn-icon">{{ modoEdicion ? '✏️' : '⚙️' }}</span>
-        <span class="btn-text">{{ modoEdicion ? 'Salir Edición' : 'Modo Edición' }}</span>
-      </button>
-    </div>
+  <!-- MODO EDICIÓN: BANNER -->
+  <div *ngIf="modoEdicion" class="edicion-banner">
+    <span class="edicion-banner-texto">
+      <strong>Modo edición</strong> — arrastra las mesas para ubicarlas como en tu local real. Usa el ícono ✏️ para gestionar salones.
+    </span>
   </div>
 
-
-
-  <!-- Grid de mesas compacto -->
-  <div class="mesas-grid" [class.modo-edicion]="modoEdicion">
-    <!-- Indicador de carga -->
-    <div *ngIf="cargandoMesas" class="sin-mesas">
-      <div class="sin-mesas-icon">⏳</div>
+  <div *ngIf="!modoEdicion" class="mesas-card-grid">
+    <div *ngIf="cargandoMesas" class="grid-status">
+      <div class="status-icono">⏳</div>
       <h3>Cargando mesas...</h3>
       <p>Por favor espera un momento</p>
     </div>
-    
-    <div *ngIf="!cargandoMesas && mesasFiltradas.length === 0 && !modoEdicion" class="sin-mesas">
-      <div class="sin-mesas-icon">🪑</div>
+
+    <div *ngIf="!cargandoMesas && mesasFiltradas.length === 0" class="grid-status">
+      <div class="status-icono">🪑</div>
       <h3>No hay mesas para mostrar</h3>
       <p>Activa el modo edición para agregar nuevas mesas</p>
     </div>
 
-    <!-- Botón de crear mesa en modo edición -->
-    <div *ngIf="modoEdicion" class="btn-crear-mesa-container">
-      <button class="btn-crear-mesa" (click)="abrirModalNuevaMesa()">
-        <span class="btn-icon">➕</span>
-        <span class="btn-text">Crear Nueva Mesa</span>
-      </button>
+    <div *ngFor="let mesa of mesasFiltradas" class="mesa-card" [ngClass]="'estado-' + (mesa.estado === 'disponible' ? 'libre' : mesa.estado)" (click)="togglePanel(mesa)">
+      <div class="card-top-border"></div>
+      <div class="card-content">
+        <div class="card-icono">
+          <span *ngIf="mesa.estado === 'disponible'">🪑</span>
+          <span *ngIf="mesa.estado === 'ocupado'">🍽️</span>
+          <span *ngIf="mesa.estado === 'cuenta'">🧾</span>
+          <span *ngIf="mesa.estado === 'reservada'">⭐</span>
+        </div>
+        <div class="card-numero">{{ mesa.numero }}</div>
+      </div>
     </div>
+  </div>
 
-    <!-- Posiciones preestablecidas en modo edición -->
-    <div 
-      *ngFor="let posicion of posicionesPreestablecidas" 
-      class="posicion-mesa"
+  <!-- POSITION GRID (modo edición) -->
+  <div *ngIf="modoEdicion" class="mesas-grid">
+    <!-- Mesas existentes -->
+    <div *ngFor="let posicion of posicionesPreestablecidas" class="posicion-mesa"
+      [style.grid-column]="posicion.y + 1"
+      [style.grid-row]="posicion.x + 1"
       [class.ocupada]="getMesaEnPosicion(posicion)"
       [class.disponible]="!getMesaEnPosicion(posicion)"
       [class.drag-over]="posicionDragOver === posicion.id"
       (dragover)="onDragOver($event, posicion.id)"
       (dragleave)="onDragLeave($event, posicion.id)"
-      (drop)="onDrop($event, posicion.id)"
-      (click)="modoEdicion ? manejarClickPosicion(posicion) : null">
-      
-      <!-- Mesa existente en esta posición -->
-      <div 
-        *ngIf="getMesaEnPosicion(posicion)" 
-        class="mesa-compacta" 
-        [ngClass]="'estado-' + getMesaEnPosicion(posicion)?.estado"
+      (drop)="onDrop($event, posicion.id)">
+      <div *ngIf="getMesaEnPosicion(posicion)" class="mesa-edit-card"
+        [ngClass]="'estado-' + getMesaEnPosicion(posicion)?.estado + ' forma-' + (getMesaEnPosicion(posicion)?.forma || 'rounded')"
         [draggable]="modoEdicion"
-        (dragstart)="onDragStart($event, getMesaEnPosicion(posicion))"
-        (click)="modoEdicion ? null : abrirModalInfoMesa(getMesaEnPosicion(posicion))"
-        [class.seleccionada]="mesaSeleccionada?.id === getMesaEnPosicion(posicion)?.id">
-        <div class="mesa-numero">{{ getMesaEnPosicion(posicion)?.numero }}</div>
-        
-        <!-- Botones de edición -->
-        <div *ngIf="modoEdicion" class="botones-edicion">
-          <button class="btn-editar-mesa" (click)="editarMesa(getMesaEnPosicion(posicion))" title="Editar">
-            ✏️
-          </button>
-          <button class="btn-eliminar-mesa" (click)="eliminarMesa(getMesaEnPosicion(posicion))" title="Eliminar">
-            🗑️
-          </button>
+        (dragstart)="onDragStart($event, getMesaEnPosicion(posicion))">
+        <div class="edit-card-top-border"></div>
+        <div class="edit-card-content">
+          <div class="edit-card-numero">{{ getMesaEnPosicion(posicion)?.numero }}</div>
+          <div class="edit-card-info" *ngIf="getMesaEnPosicion(posicion)?.estado === 'ocupado' || getMesaEnPosicion(posicion)?.estado === 'cuenta'">
+            <span class="edit-card-tiempo">
+              ⏱️ {{ calcularTiempoOcupacion(getMesaEnPosicion(posicion)!) }}
+            </span>
+            <span class="edit-card-total">
+              ${{ formatearMoneda(getMesaEnPosicion(posicion)?.totalCuenta || 0) }}
+            </span>
+          </div>
+          <div class="edit-card-acciones">
+            <button class="btn-accion-editar" (click)="editarMesa(getMesaEnPosicion(posicion)!)" title="Editar">✏️</button>
+            <button class="btn-accion-eliminar" (click)="eliminarMesa(getMesaEnPosicion(posicion)!)" title="Eliminar">🗑️</button>
+          </div>
         </div>
       </div>
-      
-      <!-- Posición vacía -->
-      <div 
-        *ngIf="!getMesaEnPosicion(posicion) && modoEdicion" 
-        class="posicion-vacia">
-        <div class="icono-plus">📍</div>
-        <div class="texto-posicion">{{ posicion.nombre }}</div>
-        <div class="texto-arrastrar">Arrastra mesa aquí</div>
+      <div *ngIf="!getMesaEnPosicion(posicion) && modoEdicion" class="posicion-vacia">
+        <span class="icono-plus">+</span>
       </div>
     </div>
   </div>
+</div>
 
+<!-- SLIDE-IN PANEL -->
+<div *ngIf="panelOpen" class="mesa-panel-overlay" (click)="closePanel()">
+  <aside class="mesa-panel" [class.open]="panelOpen" (click)="$event.stopPropagation()">
+    <div class="panel-header">
+      <div class="panel-header-info">
+        <span class="panel-numero">Mesa {{ panelMesa?.numero }}</span>
+        <span class="panel-badge" [ngClass]="'estado-' + (panelMesa?.estado === 'disponible' ? 'libre' : panelMesa?.estado)">
+          {{ panelMesa?.estado === 'disponible' ? 'Libre' : panelMesa?.estado === 'ocupado' ? 'Ocupada' : panelMesa?.estado === 'cuenta' ? 'Cuenta pedida' : 'Reservada' }}
+        </span>
+      </div>
+      <button class="panel-close" (click)="closePanel()">✕</button>
+    </div>
 
+    <!-- Info básica -->
+    <div class="panel-body">
+      <div class="panel-info-grid">
+        <div class="panel-info-item">
+          <span class="info-label">Capacidad</span>
+          <span class="info-value">{{ panelMesa?.capacidad }} personas</span>
+        </div>
+        <div class="panel-info-item" *ngIf="panelMesa?.ubicacion">
+          <span class="info-label">Ubicación</span>
+          <span class="info-value">{{ panelMesa?.ubicacion === 'salon' ? 'Salón' : panelMesa?.ubicacion === 'terraza' ? 'Terraza' : panelMesa?.ubicacion }}</span>
+        </div>
+        <div class="panel-info-item" *ngIf="panelMesa?.cliente">
+          <span class="info-label">Cliente</span>
+          <span class="info-value">{{ panelMesa?.cliente }}</span>
+        </div>
+        <div class="panel-info-item" *ngIf="panelMesa?.estado === 'ocupado' || panelMesa?.estado === 'cuenta'">
+          <span class="info-label">Tiempo</span>
+          <span class="info-value">⏱️ {{ calcularTiempoOcupacion(panelMesa!) }}</span>
+        </div>
+      </div>
+
+      <!-- Productos -->
+      <div class="panel-productos" *ngIf="panelMesa?.productos && panelMesa.productos.length > 0">
+        <h4>Productos ({{ panelMesa.productos.length }})</h4>
+        <div class="panel-lista-productos">
+          <div class="panel-producto-item" *ngFor="let producto of panelMesa.productos">
+            <div class="panel-producto-nombre">{{ producto.nombre }}</div>
+            <div class="panel-producto-monto">${{ formatearMoneda(producto.subtotal || producto.precio) }}</div>
+          </div>
+        </div>
+        <div class="panel-total">
+          <span>Total</span>
+          <span>${{ formatearMoneda(panelMesa?.totalCuenta || 0) }}</span>
+        </div>
+      </div>
+      <div class="panel-sin-productos" *ngIf="!panelMesa?.productos || panelMesa.productos.length === 0">
+        <div class="sin-icono">🍽️</div>
+        <p>No hay productos en esta mesa</p>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="panel-actions">
+      <button class="panel-btn panel-btn-primary" (click)="abrirModalInfoMesa(panelMesa!); closePanel()">
+        <span>📝</span>
+        <span>{{ panelMesa?.estado === 'disponible' ? 'Iniciar Pedido' : 'Agregar Productos' }}</span>
+      </button>
+      <button class="panel-btn panel-btn-secondary" (click)="cerrarCuenta(panelMesa!); closePanel()"
+              *ngIf="panelMesa?.estado === 'ocupado' && panelMesa?.productos?.length">
+        <span>💳</span>
+        <span>Cobrar</span>
+      </button>
+      <button class="panel-btn panel-btn-outline" (click)="abrirModalTransferirMesa(); closePanel()"
+              *ngIf="panelMesa?.estado === 'ocupado' && panelMesa?.productos?.length">
+        <span>🔄</span>
+        <span>Transferir</span>
+      </button>
+      <button class="panel-btn panel-btn-danger" (click)="liberarMesaSinPedido(panelMesa!); closePanel()"
+              *ngIf="panelMesa?.estado === 'ocupado' && (!panelMesa?.productos || panelMesa.productos.length === 0)">
+        <span>🔓</span>
+        <span>Liberar Mesa</span>
+      </button>
+    </div>
+  </aside>
 </div>
 
 <!-- Modal para crear/editar mesa -->
@@ -117,6 +179,18 @@
           min="1" 
           placeholder="Ej: 4">
       </div>
+      <div class="form-group">
+        <label>Forma de la mesa:</label>
+        <div class="shape-selector">
+          <button *ngFor="let opt of shapeOptions" class="shape-btn"
+            [class.active]="nuevaMesa.forma === opt.value"
+            (click)="nuevaMesa.forma = opt.value"
+            [title]="opt.label">
+            <span class="shape-preview" [ngClass]="'shape-' + opt.value"></span>
+            <span class="shape-label">{{ opt.label }}</span>
+          </button>
+        </div>
+      </div>
     </div>
     
     <div class="modal-footer">
@@ -143,13 +217,50 @@
         <p class="confirmacion-advertencia">Esta acción no se puede deshacer.</p>
       </div>
     </div>
-    
+
     <div class="modal-footer">
       <button class="btn-cancelar" (click)="cerrarModalConfirmacion()">Cancelar</button>
       <button class="btn-eliminar-confirmar" (click)="confirmarEliminacion()">
         <span class="btn-icon">🗑️</span>
         <span class="btn-text">Eliminar Mesa</span>
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de gestión de salones -->
+<div *ngIf="mostrarModalSalones" class="modal-overlay">
+  <div class="modal-content modal-salones" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Gestionar salones</h3>
+      <button class="modal-close" (click)="cerrarModalSalones()">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="salones-list">
+        <div class="salon-item" *ngFor="let salon of getSalones()">
+          <div class="salon-drag-handle">≡</div>
+          <div class="salon-nombre">{{ salon }}</div>
+          <div class="salon-mesas-count">{{ contarMesasPorSalon(salon) }} mesas</div>
+          <div class="salon-acciones">
+            <button class="btn-salon-accion btn-editar" (click)="toast.show('Edición de salón próximamente', 'info')" title="Editar">✏️</button>
+            <button class="btn-salon-accion btn-eliminar-salon" (click)="eliminarSalon(salon)" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+        <div class="salon-item vacio" *ngIf="getSalones().length === 0">
+          <div class="salon-nombre" style="color: #adb5bd;">No hay salones creados</div>
+        </div>
+      </div>
+
+      <div class="nuevo-salon-form">
+        <input
+          type="text"
+          [(ngModel)]="nuevoNombreSalon"
+          placeholder="Nombre del nuevo salón"
+          class="input-nuevo-salon"
+          (keyup.enter)="agregarSalon()">
+        <button class="btn-agregar-salon" (click)="agregarSalon()">Agregar</button>
+      </div>
     </div>
   </div>
 </div>

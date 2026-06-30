@@ -58,9 +58,10 @@ export interface Mesa {
   id: string;
   numero: number;
   capacidad: number;
-  estado: 'disponible' | 'ocupada' | 'ocupado' | 'reservada';
+  estado: 'disponible' | 'ocupada' | 'ocupado' | 'reservada' | 'cuenta';
   ubicacion?: string;
   posicion?: string | null;
+  forma?: 'rounded' | 'circle' | 'square' | 'rectangle' | 'hexagon' | 'diamond';
   productos?: any[]; // Frontend temporary state
   cliente?: string;
   totalCuenta?: number;

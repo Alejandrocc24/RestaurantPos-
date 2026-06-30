@@ -1,887 +1,117 @@
-<div class="ventas-container">
-  <!-- Header del componente -->
-  <div class="ventas-header">
-    <h2>📊 Panel de Ventas y Reportes</h2>
-    <div class="header-actions">
-      <button class="btn btn-primary" (click)="cargarDatos()" [disabled]="isLoading">
-        <span *ngIf="isLoading">🔄</span>
-        <span *ngIf="!isLoading">🔄</span>
-        Actualizar
+<div class="ventas-layout">
+  <!-- Columna izquierda: productos -->
+  <aside class="panel-productos">
+    <header class="pos-header">
+      <div class="pos-contexto">
+        <h2 class="contexto-titulo">Mesa {{ mesaContext.numero }} — Orden #{{ mesaContext.ordenId }}</h2>
+        <div class="contexto-meta">
+          <span class="meta-item mesero">🧑‍🍳 {{ mesaContext.mesero }}</span>
+          <span class="meta-item hora">🕐 {{ mesaContext.horaApertura | date:'HH:mm' }}</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="busqueda-bar">
+      <span class="search-icon">🔍</span>
+      <input [(ngModel)]="searchQuery" placeholder="Buscar producto..." class="search-input" />
+    </div>
+
+    <nav class="categorias-scroll">
+      <button class="cat-chip" [class.active]="categoriaActiva === null" (click)="categoriaActiva = null">
+        Todas
       </button>
+      <button *ngFor="let cat of categorias" class="cat-chip"
+              [class.active]="categoriaActiva === cat.id"
+              (click)="categoriaActiva = cat.id">
+        {{ cat.nombre }}
+      </button>
+    </nav>
 
+    <div class="productos-grid">
+      <article *ngFor="let prod of productosPOS" class="prod-card"
+               (click)="addToOrden(prod)">
+        <div class="prod-imagen">
+          <span class="prod-emoji">{{ prod.icono || '🍽️' }}</span>
+        </div>
+        <div class="prod-info">
+          <h3 class="prod-nombre">{{ prod.nombre }}</h3>
+          <span class="prod-precio">{{ formatearMoneda(prod.precio) }}</span>
+        </div>
+        <div *ngIf="prod.estado === 'agotado'" class="prod-agotado-overlay">
+          <span>Agotado</span>
+        </div>
+      </article>
+
+      <div *ngIf="productosPOS.length === 0" class="prod-empty">
+        <p>No se encontraron productos</p>
+      </div>
     </div>
-  </div>
+  </aside>
 
-  <!-- Contenido principal con tabs -->
-  <div class="main-content">
-    <!-- Tabs de navegación -->
-    <div class="tabs-container">
-      <div class="tab-header">
-        <button class="tab-button" [class.active]="currentTab === 'mesas'" (click)="cambiarTab('mesas')">
-          🪑 Mesas Cerradas
+  <!-- Columna derecha: panel de orden -->
+  <aside class="panel-orden">
+    <header class="orden-header">
+      <div class="orden-header-left">
+        <h3 class="orden-titulo">Orden activa</h3>
+        <span class="mesa-badge">Mesa {{ mesaContext.numero }}</span>
+      </div>
+      <button class="btn-limpiar" (click)="clearOrden()" title="Limpiar todo">🗑️</button>
+    </header>
+
+    <div class="orden-items">
+      <div *ngFor="let item of ordenItems; let i = index" class="orden-item">
+        <div class="item-main">
+          <div class="item-info">
+            <span class="item-nombre">{{ item.producto.nombre }}</span>
+            <div *ngIf="item.nota" class="item-nota">📝 {{ item.nota }}</div>
+          </div>
+          <div class="item-qty">
+            <button class="btn-qty" (click)="updateCantidad(i, -1); $event.stopPropagation()">−</button>
+            <span class="qty-valor">{{ item.cantidad }}</span>
+            <button class="btn-qty" (click)="updateCantidad(i, 1); $event.stopPropagation()">+</button>
+          </div>
+          <span class="item-total">{{ formatearMoneda(item.producto.precio * item.cantidad) }}</span>
+          <button class="btn-eliminar-item" (click)="removeFromOrden(i); $event.stopPropagation()">×</button>
+        </div>
+        <button class="btn-add-nota" (click)="item.showNotaInput = !item.showNotaInput; $event.stopPropagation()">
+          {{ item.showNotaInput ? '− Ocultar' : '+ Añadir nota' }}
         </button>
-        <button class="tab-button" [class.active]="currentTab === 'gastos'" (click)="cambiarTab('gastos')">
-          💸 Reporte de Gastos
-        </button>
-        <button class="tab-button" [class.active]="currentTab === 'productos'" (click)="cambiarTab('productos')">
-          🍦 Estadísticas de Productos
-        </button>
-        <button class="tab-button" [class.active]="currentTab === 'caja'" (click)="cambiarTab('caja')">
-          💰 Gestión de Caja
-        </button>
-      </div>
-    </div>
-
-    <!-- Tab 1: Mesas Cerradas -->
-    <div class="tab-content" [class.active]="currentTab === 'mesas'">
-      <!-- Filtros de fecha -->
-      <div class="filtros-section">
-        <div class="filtros-content">
-          <div class="filtro-item">
-            <label for="fechaInicio">Fecha Inicio:</label>
-            <input type="date" id="fechaInicio" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosGastos()"
-              class="form-control">>
-          </div>
-          <div class="filtro-item">
-            <label for="fechaFin">Fecha Fin:</label>
-            <input type="date" id="fechaFin" [(ngModel)]="fechaFin" (change)="aplicarFiltrosGastos()"
-              class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="filtroMesa">Filtrar por Mesa:</label>
-            <select id="filtroMesa" [(ngModel)]="filtroMesa" class="form-control">
-              <option value="todas">Todas las mesas</option>
-              <option *ngFor="let mesa of mesasDisponibles" [value]="mesa">
-                Mesa {{ mesa }}
-              </option>
-            </select>
-          </div>
-          <div class="filtro-actions">
-            <button class="btn btn-primary" (click)="aplicarFiltros()">🔍 Aplicar Filtros</button>
-            <button class="btn btn-secondary" (click)="limpiarFiltros()">🧹 Limpiar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Resumen de Recaudo -->
-      <div class="resumen-section">
-        <h3>💰 Recaudo Actual</h3>
-        <div class="resumen-cards">
-          <div class="resumen-card primary">
-            <div class="card-icon">💵</div>
-            <div class="card-content">
-              <div class="card-title">Total Recaudado</div>
-              <div class="card-value">{{ formatearMoneda(recaudoActual) }}</div>
-            </div>
-          </div>
-          <div class="resumen-card success">
-            <div class="card-icon">📊</div>
-            <div class="card-content">
-              <div class="card-title">Ventas Hoy</div>
-              <div class="card-value">{{ totalVentasHoy }}</div>
-            </div>
-          </div>
-          <div class="resumen-card info">
-            <div class="card-icon">📈</div>
-            <div class="card-content">
-              <div class="card-title">Promedio por Venta</div>
-              <div class="card-value">{{ formatearMoneda(promedioVenta) }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="tab-header-section">
-        <h3>Mesas Cerradas ({{ totalMesasCerradas }})</h3>
-        <div class="tab-summary">
-          <span class="summary-item">
-            <strong>Total:</strong> {{ formatearMoneda(getTotalMesas()) }}
-          </span>
-          <button class="btn btn-success btn-sm" (click)="exportarReporteMesas()">
-            📄 Exportar Reporte
-          </button>
-        </div>
-      </div>
-
-      <div class="table-container" *ngIf="!isLoadingMesas">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Mesa</th>
-              <th>Fecha</th>
-              <th>Total</th>
-              <th>Productos</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let mesa of mesasPaginadas" class="mesa-row" (click)="seleccionarMesa(mesa)">
-              <td class="mesa-numero">{{ mesa.numeroMesa }}</td>
-              <td>{{ formatearFecha(mesa.fecha) }}</td>
-              <td class="mesa-total">{{ formatearMoneda(mesa.total) }}</td>
-              <td class="mesa-productos">{{ mesa.cantidadProductos || 0 }}</td>
-              <td class="mesa-estado">
-                <span class="estado-badge cerrada">Cerrada</span>
-              </td>
-              <td class="mesa-acciones">
-                <button class="btn-accion-mesa" (click)="seleccionarMesa(mesa); $event.stopPropagation()"
-                  title="Ver factura e imprimir">
-                  🖨️ Factura
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <!-- Paginación -->
-        <div class="pagination" *ngIf="totalPages > 1">
-          <button class="btn btn-sm" [disabled]="currentPage === 1" (click)="cambiarPagina(currentPage - 1)">
-            ← Anterior
-          </button>
-          <span class="page-info">Página {{ currentPage }} de {{ totalPages }}</span>
-          <button class="btn btn-sm" [disabled]="currentPage === totalPages" (click)="cambiarPagina(currentPage + 1)">
-            Siguiente →
-          </button>
-        </div>
-      </div>
-
-      <div class="loading-spinner" *ngIf="isLoadingMesas">
-        <div class="spinner">🔄</div>
-        <p>Cargando mesas cerradas...</p>
-      </div>
-    </div>
-
-    <!-- Tab 2: Reporte de Gastos -->
-    <div class="tab-content" [class.active]="currentTab === 'gastos'">
-      <!-- Filtros de fecha -->
-      <div class="filtros-section">
-        <div class="filtros-content">
-          <div class="filtro-item">
-            <label for="fechaInicioGastos">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioGastos" [(ngModel)]="fechaInicio" (change)="onFechagastoChange()"
-              class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="fechaFinGastos">Fecha Fin:</label>
-            <input type="date" id="fechaFinGastos" [(ngModel)]="fechaFin" (change)="onFechagastoChange()"
-              class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="filtroGasto">Filtrar Gasto:</label>
-            <input type="text" id="filtroGasto" [(ngModel)]="filtroGasto" placeholder="Descripción o categoría"
-              class="form-control" (input)="onFiltroGastoChange()">
-          </div>
-          <div class="filtro-actions">
-            <button class="btn btn-primary" (click)="aplicarFiltrosGastos()">🔍 Aplicar Filtros</button>
-            <button class="btn btn-secondary" (click)="limpiarFiltrosGastos()">🧹 Limpiar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="tab-header-section">
-        <h3>Reporte de Gastos</h3>
-        <div class="tab-summary">
-          <span class="summary-item">
-            <strong>Total Gastos:</strong> {{ formatearMoneda(gastosTotalFiltrados) }}
-            <span *ngIf="filtroGasto && filtroGasto.trim() !== ''" class="filtro-info">
-              (Filtrado: {{ gastosFiltrados.length }} de {{ gastosHoy.length }} gastos)
-            </span>
-            <span *ngIf="!filtroGasto || filtroGasto.trim() === ''" class="filtro-info">
-              ({{ gastosHoy.length }} gastos)
-            </span>
-          </span>
-          <button class="btn btn-success btn-sm" (click)="exportarReporteGastos()">
-            📄 Exportar Reporte
-          </button>
-        </div>
-      </div>
-
-      <div class="table-container" *ngIf="!isLoadingGastos">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Fecha</th>
-              <th>Descripción</th>
-              <th>Categoría</th>
-              <th>Monto</th>
-              <th>Proveedor</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let gasto of gastosFiltrados">
-              <td>{{ formatearFecha(gasto.fecha) }}</td>
-              <td class="gasto-descripcion">{{ gasto.descripcion }}</td>
-              <td class="gasto-categoria">{{ gasto.categoria }}</td>
-              <td class="gasto-monto">{{ formatearMoneda(gasto.monto) }}</td>
-              <td class="gasto-proveedor">{{ (gasto.proveedor === 'personalizado' ? gasto.proveedor_personalizado :
-                gasto.proveedor) || 'N/A' }}</td>
-            </tr>
-            <tr *ngIf="gastosFiltrados.length === 0">
-              <td colspan="5" style="text-align: center; color: #999;">
-                No se encontraron gastos que coincidan con el filtro "{{ filtroGasto }}"
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="loading-spinner" *ngIf="isLoadingGastos">
-        <div class="spinner">🔄</div>
-        <p>Cargando gastos...</p>
-      </div>
-    </div>
-
-    <!-- Tab 3: Estadísticas de Productos -->
-    <div class="tab-content" [class.active]="currentTab === 'productos'">
-      <!-- Filtros de fecha -->
-      <div class="filtros-section">
-        <div class="filtros-content">
-          <div class="filtro-item">
-            <label for="fechaInicioProductos">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioProductos" [(ngModel)]="fechaInicio" (change)="aplicarFiltrosProductos()"
-              class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="fechaFinProductos">Fecha Fin:</label>
-            <input type="date" id="fechaFinProductos" [(ngModel)]="fechaFin" (change)="aplicarFiltrosProductos()"
-              class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="filtroCategoria">Filtrar Categoría:</label>
-            <select id="filtroCategoria" [(ngModel)]="filtroCategoria" class="form-control"
-              (change)="onFiltroCategoriaChange()">
-              <option value="todas">Todas las categorías</option>
-              <option *ngFor="let categoria of categoriasDisponibles" [value]="categoria">
-                {{ categoria }}
-              </option>
-            </select>
-          </div>
-          <div class="filtro-item">
-            <label for="filtroProducto">Filtrar Producto:</label>
-            <input type="text" id="filtroProducto" [(ngModel)]="filtroProducto" placeholder="Nombre del producto"
-              class="form-control" (input)="onFiltroProductoChange()">
-          </div>
-          <div class="filtro-actions">
-            <button class="btn btn-primary" (click)="aplicarFiltrosProductos()">🔍 Aplicar Filtros</button>
-            <button class="btn btn-secondary" (click)="limpiarFiltrosProductos()">🧹 Limpiar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="tab-header-section">
-        <h3>Estadísticas de Productos Vendidos</h3>
-        <div class="tab-summary">
-          <span class="summary-item">
-            <strong>Total Productos:</strong> {{ productosFiltrados.length }}
-            <span
-              *ngIf="(filtroProducto && filtroProducto.trim() !== '') || (filtroCategoria && filtroCategoria !== 'todas')"
-              class="filtro-info">
-              (Filtrado: {{ productosFiltrados.length }} de {{ productosVendidos.length }})
-            </span>
-          </span>
-          <button class="btn btn-success btn-sm" (click)="exportarReporteProductos()">
-            📄 Exportar Reporte
-          </button>
-        </div>
-      </div>
-
-      <div class="stats-container" *ngIf="!isLoadingProductos">
-        <!-- Top 10 Productos -->
-        <div class="top-productos-section">
-          <h4>🏆 Productos Vendidos</h4>
-          <div class="productos-grid">
-            <div class="producto-card" *ngFor="let producto of productosFiltrados; let i = index">
-              <div class="producto-ranking">#{{ i + 1 }}</div>
-              <div class="producto-info">
-                <div class="producto-nombre">{{ producto.nombre }}</div>
-                <div class="producto-categoria">{{ producto.categoria }}</div>
-                <div class="producto-stats">
-                  <span class="cantidad">Cantidad: {{ producto.cantidad }}</span>
-                  <span class="total">Total: {{ formatearMoneda(producto.total) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Gráfico de barras simple -->
-        <div class="chart-section">
-          <h4>📊 Distribución de Ventas</h4>
-          <div class="chart-container">
-            <div class="chart-bar" *ngFor="let producto of productosFiltrados">
-              <div class="bar-label">{{ producto.nombre }}</div>
-              <div class="bar-container">
-                <div class="bar-fill" [style.width.%]="getBarPercentage(producto.cantidad)"></div>
-              </div>
-              <div class="bar-value">{{ producto.cantidad }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="loading-spinner" *ngIf="isLoadingProductos">
-        <div class="spinner">🔄</div>
-        <p>Cargando estadísticas de productos...</p>
-      </div>
-    </div>
-
-    <!-- Tab 4: Gestión de Caja -->
-    <div class="tab-content" [class.active]="currentTab === 'caja'">
-      <!-- Filtros de fecha -->
-      <div class="filtros-section">
-        <div class="filtros-content">
-          <div class="filtro-item">
-            <label for="fechaInicioCaja">Fecha Inicio:</label>
-            <input type="date" id="fechaInicioCaja" [(ngModel)]="fechaInicio" class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="fechaFinCaja">Fecha Fin:</label>
-            <input type="date" id="fechaFinCaja" [(ngModel)]="fechaFin" class="form-control">
-          </div>
-          <div class="filtro-item">
-            <label for="filtroCaja">Filtrar Estado:</label>
-            <select id="filtroCaja" [(ngModel)]="filtroEstadoCaja" class="form-control">
-              <option value="">Todos los estados</option>
-              <option value="abierta">Cajas Abiertas</option>
-              <option value="cerrada">Cajas Cerradas</option>
-            </select>
-          </div>
-          <div class="filtro-actions">
-            <button class="btn btn-primary" (click)="aplicarFiltrosCaja()">🔍 Aplicar Filtros</button>
-            <button class="btn btn-secondary" (click)="limpiarFiltrosCaja()">🧹 Limpiar</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="tab-header-section">
-        <h3>💰 Gestión de Caja</h3>
-        <div class="tab-summary">
-          <span class="summary-item">
-            <strong>Estado:</strong>
-            <span *ngIf="cajaAbierta" class="estado-badge abierta">Caja Abierta</span>
-            <span *ngIf="!cajaAbierta" class="estado-badge cerrada">Caja Cerrada</span>
-          </span>
-        </div>
-      </div>
-
-      <!-- Controles de caja -->
-      <div class="caja-controls" *ngIf="!isLoadingCaja">
-        <div class="caja-status">
-          <div class="status-card" [class.abierta]="cajaAbierta" [class.cerrada]="!cajaAbierta">
-            <div class="status-icon">{{ cajaAbierta ? '💰' : '🔒' }}</div>
-            <div class="status-info">
-              <h4>{{ cajaAbierta ? 'Caja Abierta' : 'Caja Cerrada' }}</h4>
-              <p *ngIf="cajaAbierta">
-                Abierta el: {{ formatearFecha(cajaActual?.fecha_apertura || cajaActual?.fechaApertura) }}<br>
-                Monto inicial: {{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0) }}
-              </p>
-              <p *ngIf="!cajaAbierta">No hay caja abierta actualmente</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="caja-actions">
-          <button *ngIf="!cajaAbierta" class="btn btn-success btn-lg" (click)="mostrarModalAbrirCaja()"
-            [disabled]="isLoadingCaja">
-            🚀 Abrir Caja
-          </button>
-          <button *ngIf="cajaAbierta" class="btn btn-danger btn-lg" (click)="cerrarCaja()" [disabled]="isLoadingCaja">
-            🔒 Cerrar Caja
-          </button>
-        </div>
-      </div>
-
-      <!-- Reporte de cajas cerradas -->
-      <div class="cajas-cerradas-section">
-        <div class="section-header">
-          <h4>📊 Reporte de Cajas Cerradas</h4>
-          <button class="btn btn-success btn-sm" (click)="exportarReporteCaja()">
-            📄 Exportar Reporte
-          </button>
-        </div>
-        <div class="table-container" *ngIf="!isLoadingCaja && cajasCerradas.length > 0">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Fecha Cierre</th>
-                <th>Monto Inicial</th>
-                <th>Monto Final</th>
-                <th>Total Gastos</th>
-                <th>Diferencia</th>
-                <th>Estado</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let caja of cajasCerradas">
-                <td>{{ formatearFecha(caja.fecha_cierre || caja.fechaCierre) }}</td>
-                <td>{{ formatearMoneda(caja.monto_inicial || caja.montoInicial || 0) }}</td>
-                <td>{{ formatearMoneda(caja.monto_final || caja.montoFinal || 0) }}</td>
-                <td>{{ formatearMoneda(caja.total_gastos || 0) }}</td>
-                <td [class.positivo]="calcularDiferenciaCajaCerrada(caja) >= 0"
-                  [class.negativo]="calcularDiferenciaCajaCerrada(caja) < 0">
-                  {{ formatearMoneda(calcularDiferenciaCajaCerrada(caja)) }}
-                </td>
-                <td>
-                  <span class="estado-badge cerrada">{{ caja.estado || 'Cerrada' }}</span>
-                </td>
-                <td>
-                  <button class="btn btn-info btn-sm" (click)="verTicketCaja(caja)" title="Ver e imprimir ticket">
-                    🖨️ Ver Ticket
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="no-data" *ngIf="!isLoadingCaja && cajasCerradas.length === 0">
-          <p>No hay cajas cerradas en el período seleccionado</p>
-        </div>
-      </div>
-
-      <div class="loading-spinner" *ngIf="isLoadingCaja">
-        <div class="spinner">🔄</div>
-        <p>Cargando información de caja...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal para Cerrar Caja -->
-  <div *ngIf="mostrarModalCierreCaja" class="modal-overlay" (click)="cerrarModalCierreCaja()">
-    <div class="modal-cierre-caja" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>🔒 Cerrar Caja - Resumen del Día</h3>
-        <button class="btn-cerrar-modal" (click)="cerrarModalCierreCaja()">✕</button>
-      </div>
-
-      <div class="modal-body">
-        <!-- Información de la caja -->
-        <div class="caja-info">
-          <div class="info-item">
-            <span class="info-label">Monto Inicial:</span>
-            <span class="info-value">{{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0)
-              }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">Fecha de Apertura:</span>
-            <span class="info-value">{{ (cajaActual?.fecha_apertura || cajaActual?.fechaApertura) | date:'dd/MM/yyyy
-              HH:mm' }}</span>
-          </div>
-        </div>
-
-        <!-- Resumen financiero del día -->
-        <div class="resumen-financiero">
-          <h4>💰 Resumen Financiero del Día</h4>
-
-          <div class="resumen-grid">
-            <div class="resumen-item positivo">
-              <div class="resumen-icono">📈</div>
-              <div class="resumen-content">
-                <div class="resumen-label">Recaudo Total</div>
-                <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.recaudoTotal) }}</div>
-              </div>
-            </div>
-
-            <div class="resumen-item negativo">
-              <div class="resumen-icono">💸</div>
-              <div class="resumen-content">
-                <div class="resumen-label">Gastos Totales</div>
-                <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.gastosTotal) }}</div>
-              </div>
-            </div>
-
-            <div class="resumen-item efectivo">
-              <div class="resumen-icono">💵</div>
-              <div class="resumen-content">
-                <div class="resumen-label">Pagos en Efectivo</div>
-                <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.pagosEfectivo) }}</div>
-              </div>
-            </div>
-
-            <div class="resumen-item transferencia">
-              <div class="resumen-icono">🏦</div>
-              <div class="resumen-content">
-                <div class="resumen-label">Pagos por Transferencia</div>
-                <div class="resumen-valor">{{ formatearMoneda(resumenCierreCaja.pagosTransferencia) }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Cálculo del efectivo esperado -->
-        <div class="efectivo-esperado">
-          <h4>🧮 Cálculo del Efectivo en Caja</h4>
-
-          <div class="calculo-formula">
-            <div class="formula-linea">
-              <span class="formula-label">Monto Inicial:</span>
-              <span class="formula-valor">{{ formatearMoneda(cajaActual?.monto_inicial || cajaActual?.montoInicial || 0)
-                }}</span>
-            </div>
-            <div class="formula-linea">
-              <span class="formula-label">+ Pagos en Efectivo:</span>
-              <span class="formula-valor positivo">+{{ formatearMoneda(resumenCierreCaja.pagosEfectivo) }}</span>
-            </div>
-            <div class="formula-linea">
-              <span class="formula-label">- Gastos del Día:</span>
-              <span class="formula-valor negativo">-{{ formatearMoneda(resumenCierreCaja.gastosTotal) }}</span>
-            </div>
-            <div class="formula-separador"></div>
-            <div class="formula-linea total">
-              <span class="formula-label">= Efectivo Esperado:</span>
-              <span class="formula-valor total">{{ formatearMoneda(resumenCierreCaja.efectivoEsperado) }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Campo para ingresar efectivo real -->
-        <div class="efectivo-real">
-          <h4>💵 Conteo de Efectivo</h4>
-
-          <div class="form-group">
-            <label for="efectivoReal">Efectivo Real en Caja ($):</label>
-            <input type="number" id="efectivoReal" [(ngModel)]="efectivoReal" (ngModelChange)="calcularDiferenciaCaja()"
-              class="form-control" placeholder="Ingrese el efectivo contado" min="0">
-          </div>
-
-          <div *ngIf="efectivoReal > 0" class="diferencia-caja" [class.sobrante]="diferenciaCaja > 0"
-            [class.faltante]="diferenciaCaja < 0" [class.exacto]="diferenciaCaja === 0">
-            <div class="diferencia-icono">{{ diferenciaCaja > 0 ? '📈' : diferenciaCaja < 0 ? '📉' : '✅' }}</div>
-                <div class="diferencia-content">
-                  <div class="diferencia-label">
-                    {{ diferenciaCaja > 0 ? 'Sobrante' : diferenciaCaja < 0 ? 'Faltante' : 'Exacto' }} </div>
-                      <div class="diferencia-valor">
-                        {{ diferenciaCaja === 0 ? 'Cuadra perfecto' :
-                        formatearMoneda(obtenerValorAbsoluto(diferenciaCaja)) }}
-                      </div>
-                  </div>
-                </div>
-            </div>
-
-            <!-- Advertencia importante -->
-            <div class="advertencia-cierre">
-              <div class="advertencia-icono">⚠️</div>
-              <div class="advertencia-texto">
-                <strong>Importante:</strong> Verifique que el efectivo físico en caja coincida con el monto calculado
-                antes de confirmar el cierre.
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="cerrarModalCierreCaja()">
-              Cancelar
-            </button>
-            <button class="btn btn-info" (click)="imprimirCierreCaja()" [disabled]="isLoadingCaja">
-              🖨️ Imprimir
-            </button>
-            <button class="btn btn-danger" (click)="confirmarCierreCaja()" [disabled]="isLoadingCaja">
-              <span *ngIf="isLoadingCaja">🔄</span>
-              <span *ngIf="!isLoadingCaja">🔒</span>
-              Confirmar Cierre de Caja
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal para Abrir Caja -->
-      <div *ngIf="mostrarModalCaja" class="modal-overlay" (click)="cerrarModalCaja()">
-        <div class="modal-caja" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h3>🚀 Abrir Nueva Caja</h3>
-            <button class="btn-cerrar-modal" (click)="cerrarModalCaja()">✕</button>
-          </div>
-
-          <div class="modal-body">
-            <!-- Sugerencias rápidas -->
-            <div class="sugerencias-monto-apertura">
-              <label>Sugerencias rápidas:</label>
-              <div class="sugerencias-grid">
-                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(10000)">$10,000</button>
-                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(20000)">$20,000</button>
-                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(30000)">$30,000</button>
-                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(40000)">$40,000</button>
-                <button type="button" class="btn-sugerencia" (click)="seleccionarMontoInicial(50000)">$50,000</button>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="montoInicial">Monto Inicial de Caja:</label>
-              <div class="input-group">
-                <span class="input-prefix">$</span>
-                <input type="number" id="montoInicial" [(ngModel)]="montoInicial" class="form-control"
-                  placeholder="0.00" min="0" step="0.01" autofocus>
-              </div>
-
-              <small class="form-text">Ingrese el monto inicial para abrir la caja</small>
-            </div>
-
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="cerrarModalCaja()">
-              ❌ Cancelar
-            </button>
-            <button class="btn btn-success" (click)="abrirCaja()" [disabled]="montoInicial <= 0 || isLoadingCaja">
-              <span *ngIf="isLoadingCaja">🔄</span>
-              <span *ngIf="!isLoadingCaja">🚀</span>
-              {{ isLoadingCaja ? 'Abriendo Caja...' : 'Abrir Caja' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modal de Factura -->
-      <div *ngIf="mostrarModalFactura" class="modal-overlay" (click)="cerrarModalFactura()">
-        <div class="modal-factura" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <h3>🖨️ Factura - {{ mesaSeleccionada?.numeroMesa }}</h3>
-            <button class="btn-cerrar-modal" (click)="cerrarModalFactura()">✕</button>
-          </div>
-
-          <div class="modal-body" *ngIf="mesaSeleccionada">
-            <div class="factura-preview" [style.font-size.px]="generarFactura(mesaSeleccionada).config.tamanoFuente">
-              <!-- Logo (si está configurado) -->
-              <div class="logo-factura"
-                *ngIf="generarFactura(mesaSeleccionada).config.mostrarLogo && generarFactura(mesaSeleccionada).config.logoUrl">
-                <img [src]="generarFactura(mesaSeleccionada).config.logoUrl" alt="Logo"
-                  style="max-width: 100px; height: auto;">
-              </div>
-
-              <!-- Encabezado de la factura -->
-              <div class="factura-header">
-                <div class="logo-factura">
-                  <h2>{{ generarFactura(mesaSeleccionada).config.nombreNegocio }}</h2>
-                  <p>{{ generarFactura(mesaSeleccionada).config.direccion }}</p>
-                  <p>Tel: {{ generarFactura(mesaSeleccionada).config.telefono }}</p>
-                  <p>NIT: {{ generarFactura(mesaSeleccionada).config.nit }}</p>
-                  <p>{{ generarFactura(mesaSeleccionada).config.email }}</p>
-                </div>
-                <div class="info-factura">
-                  <div class="numero-factura">{{ generarFactura(mesaSeleccionada).numeroFactura }}</div>
-                  <div class="fecha-factura">{{ generarFactura(mesaSeleccionada).fecha }}</div>
-                  <div class="hora-factura">{{ generarFactura(mesaSeleccionada).hora }}</div>
-                </div>
-              </div>
-
-              <!-- Información de la mesa -->
-              <div class="mesa-info">
-                <div class="mesa-numero-factura">Mesa: {{ mesaSeleccionada.numeroMesa }}</div>
-                <div class="mesa-fecha-factura">Fecha: {{ formatearFecha(mesaSeleccionada.fecha) }}</div>
-              </div>
-
-              <!-- Tabla de productos -->
-              <div class="productos-factura">
-                <div *ngIf="mesaSeleccionada.cargandoProductos" class="loading-productos">
-                  <p>🔄 Cargando productos...</p>
-                </div>
-                <table class="factura-table" *ngIf="!mesaSeleccionada.cargandoProductos">
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th>Cant.</th>
-                      <th>Precio</th>
-                      <th>Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let item of generarFactura(mesaSeleccionada).items">
-                      <td>{{ item.descripcion }}</td>
-                      <td>{{ item.cantidad }}</td>
-                      <td>{{ formatearMoneda(item.precioUnitario) }}</td>
-                      <td>{{ formatearMoneda(item.total) }}</td>
-                    </tr>
-                    <tr *ngIf="generarFactura(mesaSeleccionada).items.length === 0">
-                      <td colspan="4" style="text-align: center; color: #999;">
-                        Sin productos registrados
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- Totales -->
-              <div class="totales-factura">
-                <div class="total-linea">
-                  <span>Subtotal:</span>
-                  <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).subtotal) }}</span>
-                </div>
-                <div class="total-linea" *ngIf="generarFactura(mesaSeleccionada).config.mostrarIVA">
-                  <span>IVA ({{ generarFactura(mesaSeleccionada).config.porcentajeIVA }}%):</span>
-                  <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).iva) }}</span>
-                </div>
-                <div class="total-linea total-final">
-                  <span>Total:</span>
-                  <span>{{ formatearMoneda(generarFactura(mesaSeleccionada).total) }}</span>
-                </div>
-              </div>
-
-              <!-- Pie de factura -->
-              <div class="factura-footer">
-                <p>{{ generarFactura(mesaSeleccionada).config.mensajePie }}</p>
-              </div>
-
-              <!-- Código QR (si está configurado) -->
-              <div class="factura-qr" *ngIf="generarFactura(mesaSeleccionada).config.mostrarQR">
-                <div class="qr-placeholder">📱 Código QR</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="cerrarModalFactura()">
-              ❌ Cancelar
-            </button>
-            <button class="btn btn-success" (click)="exportarFacturaPDF()"
-              [disabled]="isImprimiendo || mesaSeleccionada?.cargandoProductos">
-              📄 Exportar PDF
-            </button>
-            <button class="btn btn-primary" (click)="imprimirFactura()"
-              [disabled]="isImprimiendo || mesaSeleccionada?.cargandoProductos">
-              <span *ngIf="isImprimiendo">🔄</span>
-              <span *ngIf="!isImprimiendo">🖨️</span>
-              {{ isImprimiendo ? 'Imprimiendo...' : 'Imprimir' }}
-            </button>
-          </div>
+        <div *ngIf="item.showNotaInput" class="nota-input-wrap">
+          <input [(ngModel)]="item.nota" placeholder="Nota para este producto..." class="nota-input" (click)="$event.stopPropagation()" />
         </div>
       </div>
     </div>
 
-    <!-- Modal para Exportar Reportes -->
-    <div *ngIf="mostrarModalExportar" class="modal-overlay" (click)="cerrarModalExportar()">
-      <div class="modal-exportar" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3>📄 Exportar Reporte</h3>
-          <button class="btn-cerrar-modal" (click)="cerrarModalExportar()">✕</button>
-        </div>
+    <div *ngIf="ordenItems.length === 0" class="orden-vacia">
+      <div class="vacia-icono">🛒</div>
+      <p>Selecciona productos del menú</p>
+    </div>
 
-        <div class="modal-body">
-          <!-- Información del reporte -->
-          <div class="reporte-info">
-            <div class="reporte-tipo">
-              <span class="tipo-icono">{{ getIconoTipoReporte(tipoReporteActual) }}</span>
-              <span class="tipo-nombre">{{ getNombreTab(tipoReporteActual) }}</span>
-            </div>
-            <div class="reporte-detalles">
-              <p><strong>Período:</strong> {{ fechaInicio }} - {{ fechaFin }}</p>
-              <p><strong>Generado:</strong> {{ getFechaActual() }}</p>
-              <p><strong>Registros:</strong> {{ getCantidadRegistros(tipoReporteActual) }}</p>
-            </div>
-          </div>
-
-          <!-- Opciones de exportación -->
-          <div class="opciones-exportacion">
-            <h4>🎯 Seleccione el formato de exportación:</h4>
-
-            <div class="formato-grid">
-              <!-- Opción Excel -->
-              <div class="formato-option" [class.selected]="formatoSeleccionado === 'excel'"
-                (click)="seleccionarFormato('excel')">
-                <div class="formato-icono">📊</div>
-                <div class="formato-contenido">
-                  <div class="formato-titulo">Excel (.csv)</div>
-                  <div class="formato-descripcion">Ideal para análisis de datos y cálculos</div>
-                  <div class="formato-beneficios">
-                    <span class="beneficio">✓ Fácil edición</span>
-                    <span class="beneficio">✓ Compatibilidad universal</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Opción PDF -->
-              <div class="formato-option" [class.selected]="formatoSeleccionado === 'pdf'"
-                (click)="seleccionarFormato('pdf')">
-                <div class="formato-icono">📄</div>
-                <div class="formato-contenido">
-                  <div class="formato-titulo">PDF</div>
-                  <div class="formato-descripcion">Perfecto para presentaciones e informes</div>
-                  <div class="formato-beneficios">
-                    <span class="beneficio">✓ Formato profesional</span>
-                    <span class="beneficio">✓ Fácil impresión</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Opción Portapapeles -->
-              <div class="formato-option" [class.selected]="formatoSeleccionado === 'clipboard'"
-                (click)="seleccionarFormato('clipboard')">
-                <div class="formato-icono">📋</div>
-                <div class="formato-contenido">
-                  <div class="formato-titulo">Portapapeles</div>
-                  <div class="formato-descripcion">Copia rápida para pegar en otros programas</div>
-                  <div class="formato-beneficios">
-                    <span class="beneficio">✓ Acceso inmediato</span>
-                    <span class="beneficio">✓ Flexibilidad total</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Configuraciones adicionales -->
-          <div class="configuraciones-extra" *ngIf="formatoSeleccionado">
-            <h4>⚙️ Configuraciones adicionales:</h4>
-
-            <div class="config-opciones">
-              <label class="config-item">
-                <input type="checkbox" [(ngModel)]="incluirResumen" checked>
-                <span class="checkmark"></span>
-                <span class="config-label">Incluir resumen ejecutivo</span>
-              </label>
-
-              <label class="config-item">
-                <input type="checkbox" [(ngModel)]="incluirGraficos" [disabled]="formatoSeleccionado === 'clipboard'">
-                <span class="checkmark"></span>
-                <span class="config-label">Incluir elementos visuales {{ formatoSeleccionado === 'clipboard' ? '(No
-                  disponible para portapapeles)' : '' }}</span>
-              </label>
-
-              <label class="config-item" *ngIf="formatoSeleccionado === 'excel'">
-                <input type="checkbox" [(ngModel)]="incluirFormulas">
-                <span class="checkmark"></span>
-                <span class="config-label">Incluir fórmulas automáticas</span>
-              </label>
-            </div>
-          </div>
-
-          <!-- Preview del contenido -->
-          <div class="preview-contenido" *ngIf="formatoSeleccionado">
-            <h4>👀 Vista previa del contenido:</h4>
-            <div class="preview-box">
-              <div class="preview-header">
-                <span class="preview-titulo">{{ getNombreTab(tipoReporteActual) }}</span>
-                <span class="preview-fecha">{{ getFechaActual() }}</span>
-              </div>
-              <div class="preview-estadisticas">
-                <div class="stat-item">
-                  <span class="stat-label">Registros:</span>
-                  <span class="stat-valor">{{ getCantidadRegistros(tipoReporteActual) }}</span>
-                </div>
-                <div class="stat-item" *ngIf="tipoReporteActual === 'mesas'">
-                  <span class="stat-label">Total:</span>
-                  <span class="stat-valor">{{ formatearMoneda(getTotalMesas()) }}</span>
-                </div>
-                <div class="stat-item" *ngIf="tipoReporteActual === 'gastos'">
-                  <span class="stat-label">Total:</span>
-                  <span class="stat-valor">{{ formatearMoneda(gastosTotalFiltrados) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="cerrarModalExportar()">
-            ❌ Cancelar
-          </button>
-          <button class="btn btn-success" (click)="confirmarExportacion()"
-            [disabled]="!formatoSeleccionado || isExportando">
-            <span *ngIf="isExportando">🔄</span>
-            <span *ngIf="!isExportando">🚀</span>
-            {{ isExportando ? 'Exportando...' : 'Exportar Reporte' }}
-          </button>
-        </div>
+    <div *ngIf="ordenItems.length > 0" class="orden-totales">
+      <div class="total-row">
+        <span class="total-label">Subtotal</span>
+        <span class="total-valor">{{ formatearMoneda(subtotalOrden) }}</span>
+      </div>
+      <div class="total-row total-iva">
+        <span class="total-label">IVA (19%)</span>
+        <span class="total-valor">{{ formatearMoneda(ivaOrden) }}</span>
+      </div>
+      <div class="total-row total-final">
+        <span class="total-label">TOTAL</span>
+        <span class="total-valor">{{ formatearMoneda(totalOrden) }}</span>
       </div>
     </div>
+
+    <div *ngIf="ordenItems.length > 0" class="orden-acciones">
+      <button class="btn-enviar-cocina" (click)="enviarCocina()">
+        👨‍🍳 Enviar a cocina
+      </button>
+      <button class="btn-cobrar" (click)="cobrar()">
+        💰 Cobrar {{ totalOrdenFormateado }}
+      </button>
+      <button class="btn-pedir-cuenta" (click)="pedirCuenta()">
+        Pedir cuenta
+      </button>
+    </div>
+  </aside>
+</div>

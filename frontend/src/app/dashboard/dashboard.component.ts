@@ -5,7 +5,7 @@ import { AuthService } from '../services/auth.service';
 import { PermissionsService } from '../services/permissions.service';
 import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
-import { SidebarComponent } from '../sidebar/sidebar.component';
+import { TopnavComponent } from '../topnav/topnav.component';
 import { ProductosComponent } from '../productos/productos.component';
 import { CategoriaProductosComponent } from '../productos/categoria-productos/categoria-productos.component';
 import { GruposModificadoresComponent } from '../productos/grupos-modificadores/grupos-modificadores.component';
@@ -25,7 +25,7 @@ import { VentasComponent } from '../ventas/ventas.component';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, SidebarComponent, ProductosComponent, CategoriaProductosComponent, GruposModificadoresComponent, GestionComentariosComponent, CocinaComponent, GastosComponent, ProveedoresComponent, CategoriaGastosComponent, ConfiguracionComponent, RespaldoComponent, MesasComponent, VentasComponent, ToastContainerComponent],
+  imports: [CommonModule, TopnavComponent, ProductosComponent, CategoriaProductosComponent, GruposModificadoresComponent, GestionComentariosComponent, CocinaComponent, GastosComponent, ProveedoresComponent, CategoriaGastosComponent, ConfiguracionComponent, RespaldoComponent, MesasComponent, VentasComponent, ToastContainerComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })

@@ -15,6 +15,7 @@ import { ModalHistoryManager } from '../shared/utils/modal-history-manager';
 import { SupabaseService } from '../services/supabase.service';
 import { ApiService } from '../services/api.service';
 import { SocketService } from '../services/socket.service';
+import { ZonaService } from '../services/zona.service';
 import Swal from 'sweetalert2';
 
 interface CategoriaProducto {
@@ -110,6 +111,10 @@ interface PasoEspecial {
 export class MesasComponent implements OnInit, OnDestroy {
   mesas: Mesa[] = [];
   mesasFiltradas: Mesa[] = [];
+  filtroActivo: string = 'todas';
+  zonaActiva: string = 'salon';
+  panelOpen = false;
+  panelMesa: Mesa | null = null;
   mostrarModalNuevaMesa = false;
   nuevaMesa: Partial<Mesa> = {};
   mesaSeleccionada: Mesa | null = null;
@@ -127,6 +132,18 @@ export class MesasComponent implements OnInit, OnDestroy {
   // Modal de información de mesa
   mostrarModalInfoMesa = false;
   mesaSeleccionadaInfo: Mesa | null = null;
+
+  // Modal de gestión de salones
+  mostrarModalSalones = false;
+  nuevoNombreSalon = '';
+  shapeOptions = [
+    { value: 'rounded', label: 'Redondeada' },
+    { value: 'circle', label: 'Circular' },
+    { value: 'square', label: 'Cuadrada' },
+    { value: 'rectangle', label: 'Rectangular' },
+    { value: 'hexagon', label: 'Hexagonal' },
+    { value: 'diamond', label: 'Diamante' },
+  ];
 
   // Modal de pedido
   mostrarModalPedido = false;
@@ -268,7 +285,8 @@ export class MesasComponent implements OnInit, OnDestroy {
     private permissionsService: PermissionsService,
     private supabaseService: SupabaseService,
     private apiService: ApiService,
-    private socketService: SocketService
+    private socketService: SocketService,
+    private zonaService: ZonaService
   ) {
     if (typeof window !== 'undefined') {
       window.addEventListener('popstate', this.popStateHandler);
@@ -291,6 +309,48 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.socketService.listen('cantidadesOrdenActualizadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
     this.socketService.listen('ventaCreada').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarMesasYProductos());
     this.socketService.listen('ordenesOcultadas').pipe(takeUntil(this.destroy$)).subscribe(() => this.cargarProductosMesasOcupadas());
+
+    // Sincronizar zona desde el servicio (subtabs en LayoutComponent)
+    this.zonaService.zona$.pipe(takeUntil(this.destroy$)).subscribe(zona => {
+      this.zonaActiva = zona;
+      this.aplicarFiltros();
+    });
+
+    // Sincronizar filtro desde el servicio (dropdown en subnav)
+    this.zonaService.filtro$.pipe(takeUntil(this.destroy$)).subscribe(filtro => {
+      this.filtroActivo = filtro;
+      this.aplicarFiltros();
+    });
+
+    // Sincronizar modo edición desde el servicio (botón en subnav)
+    this.zonaService.modoEdicion$.pipe(takeUntil(this.destroy$)).subscribe(editMode => {
+      if (editMode && !this.modoEdicion) {
+        this.modoEdicion = true;
+        this.pushModalHistory('modo-edicion');
+      } else if (!editMode && this.modoEdicion) {
+        this.guardarTodasLasPosiciones();
+        this.modoEdicion = false;
+        this.removeModalHistoryEntry('modo-edicion');
+        this.mesaSeleccionada = null;
+        this.mesaArrastrando = null;
+      }
+    });
+
+    // Sincronizar apertura de modal nueva mesa desde subnav
+    this.zonaService.nuevaMesa$.pipe(takeUntil(this.destroy$)).subscribe(abrir => {
+      if (abrir) {
+        this.abrirModalNuevaMesa();
+        this.zonaService.cerrarNuevaMesa();
+      }
+    });
+
+    // Sincronizar apertura de gestión de salones desde subnav
+    this.zonaService.gestionarSalones$.pipe(takeUntil(this.destroy$)).subscribe(abrir => {
+      if (abrir) {
+        this.abrirModalGestionarSalones();
+        this.zonaService.cerrarGestionarSalones();
+      }
+    });
 
     // Cuando el socket se reconecta (ej. pérdida temporal de red), recargar todo
     this.socketService.onReconnect$.pipe(takeUntil(this.destroy$)).subscribe(() => {
@@ -621,6 +681,9 @@ export class MesasComponent implements OnInit, OnDestroy {
         break;
       case 'confirmacion':
         this.cerrarModalConfirmacion(true);
+        break;
+      case 'salones':
+        this.cerrarModalSalones();
         break;
       default:
         if (modalId && modalId.startsWith('mesas-especial-step')) {
@@ -1028,6 +1091,7 @@ export class MesasComponent implements OnInit, OnDestroy {
           ? new Date(raw.hora_apertura)
           : undefined,
       activo: typeof raw?.activo === 'boolean' ? raw.activo : true,
+      forma: raw?.forma || 'rounded',
     };
 
     return mesa;
@@ -1050,8 +1114,51 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.mesaSeleccionada = mesa;
   }
 
+  get totalMesas(): number {
+    return this.mesas.length;
+  }
+
+  get mesasOcupadas(): number {
+    return this.mesas.filter(m => m.estado === 'ocupado').length;
+  }
+
+  get mesasCuenta(): number {
+    return this.mesas.filter(m => m.estado === 'cuenta').length;
+  }
+
+  setFiltro(filtro: string): void {
+    this.zonaService.setFiltro(filtro);
+  }
+
+  setZona(zona: string): void {
+    this.zonaService.setZona(zona);
+  }
+
+  togglePanel(mesa: Mesa): void {
+    if (this.panelOpen && this.panelMesa?.id === mesa.id) {
+      this.closePanel();
+      return;
+    }
+    this.panelMesa = mesa;
+    this.panelOpen = true;
+    document.body.style.overflow = 'hidden';
+  }
+
+  closePanel(): void {
+    this.panelOpen = false;
+    this.panelMesa = null;
+    document.body.style.overflow = '';
+  }
+
   aplicarFiltros(): void {
-    this.mesasFiltradas = [...this.mesas];
+    let filtradas = [...this.mesas];
+    if (this.filtroActivo !== 'todas') {
+      filtradas = filtradas.filter(m => m.estado === this.filtroActivo);
+    }
+    if (this.zonaActiva) {
+      filtradas = filtradas.filter(m => (m.ubicacion || 'salon') === this.zonaActiva);
+    }
+    this.mesasFiltradas = filtradas;
   }
 
   cambiarEstadoMesa(mesa: Mesa, nuevoEstado: Mesa['estado']): void {
@@ -1094,9 +1201,49 @@ export class MesasComponent implements OnInit, OnDestroy {
   }
 
   abrirModalNuevaMesa(): void {
-    this.nuevaMesa = { ubicacion: 'salon' };
+    this.nuevaMesa = { ubicacion: 'salon', forma: 'rounded' };
     this.registerModalOpen('nueva-mesa', this.mostrarModalNuevaMesa);
     this.mostrarModalNuevaMesa = true;
+  }
+
+  abrirModalGestionarSalones(): void {
+    this.mostrarModalSalones = true;
+    this.registerModalOpen('salones', this.mostrarModalSalones);
+  }
+
+  cerrarModalSalones(): void {
+    this.mostrarModalSalones = false;
+    this.nuevoNombreSalon = '';
+    this.removeModalHistoryEntry('salones');
+  }
+
+  agregarSalon(): void {
+    if (this.nuevoNombreSalon.trim()) {
+      const nombre = this.nuevoNombreSalon.trim().toLowerCase();
+      const ubicacionesExistentes = [...new Set(this.mesas.map(m => m.ubicacion).filter(u => u))];
+      if (!ubicacionesExistentes.includes(nombre)) {
+        this.toast.show('Salón "' + this.nuevoNombreSalon.trim() + '" agregado. Abre una mesa en esa ubicación para que aparezca en las pestañas.', 'success');
+      }
+      this.nuevoNombreSalon = '';
+    }
+  }
+
+  eliminarSalon(salon: string): void {
+    const mesasEnSalon = this.mesas.filter(m => m.ubicacion === salon);
+    if (mesasEnSalon.length > 0) {
+      this.toast.show('No se puede eliminar "' + salon + '" porque tiene ' + mesasEnSalon.length + ' mesa(s) asignada(s).', 'error');
+      return;
+    }
+    this.toast.show('Salón eliminado', 'success');
+  }
+
+  getSalones(): string[] {
+    const ubicaciones = this.mesas.map(m => m.ubicacion).filter(u => u);
+    return [...new Set(ubicaciones)];
+  }
+
+  contarMesasPorSalon(salon: string): number {
+    return this.mesas.filter(m => m.ubicacion === salon).length;
   }
 
 
@@ -1133,14 +1280,7 @@ export class MesasComponent implements OnInit, OnDestroy {
 
   // Métodos del modo de edición
   toggleModoEdicion(): void {
-    this.modoEdicion = !this.modoEdicion;
-    if (this.modoEdicion) {
-      this.pushModalHistory('modo-edicion');
-    } else {
-      this.removeModalHistoryEntry('modo-edicion');
-      this.mesaSeleccionada = null;
-      this.mesaArrastrando = null;
-    }
+    this.zonaService.toggleModoEdicion();
   }
 
   getMesaEnPosicion(posicion: PosicionMesa): Mesa | undefined {
@@ -1449,6 +1589,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     const cambios: Record<string, any> = {
       numero: this.nuevaMesa.numero,
       capacidad: this.nuevaMesa.capacidad,
+      forma: this.nuevaMesa.forma || 'rounded',
     };
 
     cambios['posicion'] = this.nuevaMesa.posicion ?? this.mesaEditando.posicion ?? null;
@@ -1494,6 +1635,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     const payload: Partial<Mesa> = {
       numero: this.nuevaMesa.numero,
       capacidad: this.nuevaMesa.capacidad,
+      forma: this.nuevaMesa.forma || 'rounded',
       estado: 'disponible',
       ubicacion: 'salon',
       posicion,
@@ -1601,6 +1743,20 @@ export class MesasComponent implements OnInit, OnDestroy {
     } finally {
       this.mesaArrastrando = null;
     }
+  }
+
+  private guardarTodasLasPosiciones(): void {
+    const mesasConPosicion = this.mesas.filter(m => m.posicion);
+    if (mesasConPosicion.length === 0) return;
+
+    const updates = mesasConPosicion.map(m =>
+      this.supabaseService.actualizarMesa(m.id, { posicion: m.posicion })
+    );
+
+    Promise.all(updates).catch(error => {
+      console.error('Error guardando posiciones:', error);
+      this.toast.error('Error', 'No se pudieron guardar todas las posiciones');
+    });
   }
 
   // Actualizar el método crearMesaEnPosicion para que no requiera posición específica

@@ -7,6 +7,14 @@ import { VentasService } from '../services/ventas.service';
 import { ToastService } from '../shared/toast/toast.service';
 import { SupabaseService } from '../services/supabase.service';
 import { ModalHistoryManager } from '../shared/utils/modal-history-manager';
+import { Producto, CategoriaProducto } from '../types/api.models';
+
+interface ItemOrden {
+  producto: Producto;
+  cantidad: number;
+  nota: string;
+  showNotaInput?: boolean;
+}
 
 @Component({
   selector: 'app-ventas',
@@ -102,6 +110,19 @@ export class VentasComponent implements OnInit, OnDestroy {
   incluirResumen: boolean = true;
   incluirGraficos: boolean = true;
   incluirFormulas: boolean = false;
+
+  // POS - Toma de órdenes
+  searchQuery: string = '';
+  categoriaActiva: string | null = null;
+  ordenItems: ItemOrden[] = [];
+  categorias: CategoriaProducto[] = [];
+  productos: Producto[] = [];
+  mesaContext = {
+    numero: 4,
+    ordenId: 247,
+    mesero: 'Carlos',
+    horaApertura: new Date()
+  };
 
   private subscriptions: any[] = [];
   private destroy$ = new Subject<void>();
@@ -1594,6 +1615,41 @@ export class VentasComponent implements OnInit, OnDestroy {
     return new Date().toLocaleDateString('es-CO');
   }
 
+  // POS Getters
+  get productosPOS(): Producto[] {
+    let filtrados = this.productos;
+
+    if (this.categoriaActiva) {
+      filtrados = filtrados.filter(p => p.categoriaId === this.categoriaActiva);
+    }
+
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase().trim();
+      filtrados = filtrados.filter(p =>
+        p.nombre.toLowerCase().includes(q) ||
+        (p.descripcion && p.descripcion.toLowerCase().includes(q))
+      );
+    }
+
+    return filtrados;
+  }
+
+  get subtotalOrden(): number {
+    return this.ordenItems.reduce((sum, item) => sum + (item.producto.precio * item.cantidad), 0);
+  }
+
+  get ivaOrden(): number {
+    return this.subtotalOrden * 0.19;
+  }
+
+  get totalOrden(): number {
+    return this.subtotalOrden + this.ivaOrden;
+  }
+
+  get totalOrdenFormateado(): string {
+    return this.formatearMoneda(this.totalOrden);
+  }
+
   // Métodos para manejo de facturas
   async seleccionarMesa(mesa: any): Promise<void> {
     this.mesaSeleccionada = mesa;
@@ -2607,5 +2663,50 @@ export class VentasComponent implements OnInit, OnDestroy {
       default:
         break;
     }
+  }
+
+  // POS - Métodos de orden
+  addToOrden(producto: Producto): void {
+    if (producto.estado === 'agotado') return;
+
+    const existente = this.ordenItems.find(item => item.producto.id === producto.id && !item.nota);
+    if (existente) {
+      existente.cantidad++;
+    } else {
+      this.ordenItems.push({ producto, cantidad: 1, nota: '', showNotaInput: false });
+    }
+  }
+
+  removeFromOrden(index: number): void {
+    this.ordenItems.splice(index, 1);
+  }
+
+  updateCantidad(index: number, delta: number): void {
+    const item = this.ordenItems[index];
+    if (!item) return;
+    const nueva = item.cantidad + delta;
+    if (nueva <= 0) {
+      this.removeFromOrden(index);
+    } else {
+      item.cantidad = nueva;
+    }
+  }
+
+  clearOrden(): void {
+    this.ordenItems = [];
+  }
+
+  enviarCocina(): void {
+    // TODO: integrar con socket para enviar a vista de cocina
+    this.toast.show('Orden enviada a cocina', 'success');
+  }
+
+  cobrar(): void {
+    // TODO: abrir modal de cobro
+    this.toast.show('Modal de cobro - próximamente', 'info');
+  }
+
+  pedirCuenta(): void {
+    this.toast.show('Solicitud de cuenta enviada al mesero', 'info');
   }
 }

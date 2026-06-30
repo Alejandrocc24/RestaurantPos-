@@ -8,14 +8,14 @@ import { AppComponent } from './app.component';
 import { routes } from './app.routes';
 import { LoginComponent } from './login/login.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
-import { SidebarComponent } from './sidebar/sidebar.component';
+import { TopnavComponent } from './topnav/topnav.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     LoginComponent,
     DashboardComponent,
-    SidebarComponent
+    TopnavComponent
   ],
   imports: [
     BrowserModule,
