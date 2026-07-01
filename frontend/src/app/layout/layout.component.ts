@@ -24,9 +24,11 @@ export class LayoutComponent implements OnInit, OnDestroy {
   modoEdicion = false;
   filtroActivo = 'todas';
   dropdownOpen = false;
+  zonasDisponibles: string[] = [];
 
   private routerSub?: Subscription;
   private userSub?: Subscription;
+  private salonesSub?: Subscription;
   private clockInterval?: any;
 
   constructor(
@@ -62,12 +64,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
       this.filtroActivo = value;
     });
 
+    this.salonesSub = this.zonaService.salones$.subscribe(() => {
+      this.zonasDisponibles = this.zonaService.getZonasDisponibles();
+    });
+    this.zonasDisponibles = this.zonaService.getZonasDisponibles();
+
     this.loadBusinessName();
   }
 
   ngOnDestroy(): void {
     this.routerSub?.unsubscribe();
     this.userSub?.unsubscribe();
+    this.salonesSub?.unsubscribe();
     if (this.clockInterval) clearInterval(this.clockInterval);
   }
 

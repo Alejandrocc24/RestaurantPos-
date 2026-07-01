@@ -28,6 +28,24 @@
   color: #533f03;
 }
 
+.btn-gestionar-salones-banner {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.btn-gestionar-salones-banner:hover {
+  background: #5a6fd6;
+}
+
 @media (max-width: 768px) {
   .mesas-container {
     padding: 12px;
@@ -156,113 +174,7 @@
 .legend-dot.cuenta { background: #9c27b0; }
 .legend-dot.reservada { background: #2196f3; }
 
-/* ===== Card Grid ===== */
-.mesas-card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
-}
-
-@media (min-width: 1200px) {
-  .mesas-card-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
-}
-
-/* ===== Mesa Card ===== */
-.mesa-card {
-  background: white;
-  border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-  border: 2px solid #e1e5e9;
-  border-top: 5px solid #e1e5e9;
-  transition: transform 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-  position: relative;
-  animation: fadeInUp 0.3s ease;
-  overflow: hidden;
-}
-
-.mesa-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-}
-
-.mesa-card .card-top-border {
-  height: 5px;
-  width: 100%;
-}
-
-.mesa-card .card-content {
-  padding: 20px 12px 24px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.mesa-card .card-icono {
-  font-size: 32px;
-  line-height: 1;
-}
-
-.mesa-card .card-numero {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a2332;
-}
-
-/* Estado: Libre */
-.mesa-card.estado-libre {
-  border-color: #4caf50;
-}
-.mesa-card.estado-libre .card-top-border {
-  background: #4caf50;
-}
-
-/* Estado: Ocupada */
-.mesa-card.estado-ocupado {
-  border-color: #ff9800;
-}
-.mesa-card.estado-ocupado .card-top-border {
-  background: #ff9800;
-}
-
-/* Estado: Cuenta */
-.mesa-card.estado-cuenta {
-  border-color: #9c27b0;
-}
-.mesa-card.estado-cuenta .card-top-border {
-  background: #9c27b0;
-}
-
-/* Estado: Reservada */
-.mesa-card.estado-reservada {
-  border-color: #2196f3;
-}
-.mesa-card.estado-reservada .card-top-border {
-  background: #2196f3;
-}
-
-.mesa-card .card-actions .btn-sm.btn-pedido {
-  background: linear-gradient(135deg, #ff9800, #f57c00);
-  color: white;
-}
-
-.mesa-card .card-actions .btn-sm.btn-pedido:hover {
-  background: linear-gradient(135deg, #f57c00, #e65100);
-}
-
-.mesa-card .card-actions .btn-sm.btn-cuenta {
-  background: linear-gradient(135deg, #9c27b0, #7b1fa2);
-  color: white;
-}
-
-.mesa-card .card-actions .btn-sm.btn-cuenta:hover {
-  background: linear-gradient(135deg, #7b1fa2, #6a1b9a);
-}
-
-/* ===== Grid vacío ===== */
+/* ===== Grid vacío / estados ===== */
 .grid-status {
   grid-column: 1 / -1;
   text-align: center;
@@ -287,84 +199,176 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== Position grid (modo edición) ===== */
+/* ===== Unified Position Grid (ambos modos) ===== */
+/* ===== Grid de mesas (modo vista) ===== */
 .mesas-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: min-content;
-  gap: 8px;
-  padding: 10px;
-  background: #f0f2f5;
-  border-radius: 12px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 12px;
+  padding: 16px;
 }
 
+/* ===== Grid de mesas (modo edición) ===== */
+.mesas-grid.modo-edicion {
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0;
+  padding: 0;
+  background: white;
+  border: 1px solid #d0d0d0;
+}
+
+.mesas-grid.modo-edicion .posicion-mesa {
+  border: 1px solid #d0d0d0;
+  aspect-ratio: 1;
+}
+
+/* ===== Posición del grid ===== */
 .posicion-mesa {
   position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 80px;
-  min-height: 80px;
 }
 
+.posicion-mesa.drag-over {
+  outline: 2px dashed #667eea;
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* ===== Celda vacía ===== */
 .posicion-vacia {
-  aspect-ratio: 1;
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 12px;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+}
+
+.mesas-grid.modo-edicion .posicion-vacia {
+  background: white;
+  border: 1px dashed #d0d0d0;
+  border-radius: 0;
 }
 
 .posicion-vacia:hover {
+  background: #e8f5e9;
+}
+
+.mesas-grid.modo-edicion .posicion-vacia:hover {
+  background: #f0fff0;
   border-color: #28a745;
-  background: #d4edda;
-  transform: scale(1.02);
 }
 
 .posicion-vacia .icono-plus {
-  font-size: 18px;
-  color: #adb5bd;
+  font-size: 1.2rem;
+  color: #aaa;
+  font-weight: 700;
 }
 
-/* ===== Mesa Edit Card (modo edición) ===== */
-.mesa-edit-card {
+.mesas-grid.modo-edicion .posicion-vacia .icono-plus {
+  font-size: 0.9rem;
+}
+
+.texto-posicion {
+  font-size: 0.7rem;
+  color: #999;
+  text-align: center;
+  font-weight: 600;
+}
+
+.texto-arrastrar {
+  font-size: 0.7rem;
+  color: #28a745;
+  text-align: center;
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* ===== Mesa Card (ambos modos) ===== */
+.mesa-card {
+  width: 100%;
+  height: 100%;
   background: white;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  border: 2px solid #e1e5e9;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 3px solid transparent;
+  border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.15s, box-shadow 0.15s;
-  animation: fadeInUp 0.25s ease;
+  transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  position: relative;
+  aspect-ratio: 1;
 }
 
-.mesa-edit-card .edit-card-top-border {
-  height: 4px;
-  width: 100%;
-  flex-shrink: 0;
+.mesas-grid.modo-edicion .mesa-card {
+  box-shadow: none;
+  border-radius: 0;
+  border-width: 2px;
 }
 
-.mesa-edit-card .edit-card-content {
-  padding: 6px;
+.mesa-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.mesas-grid.modo-edicion .mesa-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.mesa-card .card-top-border {
+  display: none;
+}
+
+.mesa-card .card-content {
+  padding: 4px 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 1px;
   flex: 1;
-  min-height: 70px;
+  min-height: 0;
 }
 
-.mesa-edit-card .edit-card-numero {
-  font-size: 15px;
-  font-weight: 700;
+.mesa-card .card-numero {
+  font-size: 18px;
+  font-weight: 800;
   color: #1a2332;
-  line-height: 1.2;
+  line-height: 1;
 }
 
-.mesa-edit-card .edit-card-info {
+.mesa-card .card-estado-label {
+  font-size: 8px;
+  color: rgba(0,0,0,0.4);
+  font-weight: 500;
+  margin-top: 1px;
+}
+
+.mesas-grid.modo-edicion .mesa-card .card-numero {
+  font-size: 14px;
+}
+
+.mesas-grid.modo-edicion .mesa-card .card-content {
+  padding: 2px;
+  gap: 0;
+}
+
+.mesas-grid.modo-edicion .mesa-card .card-estado-label {
+  font-size: 7px;
+  margin-top: 0;
+}
+
+.mesas-grid.modo-edicion .mesa-card .card-top-border {
+  display: none;
+}
+
+.mesa-card .card-info {
   display: flex;
   gap: 4px;
   font-size: 9px;
@@ -374,13 +378,7 @@
   line-height: 1.1;
 }
 
-.mesa-edit-card .edit-card-info span {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
-.mesa-edit-card .edit-card-acciones {
+.mesa-card .card-acciones {
   display: flex;
   gap: 4px;
   padding-top: 4px;
@@ -418,79 +416,90 @@
   background: #ffcdd2;
 }
 
+/* Estados de mesa */
+.mesa-card.estado-libre {
+  background: #d5f5d5;
+  border-color: #4caf50;
+  box-shadow: 0 1px 3px rgba(76, 175, 80, 0.2);
+}
+
+.mesa-card.estado-ocupado {
+  background: #ffe8cc;
+  border-color: #ff9800;
+  box-shadow: 0 1px 3px rgba(255, 152, 0, 0.2);
+}
+
+.mesa-card.estado-cuenta {
+  background: #f3d5f5;
+  border-color: #9c27b0;
+  box-shadow: 0 1px 3px rgba(156, 39, 176, 0.2);
+}
+
+.mesa-card.estado-reservada {
+  background: #d5e8f5;
+  border-color: #2196f3;
+  box-shadow: 0 1px 3px rgba(33, 150, 243, 0.2);
+}
+
+.mesa-card.estado-disponible {
+  background: #d5f5d5;
+  border-color: #4caf50;
+  box-shadow: 0 1px 3px rgba(76, 175, 80, 0.2);
+}
+
 /* ===== Formas geométricas ===== */
-/* Redondeado (default) */
-.mesa-edit-card {
-  border-radius: 10px;
+.mesa-card.forma-rounded {
+  border-radius: 10px !important;
+  width: 75%;
+  height: 75%;
+  margin: auto;
 }
 
-/* Circular */
-.mesa-edit-card.forma-circle {
-  border-radius: 50%;
-  aspect-ratio: 1;
+.mesa-card.forma-circle {
+  border-radius: 50% !important;
+  width: 75%;
+  height: 75%;
+  margin: auto;
 }
 
-.mesa-edit-card.forma-circle .edit-card-content {
-  aspect-ratio: 1;
-  min-height: auto;
+.mesa-card.forma-square {
+  border-radius: 5px !important;
+  width: 75%;
+  height: 75%;
+  margin: auto;
 }
 
-.mesa-edit-card.forma-circle .edit-card-top-border {
-  display: none;
+.mesa-card.forma-rectangle {
+  border-radius: 6px !important;
+  width: 75%;
+  height: 75%;
+  margin: auto;
 }
 
-/* Cuadrado */
-.mesa-edit-card.forma-square {
-  border-radius: 3px;
-  aspect-ratio: 1;
-}
-
-.mesa-edit-card.forma-square .edit-card-content {
-  aspect-ratio: 1;
-  min-height: auto;
-}
-
-/* Rectángulo horizontal */
-.mesa-edit-card.forma-rectangle {
-  border-radius: 6px;
-  aspect-ratio: 1.4 / 1;
-}
-
-.mesa-edit-card.forma-rectangle .edit-card-content {
-  aspect-ratio: 1.4 / 1;
-  min-height: auto;
-}
-
-/* Hexágono */
-.mesa-edit-card.forma-hexagon {
-  border-radius: 0;
+.mesa-card.forma-hexagon {
+  border-radius: 0 !important;
   clip-path: polygon(25% 0%, 75% 0%, 100% 25%, 100% 75%, 75% 100%, 25% 100%, 0% 75%, 0% 25%);
-  aspect-ratio: 1;
+  width: 75%;
+  height: 75%;
+  margin: auto;
 }
-
-.mesa-edit-card.forma-hexagon .edit-card-content {
-  aspect-ratio: 1;
-  min-height: auto;
-}
-
-.mesa-edit-card.forma-hexagon .edit-card-top-border {
+.mesa-card.forma-hexagon .card-top-border {
   display: none;
 }
 
-/* Diamante */
-.mesa-edit-card.forma-diamond {
-  border-radius: 0;
+.mesa-card.forma-diamond {
+  border-radius: 0 !important;
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  aspect-ratio: 1;
+  width: 75%;
+  height: 75%;
+  margin: auto;
 }
-
-.mesa-edit-card.forma-diamond .edit-card-content {
-  aspect-ratio: 1;
-  min-height: auto;
-}
-
-.mesa-edit-card.forma-diamond .edit-card-top-border {
+.mesa-card.forma-diamond .card-top-border {
   display: none;
+}
+
+.mesa-card .card-content {
+  min-height: 0;
 }
 
 /* ===== Shape Selector en formulario ===== */
@@ -526,33 +535,39 @@
 }
 
 .shape-preview {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 16px;
   border: 2px solid #1a2332;
   display: block;
 }
 
 .shape-preview.shape-rounded {
-  border-radius: 8px;
+  border-radius: 5px;
 }
 .shape-preview.shape-circle {
   border-radius: 50%;
+  width: 16px;
+  height: 16px;
 }
 .shape-preview.shape-square {
   border-radius: 2px;
+  width: 16px;
+  height: 16px;
 }
 .shape-preview.shape-rectangle {
-  border-radius: 4px;
-  width: 36px;
-  height: 24px;
+  border-radius: 3px;
 }
 .shape-preview.shape-hexagon {
   clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  width: 20px;
+  height: 16px;
   border: none;
   background: #1a2332;
 }
 .shape-preview.shape-diamond {
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  width: 16px;
+  height: 16px;
   border: none;
   background: #1a2332;
 }
@@ -639,9 +654,15 @@
     font-size: 13px;
   }
 
-  .mesas-card-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+  .mesas-grid {
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .mesas-grid.modo-edicion {
+    gap: 0;
+    padding: 0;
+    max-width: 100%;
   }
 
   .filter-pill {
@@ -990,6 +1011,97 @@
 
 .btn-agregar-salon:hover {
   background: #1e88e5;
+}
+
+.salon-item.protegido {
+  opacity: 0.85;
+  background: #e9ecef;
+}
+
+.salon-badge-protegido {
+  margin-left: 8px;
+}
+
+.badge-fijo {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6c757d;
+  background: #dee2e6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Vista para zonas sin salón (mostrador/domicilio) */
+.no-salon-message {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.no-salon-icono {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.no-salon-message h3 {
+  font-size: 18px;
+  margin: 0 0 8px;
+  color: #495057;
+}
+
+.no-salon-message p {
+  font-size: 14px;
+  margin: 0;
+  color: #868e96;
+}
+
+/* Inline edit en modal de salones */
+.salon-item.editando {
+  background: #fffbe6;
+}
+
+.salon-editar-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  padding: 4px 0;
+}
+
+.input-editar-salon {
+  flex: 1;
+  padding: 6px 10px;
+  border: 2px solid #667eea;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  outline: none;
+}
+
+.input-editar-salon:focus {
+  border-color: #5a67d8;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.btn-salon-accion.btn-guardar-edicion {
+  background: #d4edda;
+  color: #155724;
+}
+
+.btn-salon-accion.btn-guardar-edicion:hover {
+  background: #c3e6cb;
+}
+
+.btn-salon-accion.btn-cancelar-edicion {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.btn-salon-accion.btn-cancelar-edicion:hover {
+  background: #f5c6cb;
 }
 
 /* Modal de información de mesa */
@@ -1401,56 +1513,53 @@
   }
   
   .mesas-grid {
-    grid-template-columns: repeat(8, 70px);
-    gap: 8px;
-    min-width: min-content;
+    gap: 4px;
+    padding: 4px;
   }
-  
+
   .mesas-grid.modo-edicion {
-    grid-template-columns: repeat(8, 70px);
-    gap: 8px;
-    min-width: min-content;
-    max-width: none;
-    margin: 0;
+    gap: 0;
+    padding: 0;
+    max-width: 100%;
   }
-  
-  .mesa-compacta .mesa-numero {
-    font-size: 1.2rem;
-  }
-  
-  .mesa-compacta .mesa-estado {
-    font-size: 0.6rem;
-    padding: 2px 4px;
-  }
-  
-  .botones-edicion {
-    opacity: 1;
-    top: 2px;
-    right: 2px;
-  }
-  
-  .btn-editar-mesa,
-  .btn-eliminar-mesa {
-    width: 18px;
-    height: 18px;
-    font-size: 0.6rem;
-  }
-  
+
   .posicion-vacia {
-    font-size: 0.7rem;
+    font-size: 0.55rem;
   }
-  
+
   .icono-plus {
-    font-size: 1.2rem;
-    margin-bottom: 4px;
+    font-size: 0.8rem;
   }
-  
-  .texto-posicion {
-    font-size: 0.6rem;
+
+  .mesa-card .card-numero {
+    font-size: 10px;
   }
-  
-  .texto-arrastrar {
-    font-size: 0.5rem;
+
+  .mesas-grid.modo-edicion .mesa-card .card-numero {
+    font-size: 10px;
+  }
+
+  .mesa-card .card-content {
+    padding: 2px;
+  }
+
+  .mesas-grid.modo-edicion .mesa-card .card-content {
+    padding: 2px;
+  }
+
+  .mesa-card .card-estado-label {
+    font-size: 8px;
+  }
+
+  .mesas-grid.modo-edicion .mesa-card .card-estado-label {
+    font-size: 6px;
+  }
+
+  .btn-accion-editar,
+  .btn-accion-eliminar {
+    width: 20px;
+    height: 20px;
+    font-size: 9px;
   }
   
   /* Responsive para modal de información */

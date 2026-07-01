@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, throwError, of, forkJoin } from 'rxjs';
 import { catchError, retry, timeout } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { ApiResponse, Producto, Mesa, Orden, Gasto, CategoriaGasto, Usuario, Rol } from '../types/api.models';
+import { ApiResponse, Producto, Mesa, Orden, Gasto, CategoriaGasto, Usuario, Rol, Salon } from '../types/api.models';
 
 @Injectable({
   providedIn: 'root'
@@ -249,6 +249,23 @@ export class ApiService {
 
   deleteRol(id: string): Observable<ApiResponse<void>> {
     return this.withHandling(this.http.delete<ApiResponse<void>>(`${this.baseUrl}/roles/${id}`));
+  }
+
+  // ============ SALONES ============
+  getSalones(): Observable<ApiResponse<Salon[]>> {
+    return this.withHandling(this.http.get<ApiResponse<Salon[]>>(`${this.baseUrl}/salones`));
+  }
+
+  createSalon(data: Partial<Salon>): Observable<ApiResponse<Salon>> {
+    return this.withHandling(this.http.post<ApiResponse<Salon>>(`${this.baseUrl}/salones`, data));
+  }
+
+  updateSalon(id: string, data: Partial<Salon>): Observable<ApiResponse<Salon>> {
+    return this.withHandling(this.http.patch<ApiResponse<Salon>>(`${this.baseUrl}/salones/${id}`, data));
+  }
+
+  deleteSalon(id: string): Observable<ApiResponse<void>> {
+    return this.withHandling(this.http.delete<ApiResponse<void>>(`${this.baseUrl}/salones/${id}`));
   }
 
   // ============ MÉTODOS HEREDADOS (para compatibilidad) ============

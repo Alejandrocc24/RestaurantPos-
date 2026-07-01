@@ -61,6 +61,7 @@ export interface Mesa {
   estado: 'disponible' | 'ocupada' | 'ocupado' | 'reservada' | 'cuenta';
   ubicacion?: string;
   posicion?: string | null;
+  salonId?: string | null;
   forma?: 'rounded' | 'circle' | 'square' | 'rectangle' | 'hexagon' | 'diamond';
   productos?: any[]; // Frontend temporary state
   cliente?: string;
@@ -153,6 +154,16 @@ export interface Tenant {
   activo: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// Salon
+export interface Salon {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  _count?: { mesas: number };
 }
 
 // Caja

@@ -2,12 +2,8 @@
   <app-topnav></app-topnav>
   <div class="subnav-bar" *ngIf="showZonaSubnav">
     <div class="subnav-inner">
-      <button class="subnav-tab" [class.active]="zonaActiva === 'salon'" (click)="setZona('salon')">Salón</button>
-      <button class="subnav-tab" [class.active]="zonaActiva === 'terraza'" (click)="setZona('terraza')">Terraza</button>
-      <button class="subnav-tab" [class.active]="zonaActiva === 'domicilio'" (click)="setZona('domicilio')">Domicilio</button>
-      <button class="subnav-tab" [class.active]="zonaActiva === 'mostrador'" (click)="setZona('mostrador')">Mostrador</button>
-      <button class="subnav-btn-salones" *ngIf="!modoEdicion" (click)="abrirGestionarSalones()" title="Gestionar salones">
-        +
+      <button class="subnav-tab" *ngFor="let zona of zonasDisponibles" [class.active]="zonaActiva === zona" (click)="setZona(zona)">
+        {{ zona.charAt(0).toUpperCase() + zona.slice(1) }}
       </button>
       <div class="subnav-right" (click)="$event.stopPropagation()">
         <div class="filter-wrapper" *ngIf="!modoEdicion">

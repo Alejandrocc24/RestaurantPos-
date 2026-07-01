@@ -173,7 +173,6 @@
 }
 
 .user-container {
-  background: rgba(255, 255, 255, 0.1);
   border-radius: var(--border-radius-sm, 6px);
   padding: 2px var(--space-2, 8px);
   display: flex;
@@ -231,11 +230,6 @@
 /* ===== COLLAPSED STATE ===== */
 .collapsed .toggle-btn {
   margin-right: auto;
-}
-
-.collapsed .user-container {
-  background: transparent;
-  padding: 0;
 }
 
 .collapsed .group-divider {

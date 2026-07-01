@@ -136,6 +136,7 @@ export class MesasComponent implements OnInit, OnDestroy {
   // Modal de gestión de salones
   mostrarModalSalones = false;
   nuevoNombreSalon = '';
+  salonEditando: { nombre: string; nombreOriginal: string; id: string } | null = null;
   shapeOptions = [
     { value: 'rounded', label: 'Redondeada' },
     { value: 'circle', label: 'Circular' },
@@ -210,41 +211,24 @@ export class MesasComponent implements OnInit, OnDestroy {
   frutas: Fruta[] = [];
   helados: Helado[] = [];
 
-  // Posiciones preestablecidas para las mesas (8x4 = 32 posiciones)
-  posicionesPreestablecidas: PosicionMesa[] = [
-    { id: 'pos1', nombre: 'A1', x: 0, y: 0 },
-    { id: 'pos2', nombre: 'A2', x: 0, y: 1 },
-    { id: 'pos3', nombre: 'A3', x: 0, y: 2 },
-    { id: 'pos4', nombre: 'A4', x: 0, y: 3 },
-    { id: 'pos5', nombre: 'B1', x: 1, y: 0 },
-    { id: 'pos6', nombre: 'B2', x: 1, y: 1 },
-    { id: 'pos7', nombre: 'B3', x: 1, y: 2 },
-    { id: 'pos8', nombre: 'B4', x: 1, y: 3 },
-    { id: 'pos9', nombre: 'C1', x: 2, y: 0 },
-    { id: 'pos10', nombre: 'C2', x: 2, y: 1 },
-    { id: 'pos11', nombre: 'C3', x: 2, y: 2 },
-    { id: 'pos12', nombre: 'C4', x: 2, y: 3 },
-    { id: 'pos13', nombre: 'D1', x: 3, y: 0 },
-    { id: 'pos14', nombre: 'D2', x: 3, y: 1 },
-    { id: 'pos15', nombre: 'D3', x: 3, y: 2 },
-    { id: 'pos16', nombre: 'D4', x: 3, y: 3 },
-    { id: 'pos17', nombre: 'E1', x: 4, y: 0 },
-    { id: 'pos18', nombre: 'E2', x: 4, y: 1 },
-    { id: 'pos19', nombre: 'E3', x: 4, y: 2 },
-    { id: 'pos20', nombre: 'E4', x: 4, y: 3 },
-    { id: 'pos21', nombre: 'F1', x: 5, y: 0 },
-    { id: 'pos22', nombre: 'F2', x: 5, y: 1 },
-    { id: 'pos23', nombre: 'F3', x: 5, y: 2 },
-    { id: 'pos24', nombre: 'F4', x: 5, y: 3 },
-    { id: 'pos25', nombre: 'G1', x: 6, y: 0 },
-    { id: 'pos26', nombre: 'G2', x: 6, y: 1 },
-    { id: 'pos27', nombre: 'G3', x: 6, y: 2 },
-    { id: 'pos28', nombre: 'G4', x: 6, y: 3 },
-    { id: 'pos29', nombre: 'H1', x: 7, y: 0 },
-    { id: 'pos30', nombre: 'H2', x: 7, y: 1 },
-    { id: 'pos31', nombre: 'H3', x: 7, y: 2 },
-    { id: 'pos32', nombre: 'H4', x: 7, y: 3 }
-  ];
+  // Posiciones preestablecidas para las mesas (8x8 = 64 posiciones)
+  posicionesPreestablecidas: PosicionMesa[] = (() => {
+    const positions: PosicionMesa[] = [];
+    for (let x = 0; x < 8; x++) {
+      for (let y = 0; y < 8; y++) {
+        const letter = String.fromCharCode(65 + x);
+        const isExisting = y < 4;
+        const idx = isExisting ? x * 4 + y + 1 : 32 + x * 4 + (y - 4) + 1;
+        positions.push({
+          id: `pos${idx}`,
+          nombre: `${letter}${y + 1}`,
+          x,
+          y
+        });
+      }
+    }
+    return positions;
+  })();
 
   // Comentarios preestablecidos por categoría de producto (se cargan desde la base de datos)
   comentariosPreestablecidos: { [key: string]: string[] } = {};
@@ -1036,17 +1020,17 @@ export class MesasComponent implements OnInit, OnDestroy {
   }
 
   private asignarPosicionesAutomaticas(mesas: Mesa[]): Mesa[] {
-    // Obtener posiciones ya ocupadas
+    const zona = this.zonaActiva || 'salon';
+    const mesasDeZona = mesas.filter(m => (m.ubicacion || 'salon') === zona);
     const posicionesOcupadas = new Set(
-      mesas.filter(m => m.posicion).map(m => m.posicion)
+      mesasDeZona.filter(m => m.posicion).map(m => m.posicion)
     );
 
     let proximaPosicion = 0;
 
     return mesas.map(mesa => {
-      // Si la mesa no tiene posición, asignarle una automáticamente
+      if ((mesa.ubicacion || 'salon') !== zona) return mesa;
       if (!mesa.posicion && proximaPosicion < this.posicionesPreestablecidas.length) {
-        // Buscar la siguiente posición disponible
         while (
           proximaPosicion < this.posicionesPreestablecidas.length &&
           posicionesOcupadas.has(this.posicionesPreestablecidas[proximaPosicion].id)
@@ -1068,7 +1052,7 @@ export class MesasComponent implements OnInit, OnDestroy {
     // convert backend enum to frontend-friendly lowercase value
     const rawEstado = String(raw?.estado ?? '').toLowerCase();
     const estado = rawEstado === 'ocupado' || rawEstado === 'ocupada' ? 'ocupado' : 'disponible';
-    const ubicacion = raw?.ubicacion === 'terraza' ? 'terraza' : 'salon';
+    const ubicacion = raw?.ubicacion ?? 'salon';
 
     const mesa: Mesa = {
       id: String(raw?.id ?? ''),
@@ -1200,8 +1184,12 @@ export class MesasComponent implements OnInit, OnDestroy {
       });
   }
 
+  get zonasDisponibles(): string[] {
+    return this.zonaService.getZonasDisponibles();
+  }
+
   abrirModalNuevaMesa(): void {
-    this.nuevaMesa = { ubicacion: 'salon', forma: 'rounded' };
+    this.nuevaMesa = { ubicacion: this.zonaService.getZona(), forma: 'rounded' };
     this.registerModalOpen('nueva-mesa', this.mostrarModalNuevaMesa);
     this.mostrarModalNuevaMesa = true;
   }
@@ -1217,33 +1205,78 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.removeModalHistoryEntry('salones');
   }
 
-  agregarSalon(): void {
+  async agregarSalon(): Promise<void> {
     if (this.nuevoNombreSalon.trim()) {
       const nombre = this.nuevoNombreSalon.trim().toLowerCase();
-      const ubicacionesExistentes = [...new Set(this.mesas.map(m => m.ubicacion).filter(u => u))];
-      if (!ubicacionesExistentes.includes(nombre)) {
-        this.toast.show('Salón "' + this.nuevoNombreSalon.trim() + '" agregado. Abre una mesa en esa ubicación para que aparezca en las pestañas.', 'success');
+      const creado = await this.zonaService.agregarSalon(nombre);
+      if (creado) {
+        this.toast.success('Salón creado', `"${this.nuevoNombreSalon.trim()}" agregado`);
+      } else {
+        this.toast.warning('Atención', `"${this.nuevoNombreSalon.trim()}" ya existe o es inválido`);
       }
       this.nuevoNombreSalon = '';
     }
   }
 
-  eliminarSalon(salon: string): void {
+  async eliminarSalon(salon: string): Promise<void> {
     const mesasEnSalon = this.mesas.filter(m => m.ubicacion === salon);
     if (mesasEnSalon.length > 0) {
       this.toast.show('No se puede eliminar "' + salon + '" porque tiene ' + mesasEnSalon.length + ' mesa(s) asignada(s).', 'error');
       return;
     }
-    this.toast.show('Salón eliminado', 'success');
+    const eliminado = await this.zonaService.eliminarSalon(salon);
+    if (eliminado) {
+      this.toast.success('Salón eliminado', `"${salon}" eliminado correctamente`);
+    } else {
+      this.toast.error('Error', `No se pudo eliminar "${salon}"`);
+    }
   }
 
   getSalones(): string[] {
-    const ubicaciones = this.mesas.map(m => m.ubicacion).filter(u => u);
-    return [...new Set(ubicaciones)];
+    return this.zonaService.getSalones();
+  }
+
+  esSalon(zona: string): boolean {
+    return this.zonaService.esSalon(zona);
+  }
+
+  esSalonProtegido(nombre: string): boolean {
+    return !this.zonaService.esSalon(nombre);
   }
 
   contarMesasPorSalon(salon: string): number {
     return this.mesas.filter(m => m.ubicacion === salon).length;
+  }
+
+  getSalonIdPorNombre(nombre: string): string | undefined {
+    return this.zonaService.getSalonesCompletos().find(s => s.nombre === nombre)?.id;
+  }
+
+  editarSalon(salon: string): void {
+    const salonCompleto = this.zonaService.getSalonesCompletos().find(s => s.nombre === salon);
+    if (!salonCompleto) return;
+    this.salonEditando = { nombre: salon, nombreOriginal: salon, id: salonCompleto.id };
+  }
+
+  guardarEdicionSalon(): void {
+    if (!this.salonEditando) return;
+    const nuevoNombre = this.salonEditando.nombre.trim().toLowerCase();
+    if (!nuevoNombre || nuevoNombre === this.salonEditando.nombreOriginal) {
+      this.salonEditando = null;
+      return;
+    }
+    this.zonaService.actualizarSalon(this.salonEditando.id, nuevoNombre).then(ok => {
+      if (ok) {
+        this.toast.success('Salón actualizado', `"${this.salonEditando!.nombreOriginal}" → "${nuevoNombre}"`);
+      } else {
+        this.toast.error('Error', 'No se pudo actualizar el salón');
+      }
+      this.salonEditando = null;
+    });
+  }
+
+  cancelarEdicionSalon(): void {
+    this.salonEditando = null;
   }
 
 
@@ -1283,13 +1316,22 @@ export class MesasComponent implements OnInit, OnDestroy {
     this.zonaService.toggleModoEdicion();
   }
 
+  private mesasDeZonaActiva(): Mesa[] {
+    return this.mesas.filter(m => (m.ubicacion || 'salon') === this.zonaActiva);
+  }
+
   getMesaEnPosicion(posicion: PosicionMesa): Mesa | undefined {
-    const mesa = this.mesas.find(mesa => mesa.posicion === posicion.id);
-    return mesa;
+    return this.mesasDeZonaActiva().find(mesa => mesa.posicion === posicion.id);
+  }
+
+  mesaCumpleFiltro(mesa: Mesa): boolean {
+    if (this.filtroActivo !== 'todas' && mesa.estado !== this.filtroActivo) return false;
+    if (this.zonaActiva && (mesa.ubicacion || 'salon') !== this.zonaActiva) return false;
+    return true;
   }
 
   posicionOcupada(posicionId: string): boolean {
-    return this.mesas.some(mesa => mesa.posicion === posicionId);
+    return this.mesasDeZonaActiva().some(mesa => mesa.posicion === posicionId);
   }
 
   manejarClickPosicion(posicion: PosicionMesa): void {
@@ -1596,6 +1638,10 @@ export class MesasComponent implements OnInit, OnDestroy {
 
     if (this.nuevaMesa.ubicacion) {
       cambios['ubicacion'] = this.nuevaMesa.ubicacion;
+      const salonId = this.getSalonIdPorNombre(this.nuevaMesa.ubicacion);
+      if (salonId) {
+        cambios['salonId'] = salonId;
+      }
     }
 
     this.mesasService.updateMesa(this.mesaEditando.id, cambios)
@@ -1632,12 +1678,16 @@ export class MesasComponent implements OnInit, OnDestroy {
       posicion = posicionDisponible ? posicionDisponible.id : null;
     }
 
-    const payload: Partial<Mesa> = {
+    const ubicacion = this.nuevaMesa.ubicacion || 'salon';
+    const salonId = this.getSalonIdPorNombre(ubicacion) || null;
+
+    const payload: any = {
       numero: this.nuevaMesa.numero,
       capacidad: this.nuevaMesa.capacidad,
       forma: this.nuevaMesa.forma || 'rounded',
       estado: 'disponible',
-      ubicacion: 'salon',
+      ubicacion,
+      salonId,
       posicion,
       activo: true,
     };

@@ -11,11 +11,10 @@ export class MesaController {
       const mesas = await req.prisma.mesa.findMany({
         orderBy: { numero: 'asc' },
         include: {
-          // Solo incluimos órdenes OCUPADAS para saber si hay productos (no para calcular estado)
-          // El estado oficial de la mesa viene del campo `estado` de la BD
+          salon: true,
           ordenes: {
             where: { estado: { in: ['PENDIENTE', 'EN_CURSO', 'COMPLETADA'] } },
-            take: 1, // solo necesitamos saber si hay alguna
+            take: 1,
           },
         },
       });
@@ -93,7 +92,7 @@ export class MesaController {
    */
   static async create(req: Request, res: Response) {
     try {
-      const { numero, capacidad, posicion, ubicacion } = req.body;
+      const { numero, capacidad, posicion, ubicacion, salonId, forma } = req.body;
 
       console.log('📝 [MesaController.create] Body recibido:', JSON.stringify(req.body));
 
@@ -115,15 +114,23 @@ export class MesaController {
         });
       }
 
-      // Check if mesa number already exists
-      const existingMesa = await req.prisma.mesa.findUnique({
-        where: { numero: numValue },
+      // Resolve salonId and ubicacion before checking duplicates
+      let resolvedUbicacion = ubicacion ? String(ubicacion) : null;
+      let resolvedSalonId = salonId ? String(salonId) : null;
+      if (resolvedSalonId && !resolvedUbicacion) {
+        const salon = await req.prisma.salon.findUnique({ where: { id: resolvedSalonId } });
+        if (salon) resolvedUbicacion = salon.nombre;
+      }
+
+      // Check if mesa number already exists in the same salon
+      const existingMesa = await req.prisma.mesa.findFirst({
+        where: { numero: numValue, salonId: resolvedSalonId },
       });
 
       if (existingMesa) {
         return res.status(400).json({
           success: false,
-          message: `Ya existe una mesa con el número ${numValue}`,
+          message: `Ya existe una mesa con el número ${numValue} en esta ubicación`,
         });
       }
 
@@ -133,8 +140,10 @@ export class MesaController {
           capacidad: capValue,
           estado: 'DISPONIBLE',
           activo: true,
+          forma: forma ? String(forma) : 'rounded',
           posicion: posicion ? String(posicion) : null,
-          ubicacion: ubicacion ? String(ubicacion) : null,
+          ubicacion: resolvedUbicacion,
+          salonId: resolvedSalonId,
         },
       });
 
@@ -228,9 +237,9 @@ export class MesaController {
   static async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { numero, capacidad, estado, activo, posicion, ubicacion } = req.body;
+      const { numero, capacidad, estado, activo, posicion, ubicacion, salonId, forma } = req.body;
 
-      console.log(`🔄 [MesaController.update] Actualizando mesa ${id} con datos:`, { numero, capacidad, estado, activo, posicion, ubicacion });
+      console.log(`🔄 [MesaController.update] Actualizando mesa ${id} con datos:`, { numero, capacidad, estado, activo, posicion, ubicacion, salonId, forma });
 
       // Build payload incrementally so we can normalize/validate
       const data: any = {};
@@ -245,6 +254,12 @@ export class MesaController {
       }
       if (ubicacion !== undefined) {
         data.ubicacion = ubicacion ? String(ubicacion) : null;
+      }
+      if (salonId !== undefined) {
+        data.salonId = salonId ? String(salonId) : null;
+      }
+      if (forma !== undefined) {
+        data.forma = forma ? String(forma) : 'rounded';
       }
 
       if (estado !== undefined) {

@@ -99,6 +99,14 @@ export class TopnavComponent implements OnInit, OnDestroy {
 
   private updateTime(): void {
     const now = new Date();
-    this.horaActual = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    let hours = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const dia = dias[now.getDay()];
+    const fecha = `${dia} ${now.getDate()} de ${meses[now.getMonth()]}`;
+    this.horaActual = `${hours}:${minutes} ${ampm} · ${fecha}`;
   }
 }

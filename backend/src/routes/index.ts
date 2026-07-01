@@ -18,6 +18,7 @@ import ventaRoutes from './venta.routes.js';
 import backupRoutes from './backup.routes.js';
 import initRoutes from './init.routes.js';
 import cartaExcelRoutes from './carta-excel.routes.js';
+import salonRoutes from './salon.routes.js';
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.use('/cajas', cajaRoutes);
 router.use('/ventas', ventaRoutes);
 router.use('/backup', backupRoutes);
 router.use('/carta-excel', cartaExcelRoutes);
+router.use('/salones', salonRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

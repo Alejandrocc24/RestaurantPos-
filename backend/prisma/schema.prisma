@@ -151,21 +151,37 @@ model OpcionModificador {
   @@index([productoId])
 }
 
+model Salon {
+  id        String   @id @default(cuid())
+  nombre    String   @unique
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  mesas     Mesa[]
+
+  @@index([activo])
+}
+
 model Mesa {
   id        String     @id @default(cuid())
-  numero    Int        @unique
+  numero    Int
   capacidad Int
+  forma     String     @default("rounded")
   estado    EstadoMesa @default(DISPONIBLE)
   activo    Boolean    @default(true)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   posicion  String?
   ubicacion String?
+  salonId   String?
+  salon     Salon?     @relation(fields: [salonId], references: [id])
   ordenes   Orden[]
   ventas    Venta[]
 
+  @@unique([numero, salonId])
   @@index([estado])
   @@index([activo])
+  @@index([salonId])
 }
 
 model Orden {
